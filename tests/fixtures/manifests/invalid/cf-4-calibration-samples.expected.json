@@ -1,0 +1,4 @@
+{
+  "rule": "CF-4",
+  "path": "dataset.representative_samples"
+}

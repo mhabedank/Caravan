@@ -1,0 +1,4 @@
+{
+  "rule": "CF-7",
+  "path": "verify.emulator"
+}

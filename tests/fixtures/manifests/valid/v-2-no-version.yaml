@@ -1,0 +1,26 @@
+# No apiVersion at all. Rule V-2 accepts it and treats it as the oldest known version, which is
+# why this fixture lives under valid/ — V-2 never rejects anything.
+model:
+  name: no-version
+  version: 0.0.1
+  topic: automotive-security
+  task: can-ids
+  template: mlp
+  params:
+    hidden: [8]
+
+dataset:
+  source: datasets/example/
+  window: 32
+  labels: [normal, attack]
+  representative_samples: 100
+
+export:
+  targets: [stm32h743]
+
+compliance:
+  eu_ai_act_class: minimal-risk
+  privacy: no-personal-data
+  intended_use: "Example model used to exercise the version-absent path"
+  known_limits:
+    - "Not trained; exists to validate the manifest contract"

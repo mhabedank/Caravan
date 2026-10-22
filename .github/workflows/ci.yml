@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv run ruff check src tests
+      - run: uv run ruff format --check src tests
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The two versions the Python policy covers: the current stable minor
+        # and the previous one (Principle XII). No more, no fewer.
+        python-version: ["3.14", "3.15"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv run --python ${{ matrix.python-version }} pytest tests/unit tests/contract tests/integration tests/layering -q
+
+  clean-environment:
+    # Level 3 of the layering rule: install only the default package, with no machine-learning
+    # framework anywhere near it, and run the suite there (SC-008).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.14
+      - run: uv build
+      - name: install only the default distribution
+        run: |
+          uv venv --python 3.14 /tmp/clean
+          VIRTUAL_ENV=/tmp/clean uv pip install --no-cache dist/caravan_ml-*.whl pytest packaging
+      - name: no framework is present
+        run: |
+          if VIRTUAL_ENV=/tmp/clean uv pip list | grep -Ei 'tensorflow|torch|^jax|keras|onnx'; then
+            echo "a machine-learning framework reached the clean environment"; exit 1
+          fi
+      - name: the suite passes there
+        run: VIRTUAL_ENV=/tmp/clean /tmp/clean/bin/python -m pytest tests -q
+
+  install-budget:
+    # Principle V: a budget that is not measured is a warning. Over 30 seconds or 50 MB fails.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.14
+      - run: uv build
+      - name: measure a cold install
+        run: |
+          uv venv --python 3.14 /tmp/budget
+          start=$(date +%s)
+          VIRTUAL_ENV=/tmp/budget uv pip install --no-cache --quiet dist/caravan_ml-*.whl
+          seconds=$(( $(date +%s) - start ))
+          bytes=$(du -sb /tmp/budget/lib | cut -f1)
+          mib=$(( bytes / 1024 / 1024 ))
+          echo "cold install: ${seconds}s, ${mib} MiB installed"
+          if [ "$seconds" -gt 30 ]; then echo "over the 30 second budget"; exit 1; fi
+          if [ "$mib" -gt 50 ]; then echo "over the 50 MB budget"; exit 1; fi
