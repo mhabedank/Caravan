@@ -27,6 +27,7 @@ from caravan.env import EnvironmentIncomplete, missing_extra_message, training_f
 from caravan.manifest._yaml import DocumentError
 from caravan.manifest.errors import (
     Finding,
+    Gate,
     RunRuleFailure,
     render_document_error,
     render_finding,
@@ -39,15 +40,18 @@ from caravan.run.report import (
     OUTCOME_ERROR,
     ConfusionMatrix,
     QualityMetric,
+    Report,
     StageOutcome,
     write_report,
 )
 from caravan.stages import cache as cache_module
 from caravan.stages.base import StageContext, StageSpec, run_stage
 
-#: The file a stage writes its measurements into, and the one the report is built from — so a
-#: reused result reports the same numbers as the run that produced it.
+#: The files a stage writes its measurements into, and the ones the report is built from — so a
+#: reused result reports the same numbers as the run that produced it. A stage that fails a gate
+#: writes its record straight into the run directory, so the same read serves both paths.
 METRICS_NAME = "metrics.json"
+QUANTIZATION_NAME = "quantization.json"
 
 #: Printed after a successful run: the manifest's name, the run directory and what the stages
 #: measured. The name comes first in every line Caravan prints, success or failure, so a log of
@@ -110,11 +114,72 @@ def _dataset_section(dataset: Any, context: StageContext) -> dict[str, Any]:
     return section
 
 
-def _metrics_from_artifact(run_dir: Path) -> dict[str, Any]:
-    path = run_dir / METRICS_NAME
+def _artifact(run_dir: Path, name: str) -> dict[str, Any]:
+    path = run_dir / name
     if not path.is_file():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:  # pragma: no cover - a stage wrote it, or it is absent
+        return {}
+
+
+#: How many rows of a stage's diagnostic table the summary shows. The whole table is in the file;
+#: this is the part a person reads before deciding whether to open it.
+DIAGNOSTIC_ROWS = 3
+
+
+def _print_diagnostic(report: Report) -> None:
+    """Show the head of whatever diagnostic a failed gate left behind.
+
+    Written against the shape rather than against the stage, so a later gate that emits a
+    per-layer profile gets the same treatment without this function learning about it. The
+    constitution asks a failed gate to emit what is needed to act on it; a file nobody mentions is
+    not emitted in any useful sense.
+    """
+    record = report.quantization or {}
+    rows = record.get("layer_errors") or []
+    if not rows:
+        return
+    from caravan.convert.debugger import GUIDE_FLAG_LEVEL, REFERENCE_RMSE_OVER_SCALE
+
+    print(
+        f"    worst layers by rmse/scale (reference {REFERENCE_RMSE_OVER_SCALE:.3f}, "
+        f"the guide flags above {GUIDE_FLAG_LEVEL}):",
+        file=sys.stderr,
+    )
+    for row in rows[:DIAGNOSTIC_ROWS]:
+        value = row.get("rmse_over_scale")
+        shown = "    —" if value is None else f"{value:6.2f}"
+        print(f"      {shown}  {row['op_name']}  {row['tensor_name']}", file=sys.stderr)
+
+
+def _attach_quantization(report: Report, run_dir: Path) -> None:
+    """Fold the quantization record into the report, verdict and all.
+
+    Read from the run directory rather than passed in memory, so the success path and the
+    failed-gate path go through the same code: the stage writes the same record either way, and a
+    gate's verdict reaches the report the same way whether it passed or not.
+    """
+    record = _artifact(run_dir, QUANTIZATION_NAME)
+    if not record:
+        return
+    report.quantization = record
+    accuracy = record.get("accuracy") or {}
+    if "verdict" in accuracy:
+        report.gates = (
+            *report.gates,
+            Gate(
+                name="accuracy",
+                result=accuracy["verdict"],
+                detail=(
+                    f"quantization cost {accuracy['quantization_drop']:.3f}, "
+                    f"accepted {accuracy['threshold']:.3f} "
+                    f"(on {accuracy['samples']} test samples, "
+                    f"resolution {accuracy['resolution']:.3f})"
+                ),
+            ),
+        )
 
 
 def run_pipeline(
@@ -202,6 +267,9 @@ def run_pipeline(
         report.outcome = OUTCOME_ERROR
         report.findings = (*report.findings, finding)
         report.training = {"finished": False}
+        # A stage that failed a gate has already written its record into the run directory, so the
+        # verdict and its numbers reach the report on this path too.
+        _attach_quantization(report, run_dir)
         write_report(run_dir, report)
         if args.json:
             sys.stdout.write(
@@ -214,10 +282,11 @@ def run_pipeline(
             )
         elif not args.quiet:
             _print_findings(name, (finding,))
+            _print_diagnostic(report)
             print(f"{name}: the run did not finish", file=sys.stderr)
         return EXIT_RULE
 
-    measured = _metrics_from_artifact(run_dir)
+    measured = _artifact(run_dir, METRICS_NAME)
     report.stages = tuple(outcomes)
     assert context is not None and dataset is not None
     report.dataset_resolved = {**_dataset_section(dataset, context), **measured.get("dataset", {})}
@@ -240,6 +309,7 @@ def run_pipeline(
             split=matrix["split"],
             dataset_version=matrix["dataset_version"],
         )
+    _attach_quantization(report, run_dir)
     report.artifacts = {
         "resolved_manifest": RESOLVED_MANIFEST_NAME,
         **{Path(artifact).stem: artifact for stage in outcomes for artifact in stage.artifacts},

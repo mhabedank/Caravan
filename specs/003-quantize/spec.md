@@ -94,13 +94,19 @@ confirm the table is emitted, ordered, and names layers that exist in the built 
 
 ### User Story 4 - Read and run an exported model without a training framework (Priority: P2)
 
-A contributor on the project's current Python, where no training framework can be installed, can
-still run an exported model and measure it. Only the conversion itself needs the older interpreter.
+A contributor who has not installed a training framework — and on the project's floor cannot even
+have one in the same environment as the current Python — can still run an exported model and
+measure it, in a tenth of the space.
 
 **Why this priority**: it is the layering rule applied to the second half of the pipeline. Every
 stage after this one — analysis, emulated verification, the benchmark, the card — reads an
 exported model, and none of them should need a training framework to do it. Settling that here
 means those stages inherit it instead of each solving it again.
+
+What it does **not** mean is "works everywhere": the runtime publishes no wheel for the project's
+current stable Python. That was asserted before it was checked, and the correction is in FR-023.
+The argument for a second extra survives it, because the argument was never mainly about Python
+coverage: 116 MiB against 1,971, and no training framework in its graph.
 
 **Independent Test**: with no training framework installed, run an already-exported model against
 a dataset and get its accuracy; and confirm the measurement half imports no training framework.
@@ -111,6 +117,8 @@ a dataset and get its accuracy; and confirm the measurement half imports no trai
    quantized model is run against a split, **Then** it produces accuracy and a confusion matrix.
 2. **Given** that installation, **When** the author asks to quantize, **Then** the run fails with
    the environment-incomplete status, naming what is missing and on which Python it installs.
+3. **Given** a Python the runtime publishes no wheel for, **When** the author asks to measure,
+   **Then** the message names that window and its evidence rather than a resolver failing.
 3. **Given** the measurement part, **When** the core is imported, **Then** no training framework
    and no interpreter is loaded until a stage asks for one.
 
@@ -224,8 +232,12 @@ produces a deployable model, and each belongs to a later feature with its own dr
 
 **The measurement part**
 
-- **FR-023**: Running and reading an exported model MUST NOT require a training framework, and MUST
-  work on every Python version the project supports.
+- **FR-023**: Running and reading an exported model MUST NOT require a training framework. It MUST
+  work on every Python version the runtime it uses publishes a wheel for, which MUST be stated with
+  its evidence and its date, and which is **not** every version the project supports: the runtime
+  covers the floor and the previous stable, not the current one (checked 2026-10-22). Where it does
+  not reach, the command MUST say so with the window and the reason rather than failing in a
+  resolver — the same obligation the conversion half carries, and for the same reason.
 - **FR-024**: The default installation MUST NOT require or load either the conversion framework or
   the runtime, and the layering checks of the previous features MUST keep passing.
 - **FR-025**: A command that needs a part which is not installed MUST fail with the
@@ -267,7 +279,9 @@ produces a deployable model, and each belongs to a later feature with its own dr
   setting, the accepted drop, the calibration count, the seed, the dataset or the trained model
   produces a new one — in every one of those six cases.
 - **SC-008**: Measuring an exported model succeeds in an environment with no training framework
-  installed, on every Python version the project supports.
+  installed, on every Python version the runtime publishes a wheel for — two of the project's
+  three. On the third, the command names the window and the reason and exits with the
+  environment-incomplete status.
 - **SC-009**: With a required part absent, the command exits with the environment-incomplete status
   and a message naming the part; no traceback appears and no run directory is left behind.
 - **SC-010**: The default installation still pulls neither framework, and the dependency and extras

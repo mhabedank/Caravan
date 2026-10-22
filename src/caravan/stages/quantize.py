@@ -1,0 +1,391 @@
+"""The quantize stage: convert, prove, measure, judge.
+
+Core module — every framework import is inside a function. It is the first stage with a *budget*:
+the run's outcome depends on a number the author wrote, so the mechanics of that number are the
+design. Three accuracies are measured and the gate judges one difference, for the reason in
+``contracts/gate.md``: with a single baseline, accuracy lost in conversion and accuracy lost in
+quantization are one number, and a threshold on their sum either fails runs for the wrong reason or
+passes them while conversion quietly cost something.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import random
+import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from caravan.data.reader_bridge import assemble_samples
+from caravan.data.windows import SPLIT_NAMES, plan_split, plan_windows
+from caravan.env import (
+    EnvironmentIncomplete,
+    missing_extra_message,
+    missing_runtime_message,
+    model_runtime_available,
+    training_framework_available,
+)
+from caravan.manifest.errors import (
+    RULE_ACCURACY_GATE,
+    RULE_GATE_UNMEASURABLE,
+    RULE_NOT_FULLY_QUANTIZED,
+    RULE_TRAINED_MODEL_UNREADABLE,
+    run_rule_error,
+)
+from caravan.stages._framework import framework_record
+from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
+from caravan.stages.train import TRAINED_MODEL
+
+QUANTIZED_MODEL = "model/quantized.tflite"
+RECORD = "quantization.json"
+
+#: Written straight into the run directory and never declared as an artifact. Both halves of that
+#: matter: a failing stage has its working directory deleted by the runner — which is how a failed
+#: gate leaves no model behind — so a table written there would be destroyed by the mechanism that
+#: protects the artifact; and a declared artifact must be written on every run, while this one
+#: exists only for a failure.
+ERROR_TABLE = "quantization-error.csv"
+
+#: The one setting that calibrates, and therefore the one with an integer expectation.
+CALIBRATED_SETTING = "int8"
+
+#: How many decimals every number here is recorded with, and therefore judged at. One constant,
+#: because a verdict computed at a different precision than the record it is written beside is a
+#: document that disagrees with itself.
+RECORDED_PRECISION = 6
+
+SPEC = StageSpec(
+    name="quantize",
+    reads=(
+        "export.quantization",
+        "export.accuracy_drop_max",
+        "dataset.representative_samples",
+        "dataset.split",
+        "dataset.labels",
+        "dataset.window",
+        "train.seed",
+    ),
+    reads_dataset=True,
+    upstream="train",
+    artifacts=(QUANTIZED_MODEL, RECORD),
+)
+
+
+@dataclass(frozen=True)
+class CalibrationPlan:
+    """Which training samples calibrate the quantization, and what was asked for."""
+
+    requested: int | None
+    available: int
+    used: int
+    seed: int
+    indices: tuple[int, ...]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "requested": self.requested,
+            "available": self.available,
+            "used": self.used,
+            "split": "train",
+            "seed": self.seed,
+        }
+
+
+def plan_calibration(
+    requested: int | None, train_indices: tuple[int, ...], seed: int
+) -> CalibrationPlan:
+    """Draw calibration samples from the training split, reproducibly and capped.
+
+    ``requested`` is ``None`` for every setting but int8 — the schema makes the count optional and
+    rule CF-4 demands it only for int8 — so that is a defined state here and not an oversight.
+
+    Capping rather than refusing when the split holds fewer than the manifest asks for: the arbiter
+    of whether calibration was enough is the accuracy gate, which is already there. What is not
+    acceptable is silence, so all three counts are recorded.
+    """
+    available = len(train_indices)
+    if requested is None:
+        return CalibrationPlan(None, available, 0, seed, ())
+    used = min(requested, available)
+    chosen = random.Random(seed).sample(sorted(train_indices), used)
+    return CalibrationPlan(requested, available, used, seed, tuple(chosen))
+
+
+@dataclass(frozen=True)
+class GateOutcome:
+    """The three accuracies, the two differences, and the verdict (contracts/gate.md)."""
+
+    trained: float
+    converted: float
+    quantized: float
+    threshold: float
+    samples: int
+
+    @property
+    def conversion_drop(self) -> float:
+        return self.trained - self.converted
+
+    @property
+    def quantization_drop(self) -> float:
+        return self.converted - self.quantized
+
+    @property
+    def resolution(self) -> float:
+        """The smallest difference this split can express. Recorded with the verdict."""
+        return 1.0 / self.samples if self.samples else math.inf
+
+    @property
+    def passed(self) -> bool:
+        """The verdict, computed from the numbers exactly as the report records them.
+
+        ``<=``: a drop equal to the threshold passes. The author wrote the number they accept, and
+        a number you accept is one you accept. A negative drop — the quantized model scoring
+        higher — passes too, and is reported as negative rather than clamped.
+
+        The rounding is not cosmetic. ``0.90 - 0.88`` is ``0.020000000000000018`` in binary
+        floating point, so an unrounded comparison would fail a run whose report says the drop was
+        ``0.020000`` and the threshold ``0.02`` — the document would contradict its own verdict,
+        and a reader recomputing it would get the other answer. Judging the numbers as recorded
+        makes the record and the decision the same thing.
+        """
+        return round(self.quantization_drop, RECORDED_PRECISION) <= round(
+            self.threshold, RECORDED_PRECISION
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "trained": round(self.trained, RECORDED_PRECISION),
+            "converted": round(self.converted, RECORDED_PRECISION),
+            "quantized": round(self.quantized, RECORDED_PRECISION),
+            "conversion_drop": round(self.conversion_drop, RECORDED_PRECISION),
+            "quantization_drop": round(self.quantization_drop, RECORDED_PRECISION),
+            "threshold": self.threshold,
+            "verdict": "pass" if self.passed else "fail",
+            "samples": self.samples,
+            "resolution": round(self.resolution, RECORDED_PRECISION),
+        }
+
+    def summary(self) -> str:
+        return f"quantization cost {self.quantization_drop:.3f}, accepted {self.threshold:.3f}"
+
+
+def require_parts(command: str) -> None:
+    """Both halves, with the message that fits whichever is missing."""
+    if not training_framework_available():
+        raise EnvironmentIncomplete(missing_extra_message(command, extras=("train", "verify")))
+    if not model_runtime_available():
+        raise EnvironmentIncomplete(missing_runtime_message(command))
+
+
+def load_trained(run_dir: Path) -> Any:
+    """Load what the training stage produced, or refuse with Q-1.
+
+    A *missing* file cannot occur: the runner runs the upstream stage first, and a cache entry
+    whose artifacts are absent counts as a miss. What can happen is a file that is there and will
+    not load, which is what this rule is for.
+    """
+    import keras
+
+    path = run_dir / TRAINED_MODEL
+    try:
+        return keras.saving.load_model(path)
+    except Exception as error:
+        run_rule_error(
+            RULE_TRAINED_MODEL_UNREADABLE,
+            "model.template",
+            (
+                f"the trained model at {TRAINED_MODEL} could not be read ({error}); it is the "
+                "artifact the train stage produces, so re-run with --fresh to rebuild it"
+            ),
+            found=str(path.name),
+        )
+
+
+def _keras_accuracy(model: Any, features: Any, targets: Any) -> float:
+    import numpy as np
+
+    predicted = np.argmax(model.predict(features, verbose=0), axis=1)
+    return float((predicted == targets).sum() / len(targets))
+
+
+def stage(context: StageContext) -> StageFunction:
+    """The stage function, bound to this run's dataset."""
+
+    def run(inputs: StageInputs, out_dir: Path) -> None:
+        require_parts("quantize")
+
+        from caravan.convert.tflite import convert
+        from caravan.runtime.inspect import inspect_model
+        from caravan.runtime.measure import measure
+
+        setting = inputs["export.quantization"]
+        labels = tuple(inputs["dataset.labels"])
+        seed = int(inputs["train.seed"])
+        threshold = float(inputs["export.accuracy_drop_max"])
+
+        records = context.records()
+        window_plan = plan_windows(records.labels, inputs["dataset.window"])
+        split_spec = inputs["dataset.split"]
+        split = plan_split(
+            window_plan,
+            {name: float(split_spec[name]) for name in SPLIT_NAMES},
+            stratified=bool(split_spec["stratified"]),
+            seed=seed,
+            labels=labels,
+        )
+        features, targets = assemble_samples(records, window_plan, labels)
+
+        calibration = plan_calibration(inputs["dataset.representative_samples"], split.train, seed)
+        representative = _representative(features, calibration) if calibration.used else None
+
+        model = load_trained(context.run_dir)
+        blob = convert(model, setting, representative)
+        (out_dir / "model").mkdir(parents=True, exist_ok=True)
+        quantized_path = out_dir / QUANTIZED_MODEL
+        quantized_path.write_bytes(blob)
+
+        # What was produced is established by reading the file, never from the converter: it prints
+        # `fully_quantize: 0` for a model whose every tensor is an integer.
+        inspection = inspect_model(quantized_path)
+        if setting == CALIBRATED_SETTING and not inspection.fully_integer:
+            run_rule_error(
+                RULE_NOT_FULLY_QUANTIZED,
+                "export.quantization",
+                (
+                    "the manifest asks for int8 but the produced model keeps floating-point "
+                    f"tensors: {', '.join(inspection.floating_tensors()[:5])}"
+                ),
+                found=inspection.dtype_counts,
+            )
+
+        test_features = features[list(split.test)]
+        test_targets = targets[list(split.test)]
+        if len(test_targets) == 0:  # pragma: no cover - feature 002 refuses an empty split first
+            run_rule_error(
+                RULE_GATE_UNMEASURABLE,
+                "dataset.split.test",
+                "the test split has no samples, so the accuracy gate cannot be shown to hold",
+            )
+
+        with tempfile.TemporaryDirectory() as scratch:
+            # The unquantized conversion exists only to produce the baseline the gate judges
+            # against, so it is not an artifact: keeping it would invite the question of which
+            # model to deploy. Its number is recorded, which is what it is for.
+            float_path = Path(scratch) / "converted-float.tflite"
+            float_path.write_bytes(convert(model, "none"))
+            try:
+                converted = measure(
+                    float_path,
+                    test_features,
+                    test_targets,
+                    len(labels),
+                    split="test",
+                    dataset_version=context.dataset.version,
+                )
+                quantized = measure(
+                    quantized_path,
+                    test_features,
+                    test_targets,
+                    len(labels),
+                    split="test",
+                    dataset_version=context.dataset.version,
+                )
+            except ValueError as error:
+                run_rule_error(
+                    RULE_GATE_UNMEASURABLE,
+                    "export.accuracy_drop_max",
+                    f"the accuracy comparison could not be measured ({error}); unknown is not "
+                    "within budget",
+                )
+
+        gate = GateOutcome(
+            trained=_keras_accuracy(model, test_features, test_targets),
+            converted=converted.accuracy,
+            quantized=quantized.accuracy,
+            threshold=threshold,
+            samples=quantized.samples,
+        )
+
+        record = {
+            "model": {
+                "path": QUANTIZED_MODEL,
+                "setting": setting,
+                "trained_size_bytes": (context.run_dir / TRAINED_MODEL).stat().st_size,
+                **inspection.as_dict(),
+            },
+            "calibration": calibration.as_dict(),
+            "accuracy": {
+                **gate.as_dict(),
+                "dataset_version": context.dataset.version,
+                "confusion_quantized": [list(row) for row in quantized.confusion],
+            },
+            "tools": {
+                **framework_record(),
+                "runtime": {"name": "ai-edge-litert", "version": _runtime_version()},
+            },
+        }
+
+        if not gate.passed:
+            # The record and the table go straight into the run directory: this stage is about to
+            # raise, and the runner will delete the working directory with the model in it.
+            rows = _layer_errors(model, representative)
+            record["layer_errors"] = [row.as_dict() for row in rows]
+            _write_failure(context.run_dir, record, rows)
+            run_rule_error(
+                RULE_ACCURACY_GATE,
+                "export.accuracy_drop_max",
+                (
+                    f"the accuracy gate failed — {gate.summary()}. On {gate.samples} test "
+                    f"samples one changed prediction is {gate.resolution:.3f}; no model was "
+                    f"written and the per-layer table is in {ERROR_TABLE}"
+                ),
+                found=gate.as_dict(),
+            )
+
+        (out_dir / RECORD).write_text(
+            json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    return run
+
+
+def _representative(features: Any, calibration: CalibrationPlan) -> Any:
+    """A generator over the chosen training samples, in the shape the converter wants."""
+
+    def generate():
+        for index in calibration.indices:
+            yield [features[index : index + 1]]
+
+    return generate
+
+
+def _runtime_version() -> str:
+    from importlib.metadata import version
+
+    try:
+        return version("ai-edge-litert")
+    except Exception:  # pragma: no cover - installed by definition at this point
+        return "unknown"
+
+
+def _layer_errors(model: Any, representative: Any) -> tuple[Any, ...]:
+    """The diagnostic table, which only a failure pays for."""
+    if representative is None:
+        return ()
+    from caravan.convert.debugger import layer_errors
+
+    return layer_errors(model, representative)
+
+
+def _write_failure(run_dir: Path, record: dict[str, Any], rows: tuple[Any, ...]) -> None:
+    from caravan.convert.debugger import write_table
+
+    (run_dir / RECORD).write_text(
+        json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    if rows:
+        write_table(run_dir / ERROR_TABLE, rows)

@@ -21,10 +21,15 @@ from caravan.manifest.resolve import resolve
 from caravan.stages.base import StageSpec, project
 from caravan.stages.build import SPEC as BUILD
 from caravan.stages.cache import cache_key
+from caravan.stages.quantize import SPEC as QUANTIZE
 from caravan.stages.train import SPEC as TRAIN
 from tests.support import PILOT
 
-STAGES = (BUILD, TRAIN)
+# Feature 003 adds one entry, and the walk below then covers the new stage entirely: every leaf of
+# the pilot manifest is changed in turn and the key must move if and only if that leaf is in the
+# stage's declared read set. A schema field added later cannot quietly enter or leave what
+# re-quantizes.
+STAGES = (BUILD, TRAIN, QUANTIZE)
 DATASET_VERSION = "sha256:aaaa"
 
 

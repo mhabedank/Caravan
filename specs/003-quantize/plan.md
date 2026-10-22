@@ -13,8 +13,8 @@ a relative of; and fails the run when the loss from quantization exceeds what th
 emitting the per-layer error table on the way out.
 
 The technical approach follows from one measurement and one discovery. The measurement: the
-runtime that can read and run an exported model costs **114 MiB and no TensorFlow**, against the
-training extra's 1,971 MiB, and it installs on every Python this project supports (research R3).
+runtime that can read and run an exported model costs **116 MiB and no TensorFlow**, against the
+training extra's 1,971 MiB (research R3).
 So the feature splits along that line — conversion in the `train` extra on 3.13, everything that
 reads or runs a model in a new `verify` extra, anywhere. The discovery: the converter prints
 `fully_quantize: 0` while producing a fully int8 model (R2), so the stage's claim about what it
@@ -32,9 +32,11 @@ left open is now closed: there is no conversion path that avoids the training fr
 path), so conversion stays on 3.13 and the floor stays. Measurement, by contrast, runs on all three.
 
 **Primary Dependencies**: unchanged in the default installation — `pydantic` and `ruamel.yaml`, 2 of
-6. A second extra appears: `verify = ["ai-edge-litert>=2.3"]`, with **no** Python marker, because it
-installs everywhere. That is 2 of the 4 extras the constitution allows, and the budget is now half
-spent — the remaining two are benchmarking and publication, exactly as the constitution groups them.
+6. A second extra appears: `verify = ["ai-edge-litert>=2.3; python_version < '3.15'"]` — a marker
+like the `train` extra's, with a wider window, because the runtime publishes no cp315 wheel either.
+The plan first said "no marker, it installs everywhere"; that was checked against one wheel tag
+instead of the index, and the correction is in research R3. That is 2 of the 4 extras the
+constitution allows, and the budget is now half spent — the remaining two are benchmarking and publication, exactly as the constitution groups them.
 
 **Storage**: files only. `model/quantized.tflite`, `quantization.json` and, on failure,
 `quantization-error.csv` in the run directory; the stage cache of feature 002 holds the result.
@@ -85,8 +87,8 @@ principle's whole point is that extras are where weight hides. The addition is j
 measurement rather than by taste: the alternative is measuring with the interpreter TensorFlow
 ships, which that framework itself warns "is deprecated and is scheduled for deletion in TF 2.20",
 and which would confine every later stage that reads an exported model to 3.13 and 1,971 MiB. The
-new extra is 114 MiB, has no TensorFlow in its graph, installs on every supported Python, and is
-what the four stages after this one will use. Two extras of four, and the remaining two are the
+new extra is 116 MiB, has no TensorFlow in its graph, reaches one Python version further than the
+conversion half, and is what the four stages after this one will use. Two extras of four, and the remaining two are the
 groups the constitution already names.
 
 No violations. Complexity Tracking stays empty.

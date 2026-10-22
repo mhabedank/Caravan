@@ -8,13 +8,15 @@ not measured is a warning, and warnings are read once (Principle V).
 | Budget | Limit | Measured | Where it is checked |
 |---|---|---|---|
 | Direct runtime dependencies | 6 | **2** (`pydantic`, `ruamel.yaml`) | `tests/layering/test_declared_dependencies.py` |
-| Optional extras | 4 | **1** (`train`) | same test |
+| Optional extras | 4 | **2** (`train`, `verify`) | same test |
 | Cold install, time | 30 s | **3.1 s** | the `install-budget` job in CI |
 | Cold install, size | 50 MB | **9 MiB** installed, 7 packages | same job |
 | Python versions supported | current and previous stable minor, and any lowered floor | 3.13, 3.14 and 3.15 | the `test` matrix in CI |
 | Python window of the `train` extra | narrower, stated and dated | 3.13 only | the `train` job in CI |
 | Published floor, and when it returns to 3.14 | recorded, with the condition that closes it | 3.13 — see below | the obligation below |
 | Weight of the `train` extra | recorded, not gated | **1,971 MiB** installed, 41 packages | printed by the `train` job in CI |
+| Weight of the `verify` extra | recorded, not gated | **116 MiB** installed, 8 packages | printed by the same job |
+| Python window of the `verify` extra | narrower than the project, stated and dated | 3.13 and 3.14 — no cp315 wheel | the `measure` matrix in CI |
 
 Measured on 2026-10-22 against `caravan_ml-0.1.0.dev1-py3-none-any.whl` in an empty environment with
 the package index cache disabled. The installed set is `caravan-ml`, `pydantic`, `pydantic-core`,
@@ -66,12 +68,52 @@ released `keras` — 2.22's release candidate says that is near — the extra mo
 returns to `>=3.14`, the 3.13 job is deleted and this section goes away. Until then the obligation
 lives here, in the roadmap and in research R1 of feature 002, which holds the evidence.
 
+## Two extras, and why the second one is cheap
+
+Feature 003 added `verify`, and the numbers are the argument for it:
+
+| | `train` | `verify` |
+|---|---|---|
+| Installed | 1,971 MiB | **116 MiB** |
+| Packages | 41 | **8** |
+| Python | 3.13 only | 3.13 and **3.14** — not 3.15 |
+| Training framework in its graph | yes | **no** |
+| What it does | builds, trains, converts | reads and runs an exported model |
+
+Measured on 2026-10-22; both extras together come to 2,074 MiB and 44 packages on 3.13.
+
+The split is not tidiness. Conversion needs the training framework and therefore 3.13 — there is
+no framework-free converter today, which feature 003 checked rather than assumed. But *reading* an
+exported model needs none, and four stages do nothing else: footprint analysis, emulated
+verification, the benchmark and the model card. Had they borrowed the conversion half they would
+each have been confined to 3.13 and 1,971 MiB, and they would have been built on an interpreter
+the framework itself warns is "scheduled for deletion".
+
+**A correction worth leaving visible.** This page first said the `verify` extra installs on every
+Python the project supports, and a test forbade a `python_version` marker on it to keep that true.
+It is not true: `ai-edge-litert` publishes cp310 through cp314 and **no cp315**, in 2.3.0 and every
+recent version (checked 2026-10-22). The claim came from verifying cp314 and assuming the next tag
+followed. So the extra carries a marker like `train` does, with a wider window, the test now
+*requires* one, and `caravan quantize` on 3.15 names the window instead of letting a resolver fail.
+
+The case for the extra survives it, because the case was never mainly about Python coverage:
+116 MiB against 1,971, and no training framework in its graph. Covering two of three Pythons
+instead of one is a bonus.
+
+**The obligation**: when a cp315 wheel ships, the marker widens, the `measure` matrix gains 3.15
+and this paragraph goes. A CI step fails the build if the runtime ever resolves on 3.15 while the
+marker still excludes it, so the widening cannot go unnoticed.
+
+**The two remaining slots** are benchmarking and publication, which is exactly how the
+constitution groups them. The budget is half spent and the half that is spent is accounted for.
+
 ## What the budget does not cover
 
 Development dependencies (`pytest`, `ruff`, `packaging`) and the build backend (`hatchling`) are
 not installed by users and do not count. The training extra is heavy: **1,971 MiB installed and 41
 packages** on a GitHub-hosted runner, printed by the `train` job on 2026-10-22, of which TensorFlow
-alone is about 1.9 GiB. A development container measured 2,017 MiB for the same 41 packages the
+alone is about 1.9 GiB. The `verify` extra is not: 116 MiB and 8 packages, with no training
+framework in its graph at all. A development container measured 2,017 MiB for the same 41 packages the
 same day — the two differ by machine and by patch version of Python, exactly as the install-budget
 figures above do.
 

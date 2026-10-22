@@ -18,21 +18,32 @@ architecture search. See `.specify/memory/constitution.md`.
 
 ## Status
 
-Early. Four of the pipeline's verbs exist. Feature 001 built the manifest contract and the
-package skeleton — `caravan validate` and `caravan render` — and feature 002 added `caravan build`
-and `caravan train`, with the training framework behind an optional extra and still no
-machine-learning framework in the core.
+Early. Five of the pipeline's verbs exist: `validate` and `render` (feature 001), `build` and
+`train` (002), and `quantize` (003) — the first stage with a budget that decides whether a run
+produces an artifact at all. The core still loads no machine-learning framework.
 
 ## Install
 
 ```bash
-pip install caravan-ml              # the command is `caravan`
-pip install "caravan-ml[train]"     # plus the training framework, on Python 3.13
+pip install caravan-ml                      # the command is `caravan`
+pip install "caravan-ml[verify]"            # plus reading and running exported models
+pip install "caravan-ml[train,verify]"      # plus training and converting, on Python 3.13
 ```
 
 The default installation has two runtime dependencies, weighs about 9 MiB and pulls no
-machine-learning framework, because checking and resolving a manifest does not need one. The
-`train` extra weighs about 2 GiB, which is why it is an extra.
+machine-learning framework, because checking and resolving a manifest does not need one.
+
+The two extras are very different sizes, and that is the point:
+
+| Extra | Size | Python | For |
+|---|---|---|---|
+| `verify` | **116 MiB**, 8 packages | 3.13, 3.14 | reading and running an exported model |
+| `train` | 1,971 MiB, 41 packages | **3.13 only** | building, training, converting |
+
+Reading an exported model needs no training framework, and the stages after quantization do
+nothing else — so they are not dragged along by the conversion's weight. Neither extra reaches
+3.15 yet: TensorFlow publishes no wheel above 3.13 and the model runtime none above 3.14, both
+checked rather than assumed. `caravan validate` and `caravan render` run on all three.
 
 **The extra needs Python 3.13.** TensorFlow publishes no stable wheel above 3.13, and Python
 packaging has no per-extra version window, so the published floor is 3.13 until a stable
@@ -48,6 +59,7 @@ caravan validate manifest.yaml     # is this manifest sound?
 caravan render   manifest.yaml     # what will the pipeline actually use?
 caravan build    manifest.yaml     # what model does it describe, and how large is it?
 caravan train    manifest.yaml     # train it on the dataset it names
+caravan quantize manifest.yaml     # convert it, and judge what the quantization cost
 caravan templates                  # which templates are registered?
 caravan boards                     # which target boards are known?
 ```
@@ -79,6 +91,24 @@ picket-mlp.yaml: trained — 26 of 50 epochs, stopped early at 26 (best: 21)
 A dataset is raw, record-level delimited text with a `label` column; Caravan does the windowing,
 and a window whose records disagree about the label is discarded and counted rather than labelled.
 `specs/002-build-and-train/contracts/dataset.md` is the whole contract.
+
+`quantize` converts the trained model and then **judges** it: three accuracies on the test split —
+trained, converted, quantized — and the gate is the difference between the last two, because that
+difference is the loss from quantization and nothing else. Over the threshold and the run fails
+with no model written, and the per-layer error table says which layer lost the accuracy. Nothing
+can lower the threshold but an edit to the manifest.
+
+```text
+picket-mlp.yaml: quantized int8 — 15,664 bytes from 162,375 (model/quantized.tflite)
+    tensors: int32 9, int8 9 — fully integer, input int8 scale 8.015686
+    calibration: 56 of 500 requested, drawn from 56 available in the train split, seed 42
+      trained 0.667  converted 0.667  quantized 0.667
+      conversion cost 0.000  quantization cost 0.000  accepted 0.020  → pass
+```
+
+What it reports about the model is read from the produced file, never from the converter's output:
+the converter prints `fully_quantize: 0` while producing a model whose every tensor is an integer,
+so its log is not evidence. `specs/003-quantize/contracts/gate.md` has the arithmetic.
 
 ## A manifest
 
@@ -133,19 +163,23 @@ uv run pytest
 uv run ruff check src tests
 ```
 
-The training stages need the extra, and therefore Python 3.13:
+The suite splits three ways by what a test needs:
 
 ```bash
-uv venv --python 3.13 .venv313
-uv pip install --python .venv313 -e ".[train]" pytest
-.venv313/bin/python -m pytest tests          # the whole suite, including tests/train
+uv run --extra verify pytest          # everything but tests/train, on any supported Python
+
+uv venv --python 3.13 .venv313        # conversion needs 3.13
+uv pip install --python .venv313 -e ".[train,verify]" pytest
+.venv313/bin/python -m pytest tests   # the whole suite
 ```
 
-`uv run pytest` on 3.14 or 3.15 runs everything except `tests/train`, which is skipped where no
-framework exists. Every test that needs the framework lives there and only there.
+`tests/verify` needs the model runtime and runs on all three Pythons; `tests/train` needs the
+training framework and runs on 3.13 only. A test that needs a framework lives in one of those two
+directories and nowhere else — putting one elsewhere turns two continuous-integration jobs red,
+which is how the rule was learned.
 
-See `specs/002-build-and-train/quickstart.md` for the scenarios that validate the current feature,
-and `CONTRIBUTING.md` for the dependency gate a new dependency has to pass.
+See `specs/003-quantize/quickstart.md` for the scenarios that validate the current feature, and
+`CONTRIBUTING.md` for the dependency gate a new dependency has to pass.
 
 ## Licence
 

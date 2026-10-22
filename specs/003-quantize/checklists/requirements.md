@@ -94,6 +94,25 @@ findings, all fixed; two of them would have cost real time:
   a verdict whose resolution is coarser than its threshold is still the verdict, and must be
   readable as such.
 
+**What the implementation found, and it is a correction to this spec rather than to the code.**
+FR-023 said reading and running an exported model "works on every Python version the project
+supports". It does not: the runtime publishes cp310 through cp314 and **no cp315**, in 2.3.0 and
+every recent version. The claim came from verifying cp314 during planning and assuming the next
+tag followed — one step of inference past the evidence, in a project whose whole method is not to
+take that step.
+
+It is corrected everywhere it was said: the requirement, the success criterion, the user story, the
+research note, the plan, the extra's marker, the continuous-integration matrix, the budgets page,
+the README, the constitution's Technical Baseline, and the test that had *forbidden* the marker
+reality requires. The window is now stated with its evidence and its closing condition, like the
+conversion half's, and a CI step fails the build if the runtime ever resolves on 3.15 while the
+marker still excludes it.
+
+The case for the second extra survives, because it never rested mainly on Python coverage:
+116 MiB against 1,971, no training framework in its graph, and not built on an interpreter its own
+vendor has announced for deletion. Reaching two of three Pythons instead of one is a bonus, and
+calling it "everywhere" was the error.
+
 **One verified fact the planning phase must not re-litigate**: there is no conversion path that
 avoids the training framework today — the standalone runtime package is a runtime, not a
 converter (checked 2026-10-22). So conversion stays on the Python the training extra needs, and

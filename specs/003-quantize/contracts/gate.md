@@ -33,8 +33,17 @@ None is read from an earlier run's report — that would compare a measurement w
 
 - The threshold is an **absolute difference**. `accuracy_drop_max: 0.02` means two points of
   accuracy, not two percent of the accuracy.
+- **The comparison is made on the numbers as recorded**, to six decimals. This is not cosmetic:
+  `0.90 - 0.88` is `0.020000000000000018` in binary floating point, so an unrounded comparison
+  would fail a run whose report says the drop was `0.020000` against a threshold of `0.02` — the
+  document would contradict its own verdict, and a reader recomputing it would get the other
+  answer. The verdict a report carries must be the verdict its numbers produce.
 - The comparison is `<=`: a drop exactly equal to the threshold **passes**. The author wrote the
-  number they accept, and a number you accept is one you accept.
+  number they accept, and a number you accept is one you accept. One consequence is worth stating
+  because it is surprising: a threshold of `0.0` does **not** fail a run whose quantization cost
+  nothing, since `0.000 <= 0.000`. On the committed fixture that is exactly what happens, which is
+  why the failure path is exercised by constructing the arithmetic rather than by tightening a
+  threshold and hoping.
 - A **negative** drop — the quantized model scoring higher — passes, and is recorded as negative
   rather than clamped to zero. Clamping would hide a measurement worth looking at.
 - `resolution = 1 / samples` is recorded with the verdict. On the committed fixture that is 1/12 ≈

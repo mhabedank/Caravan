@@ -72,7 +72,7 @@ constitution allows.
 |---|---|---|
 | Installed size | 1,971 MiB | **114 MiB** |
 | Packages | 41 | **8** |
-| Python | 3.13 only | 3.13, **3.14**, 3.15 |
+| Python | 3.13 only | 3.13 and **3.14** — not 3.15 |
 | TensorFlow | yes | **no** |
 
 On Python 3.14, with no TensorFlow installed or importable, the runtime read the int8 model's
@@ -85,11 +85,21 @@ prediction: [[127 -128 -128 -128]] -> 0
 still no tensorflow? True
 ```
 
-**Rationale**: two reasons, neither speculative. The interpreter TensorFlow ships warns that it "is
-deprecated and is scheduled for deletion in TF 2.20" — we are on 2.21, so the project would be
-building on something already announced as leaving. And every stage after this one reads an
-exported model: analysis, emulated verification, the benchmark, the card. Settling it here means
-they inherit it rather than each solving it again, and they inherit it at 114 MiB.
+**Correction, made after this section was first written.** It claimed the runtime "installs on
+every Python this project supports". It does not: `ai-edge-litert` publishes cp310 through cp314
+and **no cp315**, in 2.3.0 and in every recent version (checked against the index). The claim came
+from verifying cp314 and assuming the next one followed — which is the kind of unverified step
+this project's own rules exist against, so it is recorded here rather than quietly fixed. The extra
+therefore carries a Python marker like `train` does, with a wider window, and the stage says so on
+3.15 instead of letting a resolver fail.
+
+**Rationale**, which survives the correction because it never rested mainly on Python coverage:
+the interpreter TensorFlow ships warns that it "is deprecated and is scheduled for deletion in TF
+2.20" — we are on 2.21, so the project would be building on something already announced as leaving.
+And every stage after this one reads an exported model: analysis, emulated verification, the
+benchmark, the card. Settling it here means they inherit it rather than each solving it again, and
+they inherit it at 116 MiB rather than 1,971. Covering two of three Pythons instead of one is a
+bonus, not the case.
 
 **On the name**: `litert` was rejected because the Technical Baseline forbids vendor product names
 for identifiers that outlive a release, and an extra's name is one — this is the second rename of
@@ -226,14 +236,15 @@ on which boards it is destined for. `train.seed` is in, because it chooses the c
 
 ## R11 — Continuous integration
 
-**Decision**: the `test` matrix jobs install `.[verify]`, so the measurement tests run on 3.13, 3.14
-and 3.15. The `train` job installs `.[train,verify]` and runs everything. `clean-environment` is
-untouched and keeps proving that the default installation needs neither.
+**Decision**: a job of its own, `measure`, on a 3.13 and 3.14 matrix, installing `.[verify]` and
+running `tests/verify`. The `test` matrix stays free of extras on all three Pythons, the `train`
+job installs `.[train,verify]` and runs everything, and `clean-environment` is untouched.
 
-**Rationale**: the claim FR-023 makes is that measurement works on *every* supported Python, and the
-only way to hold that claim is to run it on every supported Python. At 114 MiB that is affordable in
-a job that already installs a Python. The one job that must stay free of both extras is
-`clean-environment`, and it does.
+**Rationale**: the first plan put the verify extra into the `test` matrix, which cannot work — on
+3.15 the extra does not resolve, so the job would fail to install before running anything. The
+window the extra actually has is what decides the matrix, which is the shape of the correction
+above: a claim about where something runs has to be built from where it installs, not the other way
+round. The one job that must stay free of both extras is `clean-environment`, and it does.
 
 ## R12 — Where the quantized model goes
 

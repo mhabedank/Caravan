@@ -145,6 +145,10 @@ class Report:
     training: dict[str, Any] | None = None
     metrics: Sequence[QualityMetric] = field(default_factory=tuple)
     confusion_matrix: ConfusionMatrix | None = None
+    # --- added by feature 003 -----------------------------------------------------------------
+    #: The whole quantization record, as the stage's own artifact carries it — so a reused result
+    #: reports the same numbers as the run that produced it, and a failed gate reports them too.
+    quantization: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """The contract's field order, which is also the order a reader wants it in."""
@@ -179,6 +183,8 @@ class Report:
             out["metrics"] = [metric.as_dict() for metric in self.metrics]
         if self.confusion_matrix is not None:
             out["confusion_matrix"] = self.confusion_matrix.as_dict()
+        if self.quantization is not None:
+            out["quantization"] = self.quantization
         return out
 
     def as_json(self) -> str:

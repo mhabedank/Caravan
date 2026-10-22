@@ -36,9 +36,14 @@ FRAMEWORKS = (
 #: joining this set quietly.
 EXTRA_ONLY_MODULES = frozenset(
     {
+        # the train extra
         "caravan.data.reader",
         "caravan.metrics.classification",
         "caravan.templates.builders.mlp",
+        "caravan.convert.tflite",
+        "caravan.convert.debugger",
+        # the verify extra
+        "caravan.runtime.measure",
     }
 )
 
@@ -48,6 +53,12 @@ def all_module_names() -> list[str]:
     for info in pkgutil.walk_packages(caravan.__path__, prefix="caravan."):
         names.append(info.name)
     return names
+
+
+#: The subset of FRAMEWORKS that *trains* a model. The distinction matters from feature 003 on:
+#: the core must import nothing in FRAMEWORKS at all, while the verify extra may carry a model
+#: runtime — that is what it is for — and must still carry no trainer.
+TRAINING_FRAMEWORKS = frozenset({"tensorflow", "torch", "jax", "keras", "sklearn"})
 
 
 def core_module_names() -> list[str]:
@@ -151,6 +162,17 @@ def test_exactly_the_declared_modules_import_a_framework_at_module_level() -> No
         "the declared extra-only set must match reality; declared but framework-free: "
         f"{sorted(set(EXTRA_ONLY_MODULES) - found)}"
     )
+
+
+def test_inspecting_a_model_is_importable_everywhere() -> None:
+    # Feature 003. ``caravan.runtime.inspect`` is deliberately *not* extra-only: it imports the
+    # runtime inside its one function, so the module itself is importable in a default
+    # installation. That is what lets a stage reference it without a guard, and it is why it is
+    # absent from the set above rather than forgotten.
+    import caravan.runtime.inspect as inspect_module
+
+    assert inspect_module.INTEGER_DTYPES
+    assert "caravan.runtime.inspect" not in EXTRA_ONLY_MODULES
 
 
 def test_no_core_module_imports_an_extra_only_module_at_module_level() -> None:

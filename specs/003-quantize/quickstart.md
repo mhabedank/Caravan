@@ -50,16 +50,28 @@ numbers the report claims. This is the scenario that matters most: the converter
 
 ## 3 — A failing gate leaves nothing behind and explains itself (SC-005)
 
+**This scenario cannot be driven from the manifest alone, and finding that out is the point.** A
+threshold of `0.0` looks like it must fail, and it does not: on the fixture, quantization changes
+no prediction at all, so the drop is `0.000` and `0.000 <= 0.000` passes. The threshold is a
+boundary the author sets, and a boundary nothing crosses is not crossed.
+
+So the failure path is exercised two ways, neither of which depends on luck:
+
 ```bash
-sed 's/accuracy_drop_max: 0.02/accuracy_drop_max: 0.0/' \
-  tests/fixtures/manifests/valid/picket-mlp-fixture.yaml > /tmp/tight.yaml
-caravan quantize /tmp/tight.yaml ; echo "exit: $?"
+# the arithmetic, where any drop and any threshold can be constructed
+uv run pytest tests/unit/test_gate_arithmetic.py -q
+
+# the plumbing, with a drop injected at the measurement seam
+.venv313/bin/python -m pytest tests/train/test_gate_failure.py -q
 ```
 
-A threshold of zero accepts no loss at all, so the gate fails on any change. Expect: exit 1; no
-`model/quantized.tflite` in that run directory; `quantization-error.csv` present; and the report
-carrying a `Q-4` finding, a failed `accuracy` gate entry, and the per-layer table ordered worst
-first with the 0.289 reference stated.
+Expect from the second: exit 1; **no** `model/quantized.tflite` in that run directory;
+`quantization-error.csv` present; and the report carrying a `Q-4` finding, a failed `accuracy` gate
+entry, and the per-layer table ordered worst first with the 0.289 reference stated.
+
+That the fixture's quantization is lossless is worth saying plainly rather than celebrating: it is
+a four-class decision over 80 synthetic windows, and a model that small loses nothing to int8. It
+is not evidence that the author's real model will not.
 
 ## 4 — Nothing can silence the gate (SC-006)
 
@@ -119,5 +131,5 @@ uv run pytest tests/layering -q
 ```
 
 Expect: two extras of the four allowed, every dependency of the train extra still carrying its
-Python marker, the verify extra carrying none because it installs everywhere, and the default
-installation still pulling neither framework.
+Python marker and the verify extra carrying its own wider one — through 3.14, since the runtime
+publishes no cp315 wheel — and the default installation still pulling neither.
