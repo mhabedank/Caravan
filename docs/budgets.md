@@ -14,7 +14,7 @@ not measured is a warning, and warnings are read once (Principle V).
 | Python versions supported | current and previous stable minor, and any lowered floor | 3.13, 3.14 and 3.15 | the `test` matrix in CI |
 | Python window of the `train` extra | narrower, stated and dated | 3.13 only | the `train` job in CI |
 | Published floor, and when it returns to 3.14 | recorded, with the condition that closes it | 3.13 — see below | the obligation below |
-| Weight of the `train` extra | recorded, not gated | **2,017 MiB** installed, 41 packages | printed by the `train` job in CI |
+| Weight of the `train` extra | recorded, not gated | **1,971 MiB** installed, 41 packages | printed by the `train` job in CI |
 
 Measured on 2026-10-22 against `caravan_ml-0.1.0.dev1-py3-none-any.whl` in an empty environment with
 the package index cache disabled. The installed set is `caravan-ml`, `pydantic`, `pydantic-core`,
@@ -69,17 +69,23 @@ lives here, in the roadmap and in research R1 of feature 002, which holds the ev
 ## What the budget does not cover
 
 Development dependencies (`pytest`, `ruff`, `packaging`) and the build backend (`hatchling`) are
-not installed by users and do not count. The training extra is heavy: **2,017 MiB installed and
-41 packages**, measured on 2026-10-22 in a clean 3.13 environment, of which TensorFlow alone is
-1.9 GiB. That is roughly 220 times the default installation, and it is expected rather than
-tolerated — it is the whole point of the layering rule. The weight is confined to one optional
-extra, `caravan validate` keeps working without it, and the size is *recorded* by the `train` job
-rather than gated, because a number set by TensorFlow's wheel is not one this project can act on.
+not installed by users and do not count. The training extra is heavy: **1,971 MiB installed and 41
+packages** on a GitHub-hosted runner, printed by the `train` job on 2026-10-22, of which TensorFlow
+alone is about 1.9 GiB. A development container measured 2,017 MiB for the same 41 packages the
+same day — the two differ by machine and by patch version of Python, exactly as the install-budget
+figures above do.
+
+That is roughly 220 times the default installation, and it is expected rather than tolerated: it is
+the whole point of the layering rule. The weight is confined to one optional extra, `caravan
+validate` keeps working without it, and the size is *recorded* rather than gated, because a number
+set by TensorFlow's wheel is not one this project can act on.
 
 The first estimate written here was "roughly 700 MB", taken from the size of the wheel. The
 measurement is nearly three times that, because a wheel is compressed and because 40 packages come
 with it. It is corrected rather than quietly dropped: an unmeasured number in a document about
-measured budgets is the thing this page exists against.
+measured budgets is the thing this page exists against. The same goes for the figure the table
+carries now — it is the one a reader can check in a job log, not the one a laptop happened to
+produce.
 
 ## Changing a number
 
