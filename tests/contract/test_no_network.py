@@ -38,10 +38,10 @@ def test_rejection_needs_no_network(no_network, tmp_path, capsys) -> None:
 
 
 def test_the_stage_verbs_need_no_network_to_refuse(no_network, tmp_path, capsys) -> None:
-    # Feature 002. The stages themselves are exercised in ``tests/train/``, which cannot run
+    # Features 002 to 004. The stages themselves are exercised in ``tests/train/``, which cannot run
     # here; what is asserted here is that the path up to and including a refusal opens no socket,
     # on an installation where no framework exists to open one either.
-    for verb in ("build", "train"):
+    for verb in ("build", "train", "quantize", "export"):
         code = main(
             [
                 verb,

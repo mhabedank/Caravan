@@ -11,6 +11,7 @@ from typing import Any
 
 import tensorflow as tf
 
+from caravan.convert.batch import fix_batch
 from caravan.manifest.errors import RULE_CONVERSION_FAILED, run_rule_error
 
 #: A callable yielding one calibration sample at a time, as the converter wants it, or ``None``
@@ -23,6 +24,8 @@ def convert(model: Any, setting: str, representative: Representative = None) -> 
 
     ``from_keras_model`` rather than an explicit export: both paths were measured and produce
     byte-identical output (research R1), and this one leaves no temporary directory of ours behind.
+    The model's input batch is fixed to one first — see ``caravan.convert.batch`` for why that is a
+    reshaping of the graph and not a change to the function.
 
     ``representative`` is ``None`` for ``float16`` and ``none``. That is valid input, not an
     oversight: the schema makes ``dataset.representative_samples`` optional and rule CF-4 demands it
@@ -43,7 +46,11 @@ def convert(model: Any, setting: str, representative: Representative = None) -> 
 
 
 def _convert(model: Any, setting: str, representative: Representative) -> bytes:
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    # Fixed to a batch of one before anything else, because a board runs one window at a time and
+    # the converter otherwise emits four operators to compute a shape that never varies (feature
+    # 004, research R5). It happens here rather than in a later stage so that the model the
+    # accuracy gate measures is the model that ships.
+    converter = tf.lite.TFLiteConverter.from_keras_model(fix_batch(model))
 
     if setting == "int8":
         if representative is None:

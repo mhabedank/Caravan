@@ -1,0 +1,18 @@
+# The accelerated kernel library the esp32 board declares. Narrower than cmsis-nn, which is the
+# reason coverage is recorded per target rather than once per model.
+library: esp-nn
+runtime: tflm
+source: "tensorflow/lite/micro/kernels/esp_nn/ in espressif/esp-tflite-micro"
+read_on: 2026-10-22
+operators:
+  ADD: add.cc
+  AVERAGE_POOL_2D: pooling.cc
+  CONV_2D: conv.cc
+  DEPTHWISE_CONV_2D: depthwise_conv.cc
+  FULLY_CONNECTED: fully_connected.cc
+  MAX_POOL_2D: pooling.cc
+  MUL: mul.cc
+  SOFTMAX: softmax.cc
+unmapped: []
+# Seven source files, all mapped: `pooling.cc` covers the two pooling operators as it does in
+# cmsis-nn, and the rest are one-to-one.

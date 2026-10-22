@@ -80,6 +80,18 @@ class StageSpec:
     upstream: str | None
     #: Relative paths this stage writes. A declared artifact that is not written is an error.
     artifacts: tuple[str, ...]
+    #: Further artifacts whose *names* depend on the manifest — one runner skeleton per target
+    #: board, say. Computed from the projection and from nothing else, so the declaration stays a
+    #: declaration: a stage cannot name a file by reading a field it did not declare. Everything
+    #: this returns is held to the same contract as ``artifacts``, including the check that a
+    #: declared artifact which was not written is a defect.
+    artifacts_from: Callable[[StageInputs], tuple[str, ...]] | None = None
+
+    def declared_artifacts(self, inputs: StageInputs) -> tuple[str, ...]:
+        """Everything this stage promises to write for these inputs."""
+        if self.artifacts_from is None:
+            return self.artifacts
+        return (*self.artifacts, *self.artifacts_from(inputs))
 
 
 def project(resolved: Mapping[str, Any], spec: StageSpec) -> dict[str, Any]:
@@ -154,7 +166,7 @@ def run_stage(
             spec.name,
             key,
             work,
-            artifacts=spec.artifacts,
+            artifacts=spec.declared_artifacts(inputs),
             inputs=inputs,
             dataset_version=dataset_version if spec.reads_dataset else None,
             upstream_key=upstream_key,
