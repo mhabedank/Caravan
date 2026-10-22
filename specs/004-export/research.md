@@ -169,8 +169,20 @@ followed by `set_weights` gives:
 | Cloned onto batch 1 | 7,856 | 4 | **3** |
 
 and the clone computes the same function: float predictions compared element by element against the
-trained model's are **identical**, maximum absolute difference 0.0, checked on an `mlp` and on a
-`conv1d` model so this is not a one-architecture trick.
+trained model's agree **within float32 round-off**, checked on an `mlp` and on a `conv1d` model so
+this is not a one-architecture trick.
+
+**Corrected 2026-10-22, by continuous integration, while feature 005 was being implemented.** This
+section first said "identical, maximum absolute difference 0.0", because that is what the
+development container produced. A runner produced 1.1920928955078125e-07 for the dense model and
+2.9802322387695312e-08 for the convolutional one — the first is exactly 2**-23, one unit in the last
+place of a float32. Comparing five samples in one call against five calls of one sample compares
+two orders of accumulation, and a machine with other vector instructions may choose a different
+kernel for each shape. Feature 002 had already written this down about training — "no claim of
+bit-identical weights: thread counts, kernel implementations and hardware make that untrue" — and
+this section claimed it anyway for the clone; the two were not connected until a runner connected
+them. What the pipeline depends on, and what is now asserted, is that the *decisions* are identical
+and the scores agree to within round-off.
 
 **Alternatives rejected**:
 

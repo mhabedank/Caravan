@@ -156,6 +156,18 @@ accuracy gate is the one that says no — but it is recorded because the roadmap
 will be compared against hand-built firmware, and a 5% difference in model size with three fewer
 kernels in flash is the kind of thing that comparison turns on.
 
+## What feature 005 added to the budget
+
+Nothing, again. The conv1d template is two source files and nine lines of arithmetic: no
+dependency, no extra, no rule identifier, no change to the Python policy. The dependency count is
+still two, the extras count still two.
+
+The figure it *does* add is the fixture's own: a conv1d on the committed synthetic dataset builds
+2,180 parameters and exports to 7,888 bytes with six operators in eight nodes, four of them
+accelerated on each built-in board. Recorded for the same reason the mlp's figures are — the
+`pace-cnn` port will be compared against hand-built firmware, and the comparison turns on numbers
+somebody wrote down beforehand.
+
 ## Changing a number
 
 The dependency and extras limits come from the constitution (Principle XII). Changing one is a

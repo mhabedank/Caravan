@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.metadata import entry_points
@@ -28,6 +29,16 @@ class TemplateParameterSpec:
     parameters: type[BaseModel]
     consumes_window: bool
     summary: str
+    #: Optional: given the validated parameters and the window length, return ``None`` when the
+    #: configuration fits, or ``(problem, accepted)`` describing what does not.
+    #:
+    #: The message rather than a boolean, because that is the value of this check — which block
+    #: does not fit, how much window was left when it was reached, and what would fit instead —
+    #: and the core cannot compose it: it does not know what a kernel is. Two parts because
+    #: findings print in two parts, a sentence and an indented line of what is accepted. Optional
+    #: because most templates have nothing to check here, and a required field would make every
+    #: third-party template carry a stub (feature 005, research R6).
+    window_fit: Callable[[BaseModel, int], tuple[str, tuple[str, ...]] | None] | None = None
 
 
 class TemplateRegistry:

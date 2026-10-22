@@ -328,8 +328,10 @@ target: this stage reads a file on a desktop and says what it read.
 - **The batch is fixed at conversion, not at build.** Training keeps a dynamic batch, because
   training one window at a time would change both the speed and the dynamics of training. The
   trained model is cloned onto a batch of one before conversion. Verified 2026-10-22: the clone's
-  float predictions are bit-identical to the trained model's, maximum absolute difference 0.0,
-  checked on an mlp and on a conv1d model; the converted result falls from six distinct operators to
+  float predictions agree with the trained model's within float32 round-off — the decisions
+  identical, the scores inside a thousandth of a percent — checked on an mlp and on a conv1d model.
+  (This first said "bit-identical, maximum absolute difference 0.0"; a continuous integration
+  runner showed one unit in the last place, and research R5 records the correction and its cause); the converted result falls from six distinct operators to
   three and from 8,656 to 7,856 bytes. The alternative — converting a concrete function with a
   fixed signature — does not work: the graph keeps variable-reading nodes and calibration fails with
   `variable != nullptr was not true` (TF 2.21.0).

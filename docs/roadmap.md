@@ -30,7 +30,7 @@ YAML like the zoo's.
 | build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **delivered** (feature 002) | `picket-mlp` |
 | quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | **delivered** (feature 003) | `picket-mlp` |
 | export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | **delivered** (feature 004) | `picket-mlp` |
-| `conv1d` template, both halves | v0.1 | next | **`pace-cnn`** (decided 2026-10-22) |
+| `conv1d` template, both halves | v0.1 | **delivered** (feature 005) | **`pace-cnn`** (decided 2026-10-22) |
 
 Feature numbers under `specs/` and git branch names are independent; features are named here
 rather than numbered, because the numbering continues from 001 while a chore branch may carry any
@@ -41,6 +41,23 @@ name.
 and nothing did. `pace-cnn` — IMU activity recognition, a time-series model already published at
 0.1.0 — is now the named driver, so `conv1d` returns to v0.1 where the design document had it.
 It arrives with the feature that ports `pace-cnn`, not before.
+
+**v0.1 is complete as a framework.** Every stage from manifest to C array exists, both templates
+exist, and the pilot fixture runs end to end through all of them. What remains for a *release* is
+not a feature: it is the two obligations recorded below (the Python floor, and the environment check
+that asks for more than it needs), and the port itself — which is work in the zoo, with the real
+data, and is not Caravan's to do.
+
+**What the conv1d template measured on the way in.** Keras `Conv1D` converts to `CONV_2D`: the
+converter adds a dummy spatial dimension and removes it with reshapes, and the runtime's resolver
+has no one-dimensional convolution at all. `MaxPooling1D` becomes `MAX_POOL_2D` and
+`GlobalAveragePooling1D` becomes `MEAN`, for which neither `cmsis-nn` nor `esp-nn` supplies a
+kernel. So the head is a parameter with a measured trade: on the fixture, the reducing head gives
+six operators in eight nodes at 7,888 bytes with four of six accelerated. `BatchNormalization`
+folds entirely into the preceding convolution — no operator, 648 bytes of folded weights — which is
+why it is offered. Separable convolution was measured too and is deliberately *not* offered: no
+named model needs it (Principle X), and the measurement is in `specs/005-conv1d-template/research.md`
+so the next model that wants it finds it rather than repeating it.
 
 **What the port is and is not.** Rebuilding `pace-cnn` through Caravan happens in the zoo, not
 here: the manifest and the release record live there, and `conv1d` is Caravan's part of it. At
@@ -54,8 +71,10 @@ input batch to one, because a board runs one window at a time. The converted mlp
 `SHAPE`, `STRIDED_SLICE`, `PACK` and `RESHAPE` to compute a flatten shape from a dimension that
 never varies — four kernels in flash and four resolver entries for arithmetic whose answer was
 known. On the pilot fixture the quantized model went from six distinct operators in eight nodes to
-three in five, and from 15,664 bytes to 14,848. The function is unchanged to the bit (checked on an
-`mlp` and on a `conv1d` model, maximum absolute difference 0.0), and it happens inside the
+three in five, and from 15,664 bytes to 14,848. The function is unchanged within float32 round-off
+— the decisions identical, the scores inside a thousandth of a percent, checked on an `mlp` and on a
+`conv1d` model; this first claimed bit-identity and a runner disproved it, which feature 004's
+research R5 now records — and it happens inside the
 conversion so that the model the accuracy gate measures is the model that ships. Converting twice
 would have meant two models and two accuracies, with the shipped one ungated.
 
