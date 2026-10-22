@@ -1,7 +1,33 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.1.0 → 2.0.0
+Version change: 2.0.1 → 2.1.0
+Bump rationale: MINOR. Owner direction of 2026-10-22: the zoo's dataset-declaration regime fits
+the zoo, but a framework that requires it makes every other user adopt one project's compliance
+machinery before they may use the tool at all. Principle VI demanded exactly that. The obligation
+moves to where the data comes from — the author — and what Caravan enforces changes from "a
+declaration exists" to "the author's own statements are kept, and an unverified claim is marked
+unverified".
+
+Nothing that was compliant becomes non-compliant, so this is MINOR rather than MAJOR: resolving
+declarations stays permitted, it is merely no longer required of the framework.
+
+Modified principles:
+- VI. Compliance Is Enforced by the Schema: the usage class is derived from what the manifest
+  states and marked unknown where terms are unstated; a dataset reference needs a statement, not
+  a registry entry; stated terms are enforced against the author; a project may require
+  declarations as its own policy, and the framework may not require one of everybody.
+
+Previous report: 2.0.0 → 2.0.1
+Bump rationale: PATCH. Resolves the one deferred item and adds no rule: the distribution on the
+package index is named `caravan-ml`, decided by the owner on 2026-10-22 after a check showed the
+bare name `caravan` held by an unrelated project whose last release was in 2015 (an AWS SWF
+helper, MIT). The command line application keeps the name `caravan`.
+
+Modified sections:
+- Technical Baseline: TODO(DISTRIBUTION_NAME) replaced by the decided name.
+
+Previous report: 1.1.0 → 2.0.0
 Bump rationale: MAJOR, and the bump type is a judgement call the owner may overrule. Seven of
 the eight amendments below are additions (MINOR). The eighth redefines the central obligation of
 Principle IX: an older manifest is migrated rather than refused. An implementation built to
@@ -89,13 +115,12 @@ or overrule in review:
 - Q2 (HF token handling): answered by "Resources & Cost Discipline" and the publish gate.
   Credentials come from the environment only; a publish run that reads them from the repository
   MUST fail.
-- Q1 (PyPI distribution name): deferred. TODO(DISTRIBUTION_NAME) in "Technical Baseline".
+- Q1 (PyPI distribution name): deferred in 1.0.0, resolved in 2.0.1 as `caravan-ml`.
 - Q7 (forest template) and Q8 (Renode board coverage) are implementation questions, not
   governance; they belong in the spec of the feature that introduces them.
 
-Deferred items:
-- TODO(DISTRIBUTION_NAME): PyPI distribution name (`caravan-ml` vs `caravan-tinyml`) is unresolved
-  and MUST be fixed by a PATCH amendment before the first release to PyPI.
+Deferred items: none remain. The one deferred item of 1.0.0, TODO(DISTRIBUTION_NAME), was
+resolved in 2.0.1 as `caravan-ml`.
 -->
 
 # Caravan Constitution
@@ -237,18 +262,37 @@ contributor can act on.
   use and known limits. A manifest without it is invalid, not merely incomplete.
 - A publish stage MUST refuse any model whose compliance block is missing or whose required
   fields are empty, and MUST refuse before any network call is made.
-- Restrictions carry over from inputs to the model, exactly as the zoo constitution requires: the
-  usage class of a model is the most restrictive of its training data, base model, teacher
-  outputs and third-party models. Caravan MUST derive and record the usage class, MUST write it
-  into the model card and release record, and MUST NOT allow publication under a license less
-  restrictive than that class.
-- Every dataset reference MUST resolve to a declaration with origin, license and permitted use.
-  A dataset marked benchmark-only MUST NOT be usable as training data by any stage.
+- Restrictions carry over from inputs to the model: the usage class of a model is the most
+  restrictive of its training data, base model, teacher outputs and third-party models. Caravan
+  MUST derive the usage class from what the manifest states about those inputs, MUST write it into
+  the model card and release record, and MUST NOT allow publication under a license less
+  restrictive than the class it derives. Where an input's terms are unstated, the usage class is
+  `unknown`, and Caravan MUST mark it `unknown` wherever it appears rather than assume the
+  author's chosen license is supported.
+- Responsibility for the rights to the data lies with whoever brings the data. Caravan MUST
+  require the author to **state** what their data permits; it MUST NOT require that the statement
+  resolve against a declaration registry, because demanding one project's compliance machinery of
+  every user is a form of lock-in (Principle VIII) and would put a framework between a user and
+  their own data.
+- What Caravan does enforce is the author's own statements, which costs a user nothing who makes
+  none: a dataset the manifest marks as not permitted for training MUST NOT be usable as training
+  data by any stage, and a model trained on it MUST NOT be publishable. An unstated term is
+  reported as unverified, in the run report and on the model card, and MUST NOT be rendered as a
+  checked fact.
+- A project MAY require more of itself — resolution against its own declarations, a licence
+  whitelist, a review step — and MUST be able to express that as its own policy on top of
+  Caravan. Caravan MUST NOT hard-code one project's policy as the framework's rule.
 - Datasets, raw source data and credentials MUST NOT be stored in the repository.
 - Publication MUST be an explicit, separately invoked stage. No other stage may upload anything.
 
 Rationale: "Compliance comes first" only holds if it is mechanical. A required schema field is
 checked on every run by every contributor; a review checklist is checked when someone remembers.
+But mechanical is not the same as omniscient, and the line between them is what the framework may
+honestly claim. Caravan cannot know whether a licence statement is true, so it does not pretend to
+check one: it insists the author says something, holds them to what they said, and marks the rest
+as unverified so that nobody downstream mistakes silence for a clean bill. The zoo's stricter
+regime — declarations with origin, licence and permitted use, resolved before a dataset may be
+used — remains the zoo's, enforced by the zoo's own release gate, where it belongs.
 
 ### VII. Targets and Templates Are Data, Not Forks
 
@@ -469,10 +513,9 @@ These choices are architectural and apply until amended with a stated rationale:
   objective, and is bounded by the roadmap, not by research ambition.
 - License: Apache-2.0 for the framework, so that both framework and models stay commercially
   usable; model licenses follow Principle VI.
-- The command line application is named `caravan`.
-  TODO(DISTRIBUTION_NAME): the distribution name on the package index (`caravan-ml` vs
-  `caravan-tinyml`) is unresolved and MUST be fixed by a PATCH amendment before the first
-  release to a package index.
+- The command line application is named `caravan`; the distribution on the package index is
+  named `caravan-ml`. The bare name is held by an unrelated project whose last release was in
+  2015, and reclaiming it is not a dependency of any release.
 
 ## Resources & Cost Discipline
 
@@ -531,4 +574,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
