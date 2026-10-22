@@ -1,0 +1,33 @@
+# The accelerated kernel library two of the built-in boards declare.
+#
+# A kernel file exists exactly where an accelerated implementation exists, so the runtime's own
+# kernel directory is the authoritative statement — not a vendor page, and not this file's author.
+# `operators` maps an operator to the file the claim came from, so a reader can check any single
+# entry without trusting the whole table.
+library: cmsis-nn
+runtime: tflm
+source: "tensorflow/lite/micro/kernels/cmsis_nn/ in tensorflow/tflite-micro"
+read_on: 2026-10-22
+operators:
+  ADD: add.cc
+  AVERAGE_POOL_2D: pooling.cc
+  CONV_2D: conv.cc
+  DEPTHWISE_CONV_2D: depthwise_conv.cc
+  FULLY_CONNECTED: fully_connected.cc
+  MAX_POOL_2D: pooling.cc
+  MUL: mul.cc
+  PAD: pad.cc
+  SOFTMAX: softmax.cc
+  TRANSPOSE: transpose.cc
+  TRANSPOSE_CONV: transpose_conv.cc
+# Source files whose operators are not mapped yet. No implemented template can produce them, so
+# reading each one to find out which operators it registers would be work for nobody (Principle X).
+# They are listed rather than dropped, so the next template to need one knows the kernel is there.
+unmapped:
+  - batch_matmul.cc
+  - maximum_minimum.cc
+  - svdf.cc
+  - unidirectional_sequence_lstm.cc
+# `pooling.cc` was opened to check, because one file can register several operators: it defines
+# Register_AVERAGE_POOL_2D and Register_MAX_POOL_2D, each with int8 and int16 variants. The other
+# mapped entries are one-to-one between file name and operator.

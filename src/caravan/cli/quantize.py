@@ -70,4 +70,7 @@ def run(args: argparse.Namespace) -> int:
             StagePlan(spec=quantize_stage.SPEC, make=quantize_stage.stage),
         ),
         _summary,
+        # Both halves: this verb converts and reads a model, so a message naming only the
+        # conversion half would refuse the reader twice.
+        extras=("train", "verify"),
     )

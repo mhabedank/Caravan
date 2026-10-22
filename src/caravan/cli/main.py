@@ -102,6 +102,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_stage_options(quantize)
 
+    export = subcommands.add_parser(
+        "export", help="write the model, its C array, its operator resolver and a runner skeleton"
+    )
+    add_stage_options(export)
+
     subcommands.add_parser("templates", help="list the registered template identifiers")
     subcommands.add_parser("boards", help="list the known board identifiers")
     return parser
@@ -118,6 +123,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Imported here, not at module import time, so that `caravan --version` and the usage path
     # stay as light as the package itself.
     from caravan.cli import build as build_command
+    from caravan.cli import export as export_command
     from caravan.cli import listing
     from caravan.cli import quantize as quantize_command
     from caravan.cli import render as render_command
@@ -130,6 +136,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "build": build_command.run,
         "train": train_command.run,
         "quantize": quantize_command.run,
+        "export": export_command.run,
         "templates": listing.run_templates,
         "boards": listing.run_boards,
     }

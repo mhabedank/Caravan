@@ -143,6 +143,19 @@ packages). It was carried into nine other files before anyone subtracted one fro
 figures are now stated, with the column header saying which is which, and the package list above
 makes the count checkable without a measurement at all.
 
+## What feature 004 added to the budget
+
+Nothing. The export stage reads a model file and writes text: no new dependency, no new extra, and
+no change to the Python policy. The two kernel coverage files and the resolver method table are
+data in the package, measured in kilobytes.
+
+The one figure it *did* change is the model's: fixing the input batch at conversion took the pilot
+fixture's quantized model from 15,664 bytes to 14,848, and its operator set from six to three. That
+is a budget this project does not gate — the model's size is the author's business, and the
+accuracy gate is the one that says no — but it is recorded because the roadmap's `pace-cnn` port
+will be compared against hand-built firmware, and a 5% difference in model size with three fewer
+kernels in flash is the kind of thing that comparison turns on.
+
 ## Changing a number
 
 The dependency and extras limits come from the constitution (Principle XII). Changing one is a
