@@ -1,7 +1,27 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.0.1 → 2.1.0
+Version change: 2.1.0 → 2.2.0
+Bump rationale: MINOR. Not a clarification: it grants something Principle XII did not address.
+The principle lists "moved behind an extra" as a remedy when a dependency cannot be installed on
+the project's Python versions, but says nothing about what window that extra may then declare —
+and the training stage needs the answer now. TensorFlow publishes no wheel for either Python
+version this project supports (checked 2026-10-22: cp310 through cp313, against a floor of 3.14),
+so without this the training extra could not exist at all.
+
+An extra may now declare a narrower Python window than the project, stating the window and the
+reason, and may never narrow the default installation. The owner chose this over moving the
+project's floor, which would have handed the Python policy to a dependency — the failure the
+principle exists to prevent.
+
+Modified principles:
+- XII. Small Core, Few Dependencies: an extra's own Python window.
+
+Modified sections:
+- Technical Baseline: records that TensorFlow has no wheel for the supported Python versions, and
+  that the training extra therefore carries its own window.
+
+Previous report: 2.0.1 → 2.1.0
 Bump rationale: MINOR. Owner direction of 2026-10-22: the zoo's dataset-declaration regime fits
 the zoo, but a framework that requires it makes every other user adopt one project's compliance
 machinery before they may use the tool at all. Principle VI demanded exactly that. The obligation
@@ -421,6 +441,11 @@ builds models must make that ban structural, not a matter of how each user happe
 - Python versions: the project MUST support the current and the previous stable Python minor
   version. A dependency that prevents that is replaced, vendored in the small, or moved behind an
   extra. A dependency MUST NOT set the project's Python policy.
+- An extra MAY declare a narrower Python window than the project, where the framework it carries
+  publishes no wheel for the project's versions. It MUST state that window and the reason, it MUST
+  NOT narrow the default installation, and the window MUST close once the framework ships for the
+  project's current version. A user who installs no extra is never affected, which is what makes
+  this bearable rather than a quiet retreat from the policy.
 - The published distribution MUST NOT carry an upper version bound on a dependency unless a
   concrete incompatibility is documented with a reference, and the bound MUST be removed once it
   is fixed upstream.
@@ -499,6 +524,13 @@ These choices are architectural and apply until amended with a stated rationale:
 - Training and conversion: Keras/TensorFlow with post-training int8 quantization as the default
   deployment format. The converter toolchain MUST be pinned by package name and version in the
   provenance record, because which package provides it is moving.
+- TensorFlow publishes no wheel for either Python version this project supports (checked
+  2026-10-22: cp310 through cp313, against a floor of 3.14). The training extra therefore carries
+  its own narrower Python window under Principle XII, and says so. The alternative — Keras 3 on a
+  JAX backend, which does install on both — was rejected for now because the path from there to
+  int8 TFLite on these Python versions is unverified, and conversion is the one link in the chain
+  that cannot be swapped without moving this baseline and the whole export story with it. The
+  question reopens when the quantize stage is built.
 - Identifiers that outlive a release — schema field values, format names, artifact names — MUST
   NOT be vendor product names. A product rename would otherwise become a schema migration.
 - Interface: a Python command line application. Manifest validation uses a schema library with
@@ -574,4 +606,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.2.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22

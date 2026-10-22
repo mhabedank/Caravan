@@ -12,6 +12,7 @@ not measured is a warning, and warnings are read once (Principle V).
 | Cold install, time | 30 s | **3.1 s** | the `install-budget` job in CI |
 | Cold install, size | 50 MB | **9 MiB** installed, 7 packages | same job |
 | Python versions supported | current and previous stable minor | 3.14 and 3.15 | the `test` matrix in CI |
+| Python window of the `train` extra | narrower, stated and dated | 3.13 only | the `test-train` job in CI |
 
 Measured on 2026-10-22 against `caravan_ml-0.1.0.dev1-py3-none-any.whl` in an empty environment with
 the package index cache disabled. The installed set is `caravan-ml`, `pydantic`, `pydantic-core`,
@@ -33,6 +34,17 @@ the features that cannot avoid it:
 That is four of the six slots accounted for. The budget is meant to bind when something heavy is
 proposed, not to be renegotiated at that moment — which is why the command line is built on
 `argparse` from the standard library rather than spending a slot on convenience.
+
+## The training extra's own window
+
+`tensorflow` 2.21.0 publishes wheels for cp310 through cp313 and none for 3.14 or 3.15 — neither
+version this project supports (checked 2026-10-22). Principle XII allows an extra to declare a
+narrower window than the project where the framework it carries has no wheel for the project's
+versions, provided the window and the reason are stated and the default installation is untouched.
+
+So: `pip install caravan-ml` works on 3.14 and 3.15. `pip install caravan-ml[train]` needs 3.13
+until TensorFlow ships for the current Python, at which point this window closes and this section
+goes away. A user who never trains never meets the limitation.
 
 ## What the budget does not cover
 
