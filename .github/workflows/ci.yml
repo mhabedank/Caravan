@@ -12,10 +12,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - run: uv run ruff check src tests
       - run: uv run ruff format --check src tests
 
@@ -28,10 +26,8 @@ jobs:
         # and the previous one (Principle XII). No more, no fewer.
         python-version: ["3.14", "3.15"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install ${{ matrix.python-version }}
       - run: uv run --python ${{ matrix.python-version }} pytest tests/unit tests/contract tests/integration tests/layering -q
 
@@ -40,10 +36,8 @@ jobs:
     # framework anywhere near it, and run the suite there (SC-008).
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install 3.14
       - run: uv build
       - name: install only the default distribution
@@ -62,18 +56,18 @@ jobs:
     # Principle V: a budget that is not measured is a warning. Over 30 seconds or 50 MB fails.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install 3.14
       - run: uv build
       - name: measure a cold install
         run: |
           uv venv --python 3.14 /tmp/budget
-          start=$(date +%s)
+          start=$(date +%s%3N)
           VIRTUAL_ENV=/tmp/budget uv pip install --no-cache --quiet dist/caravan_ml-*.whl
-          seconds=$(( $(date +%s) - start ))
+          ms=$(( $(date +%s%3N) - start ))
           bytes=$(du -sb /tmp/budget/lib | cut -f1)
           mib=$(( bytes / 1024 / 1024 ))
-          echo "cold install: ${seconds}s, ${mib} MiB installed"
-          if [ "$seconds" -gt 30 ]; then echo "over the 30 second budget"; exit 1; fi
+          printf 'cold install: %d.%03ds, %d MiB installed\n' $(( ms / 1000 )) $(( ms % 1000 )) "$mib"
+          if [ "$ms" -gt 30000 ]; then echo "over the 30 second budget"; exit 1; fi
           if [ "$mib" -gt 50 ]; then echo "over the 50 MB budget"; exit 1; fi

@@ -17,6 +17,10 @@ Measured on 2026-10-22 against `caravan_ml-0.1.0-py3-none-any.whl` in an empty e
 the package index cache disabled. The installed set is `caravan-ml`, `pydantic`, `pydantic-core`,
 `ruamel-yaml`, `annotated-types`, `typing-extensions` and `typing-inspection`.
 
+The same measurement on a GitHub-hosted runner the same day: **0.25 s and 7 MiB**. The figures
+differ by machine, which is the point of gating the limit rather than the number — 30 s and 50 MB
+hold on a laptop and on a runner alike, and a heavy dependency breaches them on both.
+
 ## Why the headroom is not spare capacity
 
 The gap between 9 MiB and the 50 MB limit, and between two dependencies and six, is reserved for
