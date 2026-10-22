@@ -133,6 +133,26 @@ class Manifest(BaseModel):
                 "dataset.window must be left out",
                 found=self.dataset.window,
             )
+        # A window can be present and still be too short for what the parameters describe. Only the
+        # template can tell — it knows what a kernel is and the core does not — so the core asks it
+        # and reports whatever sentence comes back (feature 005, research R6). Asked after the
+        # parameters have validated, because a check over invalid parameters would report the wrong
+        # problem.
+        if spec.window_fit is not None and spec.consumes_window and self.dataset.window is not None:
+            try:
+                params = spec.parameters.model_validate(self.model.params)
+            except PydanticValidationError:
+                return self  # T-2 above already reported it
+            verdict = spec.window_fit(params, int(self.dataset.window))
+            if verdict is not None:
+                problem, accepted = verdict
+                rule_error(
+                    RULE_WINDOW_MATCHES_TEMPLATE,
+                    "dataset.window",
+                    problem,
+                    found=self.dataset.window,
+                    accepted=accepted,
+                )
         return self
 
     # --- board resolution: B-1, then CF-7 ------------------------------------------------------

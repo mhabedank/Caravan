@@ -40,6 +40,7 @@ EXTRA_ONLY_MODULES = frozenset(
         "caravan.data.reader",
         "caravan.metrics.classification",
         "caravan.templates.builders.mlp",
+        "caravan.templates.builders.conv1d",
         "caravan.convert.tflite",
         "caravan.convert.debugger",
         # Feature 004: cloning a trained model onto a batch of one needs the framework that owns

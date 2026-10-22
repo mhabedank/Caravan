@@ -72,6 +72,23 @@ implementation**.
 default for every model, and this is exactly the kind of trade the export stage was built to make
 visible.
 
+### What the first real export recorded (added after implementation, T014)
+
+The table above predicted the operator sets from probes. The first run of the committed conv1d
+fixture through the real pipeline, 2026-10-22, recorded:
+
+```
+exported 6 operators in 8 nodes — 7,888 bytes
+operators: RESHAPE v1, CONV_2D v3, MAX_POOL_2D v2, MEAN v2, FULLY_CONNECTED v4, SOFTMAX v2
+accelerated: s32k144 4 of 6, stm32h743 4 of 6, esp32 4 of 6
+  reference kernels: MEAN, RESHAPE
+working memory: floor 832 bytes
+```
+
+Six operators in eight nodes, as predicted, at the fixture's smaller scale; 2,180 parameters built;
+and the two fallbacks are the two the kernel data said they would be. The prediction and the
+measurement agree, which is the only reason the prediction was worth writing down.
+
 ---
 
 ## R4 — Three more measurements, three parameter decisions

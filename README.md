@@ -125,6 +125,27 @@ What it reports about the model is read from the produced file, never from the c
 the converter prints `fully_quantize: 0` while producing a model whose every tensor is an integer,
 so its log is not evidence. `specs/003-quantize/contracts/gate.md` has the arithmetic.
 
+## Templates
+
+| Template | For | Produces |
+|---|---|---|
+| `mlp` | a decider over a window of samples, from hidden layer widths | `RESHAPE`, `FULLY_CONNECTED`, `SOFTMAX` |
+| `conv1d` | a convolutional decider over a window, from blocks of filters | `RESHAPE`, `CONV_2D`, `MAX_POOL_2D`, `FULLY_CONNECTED`, `SOFTMAX`, and `MEAN` with the reducing head |
+
+A template is two files and a registration: a typed parameter half in the core, and a builder half
+behind the `train` extra. Adding one edits no central list.
+
+`conv1d` is called that although the exported file contains a two-dimensional convolution: the
+converter adds a dummy spatial dimension and removes it again, and the runtime has no
+one-dimensional convolution at all. The template speaks about the model; the export record says
+what the file contains.
+
+Its head is a choice with a measured cost. On a two-block architecture at 128 samples by 9
+channels: reducing over time gives 2,502 parameters and six operators; flattening gives 7,878
+parameters and five. Neither built-in accelerated kernel library has an implementation for the
+reduction, so the smaller model pays one more operator on the reference implementation. `caravan
+export` records which, per board, with the source and the date of that claim.
+
 ## A manifest
 
 ```yaml

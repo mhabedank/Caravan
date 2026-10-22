@@ -50,8 +50,10 @@ Expected:
   `SOFTMAX` for the `average` head, and the same without `MEAN` for `flatten`. Coverage shows
   `MEAN` falling back to the reference implementation on all three boards, with its source and date.
 
-The exact byte count is not predicted here: it is measured when the code runs, and recorded then —
-the same discipline feature 004's quickstart followed.
+Measured on the first real run, 2026-10-22: **2,180 parameters** built, exported to **7,888 bytes**
+with six operators in eight nodes, four of six accelerated on each board, and a working-memory
+floor of 832 bytes. The layer shapes came out exactly as the arithmetic predicted — 64 to 30 after
+the first convolution, 15 after its pooling, 13 after the second.
 
 ## Check the thing most likely to surprise you
 
