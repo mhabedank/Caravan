@@ -106,7 +106,7 @@ means those stages inherit it instead of each solving it again.
 What it does **not** mean is "works everywhere": the runtime publishes no wheel for the project's
 current stable Python. That was asserted before it was checked, and the correction is in FR-023.
 The argument for a second extra survives it, because the argument was never mainly about Python
-coverage: 116 MiB against 1,971, and no training framework in its graph.
+coverage: 114 MiB against 1,971, and no training framework in its graph.
 
 **Independent Test**: with no training framework installed, run an already-exported model against
 a dataset and get its accuracy; and confirm the measurement half imports no training framework.

@@ -6,6 +6,6 @@ loads it by name when it runs.
 
 Why it is separate from ``convert`` at all: converting needs the training framework and therefore
 Python 3.13, while every stage after quantization — analysis, emulated verification, the benchmark,
-the card — only ever *reads* an exported model. Measured on 2026-10-22: 114 MiB and 8 packages
+the card — only ever *reads* an exported model. Measured on 2026-10-22: 114 MiB and 7 packages
 here, against 1,971 MiB and 41 for the conversion half. Four stages inherit the cheaper one.
 """

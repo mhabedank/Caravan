@@ -21,7 +21,7 @@ import sys
 REQUIRED_MODULES = ("tensorflow", "keras", "numpy")
 
 #: What reading or running an exported model needs. A different extra on purpose: it has no
-#: training framework in its graph and weighs 116 MiB against the conversion half's 1,971, so the
+#: training framework in its graph and weighs 114 MiB against the conversion half's 1,971, so the
 #: stages that only read a model are not dragged along by the conversion's weight.
 REQUIRED_RUNTIME_MODULES = ("ai_edge_litert",)
 

@@ -65,7 +65,7 @@ path (checked 2026-10-22). So conversion keeps the framework and the published f
 until a stable TensorFlow ships for the current Python.
 
 What *did* come out of asking is the other half: **reading and running** an exported model needs no
-training framework at all, and costs 116 MiB against 1,971. Feature 003 put that in its own extra,
+training framework at all, and costs 114 MiB against 1,971. Feature 003 put that in its own extra,
 so the four stages after it — analysis, emulated verification, the benchmark and the card — inherit
 it instead of each solving it again.
 

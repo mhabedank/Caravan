@@ -109,7 +109,7 @@ conversion half's, and a CI step fails the build if the runtime ever resolves on
 marker still excludes it.
 
 The case for the second extra survives, because it never rested mainly on Python coverage:
-116 MiB against 1,971, no training framework in its graph, and not built on an interpreter its own
+114 MiB against 1,971, no training framework in its graph, and not built on an interpreter its own
 vendor has announced for deletion. Reaching two of three Pythons instead of one is a bonus, and
 calling it "everywhere" was the error.
 

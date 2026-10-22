@@ -37,7 +37,7 @@ The two extras are very different sizes, and that is the point:
 
 | Extra | Size | Python | For |
 |---|---|---|---|
-| `verify` | **116 MiB**, 8 packages | 3.13, 3.14 | reading and running an exported model |
+| `verify` | **114 MiB**, 7 packages | 3.13, 3.14 | reading and running an exported model |
 | `train` | 1,971 MiB, 41 packages | **3.13 only** | building, training, converting |
 
 Reading an exported model needs no training framework, and the stages after quantization do

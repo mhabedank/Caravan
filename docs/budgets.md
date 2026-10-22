@@ -14,8 +14,8 @@ not measured is a warning, and warnings are read once (Principle V).
 | Python versions supported | current and previous stable minor, and any lowered floor | 3.13, 3.14 and 3.15 | the `test` matrix in CI |
 | Python window of the `train` extra | narrower, stated and dated | 3.13 only | the `train` job in CI |
 | Published floor, and when it returns to 3.14 | recorded, with the condition that closes it | 3.13 — see below | the obligation below |
-| Weight of the `train` extra | recorded, not gated | **1,971 MiB** installed, 41 packages | printed by the `train` job in CI |
-| Weight of the `verify` extra | recorded, not gated | **116 MiB** installed, 8 packages | printed by the same job |
+| Weight of both extras together | recorded, not gated | **2,028 MiB** installed, 44 packages | printed by the `train` job in CI |
+| Weight of the `verify` extra alone | recorded, not gated | **121 MiB** installed, 14 packages | printed by the same job |
 | Python window of the `verify` extra | narrower than the project, stated and dated | 3.13 and 3.14 — no cp315 wheel | the `measure` matrix in CI |
 
 Measured on 2026-10-22 against `caravan_ml-0.1.0.dev1-py3-none-any.whl` in an empty environment with
@@ -74,13 +74,18 @@ Feature 003 added `verify`, and the numbers are the argument for it:
 
 | | `train` | `verify` |
 |---|---|---|
-| Installed | 1,971 MiB | **116 MiB** |
-| Packages | 41 | **8** |
+| Installed | 1,971 MiB | **121 MiB** |
+| Packages | 41 | **14** |
 | Python | 3.13 only | 3.13 and **3.14** — not 3.15 |
 | Training framework in its graph | yes | **no** |
 | What it does | builds, trains, converts | reads and runs an exported model |
 
-Measured on 2026-10-22; both extras together come to 2,074 MiB and 44 packages on 3.13.
+Each column is a whole environment, which is the figure a reader can check in a job log. The
+default installation is inside both — 7 MiB and 7 packages, measured the same way, by editable
+install on 3.13, rather than the 9 MiB the table above measures from a wheel — so the extra adds
+**114 MiB and 7 packages**: `ai-edge-litert`, `backports-strenum`, `flatbuffers`, `ml-dtypes`,
+`numpy`, `protobuf`, `tqdm`. Measured on 2026-10-22, the `verify` column at 121 MiB on a runner and
+on a development container alike; both extras together come to 2,028 MiB and 44 packages on 3.13.
 
 The split is not tidiness. Conversion needs the training framework and therefore 3.13 — there is
 no framework-free converter today, which feature 003 checked rather than assumed. But *reading* an
@@ -97,7 +102,7 @@ followed. So the extra carries a marker like `train` does, with a wider window, 
 *requires* one, and `caravan quantize` on 3.15 names the window instead of letting a resolver fail.
 
 The case for the extra survives it, because the case was never mainly about Python coverage:
-116 MiB against 1,971, and no training framework in its graph. Covering two of three Pythons
+114 MiB against 1,971, and no training framework in its graph. Covering two of three Pythons
 instead of one is a bonus.
 
 **The obligation**: when a cp315 wheel ships, the marker widens, the `measure` matrix gains 3.15
@@ -111,11 +116,13 @@ constitution groups them. The budget is half spent and the half that is spent is
 
 Development dependencies (`pytest`, `ruff`, `packaging`) and the build backend (`hatchling`) are
 not installed by users and do not count. The training extra is heavy: **1,971 MiB installed and 41
-packages** on a GitHub-hosted runner, printed by the `train` job on 2026-10-22, of which TensorFlow
-alone is about 1.9 GiB. The `verify` extra is not: 116 MiB and 8 packages, with no training
-framework in its graph at all. A development container measured 2,017 MiB for the same 41 packages the
-same day — the two differ by machine and by patch version of Python, exactly as the install-budget
-figures above do.
+packages** in a `train`-only environment on 2026-10-22, of which TensorFlow alone is about 1.9 GiB.
+The `verify` extra is not: 114 MiB added, 121 MiB in all, with no training framework in its graph.
+A development container measured 2,017 MiB for the same 41 packages the same day — the two differ by
+machine and by patch version of Python, exactly as the install-budget figures above do. What the
+`train` job prints now is the two extras together, 2,028 MiB and 44 packages, because it installs
+both to run the whole suite; no job prints `train` alone any more, so the figure for it is dated
+here rather than attributed to a log.
 
 That is roughly 220 times the default installation, and it is expected rather than tolerated: it is
 the whole point of the layering rule. The weight is confined to one optional extra, `caravan
@@ -128,6 +135,13 @@ with it. It is corrected rather than quietly dropped: an unmeasured number in a 
 measured budgets is the thing this page exists against. The same goes for the figure the table
 carries now — it is the one a reader can check in a job log, not the one a laptop happened to
 produce.
+
+The `verify` row was corrected the same way. It read 116 MiB and 8 packages — a number that
+matched neither of the two things it could have meant: the whole environment the job measures
+(121 MiB, 14 packages) or the extra's own addition over the default installation (114 MiB, 7
+packages). It was carried into nine other files before anyone subtracted one from the other. Both
+figures are now stated, with the column header saying which is which, and the package list above
+makes the count checkable without a measurement at all.
 
 ## Changing a number
 

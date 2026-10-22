@@ -1,7 +1,21 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.3.0 → 2.3.1
+Version change: 2.3.1 → 2.3.2
+Bump rationale: PATCH. It corrects a measured figure and adds no rule. 2.3.1 recorded the weight
+of the read-only runtime as "116 MiB and 8 packages". Re-measured on 2026-10-22, the number is
+114 MiB and 7 packages: a default installation is 7 MiB and 7 packages, the same environment with
+the runtime extra is 121 MiB and 14, and the extra's own addition is the difference — `ai-edge-
+litert`, `backports-strenum`, `flatbuffers`, `ml-dtypes`, `numpy`, `protobuf`, `tqdm`. The old
+figure matched neither the whole environment nor the addition, and had been copied into nine other
+files before anyone subtracted one from the other. The argument it supports is untouched: 114
+against 1,971 is the same argument as 116 against 1,971.
+
+Modified sections:
+- Technical Baseline: the runtime's weight is the re-measured figure, with the base installation
+  stated so the subtraction is visible rather than taken on trust.
+
+Previous report: 2.3.0 → 2.3.1
 Bump rationale: PATCH. It resolves a question this document itself deferred and adds no rule. The
 Technical Baseline said the Keras-on-JAX alternative "reopens when the quantize stage is built",
 and it has been built (feature 003). The answer is no: there is no int8 conversion path that avoids
@@ -11,8 +25,8 @@ conversion keeps the framework, and the floor lowered in 2.3.0 stays until a sta
 ships for the project's current Python.
 
 Asking the question did change something, though, and the baseline now records it: *reading and
-running* an exported model needs no training framework, at 116 MiB against the conversion half's
-1,971. The four stages that only read a model — footprint analysis, emulated verification, the
+running* an exported model needs no training framework, at 114 MiB against the conversion half's
+1,971 (corrected from 116 in 2.3.2). The four stages that only read a model — footprint analysis, emulated verification, the
 benchmark, the card — are therefore not dragged along by the conversion's weight, and reach one
 Python version further (3.14; the runtime publishes no cp315 wheel either).
 
@@ -607,8 +621,9 @@ These choices are architectural and apply until amended with a stated rationale:
   describes only the framework path. Conversion therefore keeps the training framework, and
   training on one framework while converting on another would mean two frameworks in a project
   whose central rule is to have few. This reopens only if a framework-free converter appears.
-- Reading and running an exported model, by contrast, needs **no** training framework: 116 MiB and
-  8 packages, against 1,971 MiB and 41 for the conversion half (measured 2026-10-22). The
+- Reading and running an exported model, by contrast, needs **no** training framework: 114 MiB and
+  7 packages added to a 7 MiB, 7-package default installation, against 1,971 MiB and 41 for the
+  conversion half (measured 2026-10-22; the figure was 116 and 8 before 2.3.2 re-measured it). The
   interpreter the training framework ships is also deprecated and announced for deletion. So the
   runtime they use is an extra of its own, with its own window: `ai-edge-litert` publishes cp310
   through cp314 and no cp315 (checked 2026-10-22), so it reaches one version further than the
@@ -690,4 +705,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.3.1 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.3.2 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22

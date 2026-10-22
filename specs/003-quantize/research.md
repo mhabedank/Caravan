@@ -98,7 +98,7 @@ the interpreter TensorFlow ships warns that it "is deprecated and is scheduled f
 2.20" — we are on 2.21, so the project would be building on something already announced as leaving.
 And every stage after this one reads an exported model: analysis, emulated verification, the
 benchmark, the card. Settling it here means they inherit it rather than each solving it again, and
-they inherit it at 116 MiB rather than 1,971. Covering two of three Pythons instead of one is a
+they inherit it at 114 MiB rather than 1,971. Covering two of three Pythons instead of one is a
 bonus, not the case.
 
 **On the name**: `litert` was rejected because the Technical Baseline forbids vendor product names

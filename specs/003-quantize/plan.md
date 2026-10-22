@@ -13,7 +13,7 @@ a relative of; and fails the run when the loss from quantization exceeds what th
 emitting the per-layer error table on the way out.
 
 The technical approach follows from one measurement and one discovery. The measurement: the
-runtime that can read and run an exported model costs **116 MiB and no TensorFlow**, against the
+runtime that can read and run an exported model costs **114 MiB and no TensorFlow**, against the
 training extra's 1,971 MiB (research R3).
 So the feature splits along that line — conversion in the `train` extra on 3.13, everything that
 reads or runs a model in a new `verify` extra, anywhere. The discovery: the converter prints
@@ -87,7 +87,7 @@ principle's whole point is that extras are where weight hides. The addition is j
 measurement rather than by taste: the alternative is measuring with the interpreter TensorFlow
 ships, which that framework itself warns "is deprecated and is scheduled for deletion in TF 2.20",
 and which would confine every later stage that reads an exported model to 3.13 and 1,971 MiB. The
-new extra is 116 MiB, has no TensorFlow in its graph, reaches one Python version further than the
+new extra is 114 MiB, has no TensorFlow in its graph, reaches one Python version further than the
 conversion half, and is what the four stages after this one will use. Two extras of four, and the remaining two are the
 groups the constitution already names.
 

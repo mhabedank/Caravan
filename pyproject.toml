@@ -55,8 +55,8 @@ train = [
 # sentence from caravan instead of a resolver error. The window closes when a cp315 wheel ships;
 # docs/budgets.md carries the obligation.
 #
-# What justifies it as an extra of its own is not the Python coverage but the weight: 116 MiB and
-# 8 packages against `train`'s 1,971 and 41, with no training framework in its graph.
+# What justifies it as an extra of its own is not the Python coverage but the weight: 114 MiB and
+# 7 packages against `train`'s 1,971 and 41, with no training framework in its graph.
 verify = ["ai-edge-litert>=2.3; python_version < '3.15'"]
 
 [project.scripts]

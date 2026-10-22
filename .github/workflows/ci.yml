@@ -85,7 +85,7 @@ jobs:
             tests/fixtures/manifests/valid/picket-mlp-fixture.yaml || code=$?
           if [ "${code:-0}" != "4" ]; then
             echo "expected exit 4 on a Python with no runtime, got ${code:-0}"; exit 1
-          fi"
+          fi
       - name: the whole suite, with both extras present
         run: VIRTUAL_ENV=/tmp/train /tmp/train/bin/python -m pytest tests -q
 
