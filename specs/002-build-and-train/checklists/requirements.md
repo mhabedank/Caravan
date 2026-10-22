@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,14 +31,15 @@
 
 ## Notes
 
-**One item fails on purpose, and planning should not start until it is answered.**
+**The one open clarification is answered** (2026-10-22, by the author).
 
-- **`[NEEDS CLARIFICATION]` at FR-010 — the dataset's on-disk format.** Everything else in the
-  spec holds whichever answer is chosen; the loader does not. Three readings differ in scope by a
-  lot: pre-windowed arrays make the loader trivial, raw message-level CSV puts a windowing step
-  inside this feature, and a declared format with a loader per kind adds a registry. The author
-  knows what `datasets/car-hacking/` actually contains, so guessing here would be the expensive
-  kind of wrong.
+- **FR-010 — the dataset's on-disk format**: raw, record-level delimited text, windowed inside
+  this feature. Of the three readings, this is the only one under which `dataset.window` is a
+  promise the tool can keep rather than a claim about work done elsewhere. It is now FR-023 to
+  FR-025, with the two conventions it forces — the `label` column, and discarding a window whose
+  records disagree about the label — recorded in Assumptions with their alternatives and their
+  cost. A registry of per-kind loaders was not adopted: one format, specified, until a second
+  model needs a second one.
 
 **One item passes with a qualification**, the same one as in feature 001:
 
@@ -49,12 +50,17 @@
   names a library, an API shape or a code structure. Marked unchecked rather than checked, so the
   qualification is visible rather than buried in this note.
 
-**Two decisions the spec takes rather than asks about**, both recorded in Assumptions because a
+**Four decisions the spec takes rather than asks about**, all recorded in Assumptions because a
 reasonable default exists and the cost of being wrong is low:
 
 - the quality metrics are a fixed documented set for classification, with no manifest field yet;
 - building reads the dataset's shape but not its contents, so the input shape has one source of
-  truth.
+  truth;
+- the label column is named `label` and every other column is a feature, by convention rather than
+  by a new manifest field;
+- a window whose records disagree about the label is discarded and counted, rather than labelled
+  by majority or by its last record. This is the one of the four worth objecting to if the ported
+  model needs those boundary windows — it is named in Assumptions as the decision to revisit.
 
 **One honesty constraint worth re-reading before planning**: the spec deliberately does *not*
 promise bit-identical training from the same seed. Thread counts, kernel implementations and

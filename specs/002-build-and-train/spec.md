@@ -126,6 +126,12 @@ status, the message naming the extra, and the absence of a traceback.
   a part with no data cannot be trained on, tuned on or measured against.
 - The dataset's feature width disagrees with what the manifest's window implies: rejected, naming
   both numbers.
+- A window spans a change of label: discarded, and counted as discarded in the report.
+- Every window spans a change of label, so nothing is left to train on: rejected, naming how many
+  records were read and how many windows were discarded.
+- A cell is empty or not a number: rejected, naming the file, the record and the column.
+- The dataset is a directory: its files are read in sorted name order as one sequence, so a window
+  may not straddle two files unless they are consecutive in that order.
 - `patience` is zero with early stopping on: a stated behaviour, not an accident.
 - Training is interrupted: no trained-model artifact is left behind, and the report says the run
   did not finish.
@@ -168,13 +174,11 @@ status, the message naming the extra, and the absence of a traceback.
 - **FR-009**: Training MUST be refused when the manifest states that the dataset is not permitted
   for training, naming the field that forbids it. This is the author's own statement, enforced.
 - **FR-010**: The dataset reference MUST be resolved here: a path that does not exist, cannot be
-  read, or holds no usable data MUST fail with the path named and the reason stated.
-  [NEEDS CLARIFICATION: what does a dataset reference point at on disk — pre-windowed arrays, raw
-  message-level CSV that this feature must window, or a declared format with a loader per kind?
-  The requirements hold for any of the three, but the loader cannot be built without the answer.]
+  read, or holds no usable data MUST fail with the path named and the reason stated. What the
+  reference points at is specified under *Reading the dataset* below.
 - **FR-011**: A dataset that disagrees with the manifest MUST be rejected, naming the
-  disagreement — at minimum its labels and its feature width against the manifest's labels and
-  window.
+  disagreement — at minimum its label names against the manifest's labels, and the number of
+  features a sample actually has against the number the manifest's window implies.
 - **FR-012**: A run that fails, diverges to a non-finite loss, or is interrupted MUST leave no
   trained-model artifact, and its report MUST say that the run did not finish.
 - **FR-013**: No dataset MUST be written into the repository. The only committed data is the
@@ -205,6 +209,21 @@ status, the message naming the extra, and the absence of a traceback.
 - **FR-022**: The framework and its version MUST be recorded in the run report of any run that
   used it.
 
+**Reading the dataset**
+
+- **FR-023**: A dataset reference MUST resolve to raw, record-level tabular data in delimited text
+  form — one file, or a directory whose files are read in sorted name order as one continuous
+  sequence. Each file MUST carry a header row. One column MUST be named `label` and MUST hold the
+  class name; every other column MUST be a numeric feature, taken in the order the header gives.
+  A cell that is missing or not a number MUST be rejected, naming the file, the record and the
+  column.
+- **FR-024**: When the manifest states a window, a sample MUST be that many consecutive records in
+  sequence order, and windows MUST NOT overlap. When the manifest states no window, one record
+  MUST be one sample.
+- **FR-025**: A window whose records do not all carry the same label MUST be discarded rather than
+  given a label it cannot be known to have, and the number of windows discarded for that reason
+  MUST be recorded in the run report alongside the number kept.
+
 ### Key Entities
 
 - **Built model**: the untrained model as the template constructs it, with its shapes and parameter
@@ -213,8 +232,10 @@ status, the message naming the extra, and the absence of a traceback.
 - **Checkpoint**: a saved state of training — the best by validation metric, and the final one.
 - **Quality metric**: a number about the model's behaviour, inseparable from the split and dataset
   version it was measured against.
-- **Dataset**: data outside the repository, referenced by the manifest, resolved for the first time
-  in this feature, carrying a version and a shape.
+- **Dataset**: raw, record-level data outside the repository, referenced by the manifest, resolved
+  for the first time in this feature, carrying a version and a shape.
+- **Sample**: what the model sees — one window of consecutive records, or one record when the
+  manifest states no window. Windowing happens here, not before the tool is called.
 - **Stage result**: what a stage produced, together with the key that decides whether it can be
   reused.
 - **Training extra**: the separately installed part that carries the template's builder half and
@@ -242,6 +263,8 @@ status, the message naming the extra, and the absence of a traceback.
   both sides named.
 - **SC-009**: The repository contains no dataset other than the synthetic fixture, and the fixture
   is under 200 KB.
+- **SC-010**: The fixture contains at least one window that spans a change of label, and the run
+  report states how many windows were discarded and how many were kept.
 
 ## Constitution Alignment
 
@@ -254,7 +277,7 @@ status, the message naming the extra, and the absence of a traceback.
 | VI. Compliance Enforced by the Schema | FR-009 enforces the author's own statement about what their data permits — the whole of what the framework claims about data rights. |
 | VII. Targets and Templates Are Data | The template's builder half registers alongside its parameter half; adding a template still edits no central list. |
 | VIII. No Lock-In | Training runs locally; no stage in this feature touches the network. |
-| IX. Stable Manifest Contract | The schema gains no field in this feature, so the contract is untouched. |
+| IX. Stable Manifest Contract | The schema gains no field in this feature, so the contract is untouched: the dataset's format is a convention the data meets, not a field the manifest restates. |
 | X. Built for Real Models | `picket-mlp` drives everything here; `conv1d` waits for `pace-cnn`. |
 | XI. No Claude in Model Learning | Nothing in this feature uses Claude to produce, label or judge data. The training run records the framework that produced its outputs. |
 | XII. Small Core, Few Dependencies | FR-019 to FR-022: the framework lives in one extra, the core keeps its budget, and the extra's narrower Python window is stated with its reason. |
@@ -284,5 +307,15 @@ Deviations: none.
   for the current Python.
 - No hardware, emulator or accelerator is needed to develop or test this feature. A CPU is enough
   for the fixture.
-- **Open**: the dataset's on-disk format. See the clarification below; the requirements above are
-  written to hold whichever answer is chosen, but the loader cannot be built without it.
+- **The dataset is raw and record-level, and Caravan windows it** (FR-023, FR-024). The
+  alternative — pointing at arrays somebody else already windowed — would make `dataset.window` a
+  claim about work done elsewhere, which the tool could not keep honest. The cost is accepted: the
+  tool reads a text format rather than a prepared one, and the author keeps their raw data.
+- **A window whose records disagree about the label is discarded** (FR-025) rather than labelled by
+  majority or by its last record. Both of those invent a label for a sample that genuinely has
+  two, and a tie in a majority rule has no honest answer. Discarding loses a small number of
+  boundary windows, and the report says how many — which is the same habit Principle IV applies to
+  measurements. If the ported model needs the boundary windows, this is the decision to revisit.
+- **The label column is named `label`, and every other column is a feature.** The manifest gains no
+  field for this: a convention the data must meet is cheaper than a schema the manifest must
+  restate, and Principle IX warns against fields added before a model needs them.
