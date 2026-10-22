@@ -90,6 +90,7 @@ unverified rather than as a checked fact.
 |---|---|
 | `.specify/memory/constitution.md` | the rules: twelve principles, the scope boundary, the gates |
 | `specs/<nnn>-<name>/` | one feature's spec, plan, research, data model, contracts and tasks |
+| `docs/roadmap.md` | what is planned per version, and the non-goals, each with its reason |
 | `docs/design/` | the design document Caravan was started from, frozen as a dated record |
 | `docs/research/` | sourced research notes that decisions cite |
 | `docs/budgets.md` | the dependency, install and Python-version budgets, with measurements |
