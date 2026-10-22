@@ -188,8 +188,10 @@ target: this stage reads a file on a desktop and says what it read.
   formats the manifest names, into the run directory, leaving the inputs untouched.
 - **FR-002**: The serialised model MUST be written as a run artifact, byte for byte the model the
   accuracy gate measured.
-- **FR-003**: The C array MUST be a plain C source file with a header that declares the array and
-  its length, compilable on its own with no Caravan-specific include.
+- **FR-003**: The C array MUST be a source file holding nothing but bytes of `unsigned char`, with
+  a header that declares the array and its length, compilable on its own with no Caravan-specific
+  include and no framework type anywhere in it. It is compiled by the same toolchain as the runtime
+  that consumes it, which is C++; the *array* is plain, the file is not C89 (research R3).
 - **FR-004**: The C array MUST round-trip: the bytes it declares MUST equal the bytes of the
   serialised model.
 - **FR-005**: The C array MUST be deterministic — the same model exports to identical bytes, with no
@@ -283,8 +285,10 @@ target: this stage reads a file on a desktop and says what it read.
   file, and differs from the desktop interpreter's node list — asserted, not assumed.
 - **SC-003**: The emitted resolver names exactly the distinct operators of the graph: no operator
   missing, none added.
-- **SC-004**: The C array compiles standing alone and its bytes equal the serialised model's; the
-  equality is checked on the bytes, not on a length.
+- **SC-004**: The generated array source and header compile standing alone with a host C++
+  compiler, and the array's bytes equal the serialised model's — the equality checked on the bytes,
+  not on a length. The resolver is not compiled here: it includes the runtime's headers, which this
+  feature does not vendor, and compiling it is emulated verification's job.
 - **SC-005**: Two exports of the same model produce identical bytes for every generated file.
 - **SC-006**: 100% of the operators of the graph have a coverage verdict for every target the
   manifest names, and 100% of those verdicts carry a source and a date.
@@ -348,6 +352,11 @@ target: this stage reads a file on a desktop and says what it read.
 - **`onnx` stays declared in the schema and refused by the stage.** Removing it from the schema
   would be a breaking schema change for a format the roadmap still intends; accepting it silently
   would be worse. A named refusal is the same pattern the unimplemented quantization settings use.
+- **The export writes the model again under its own name.** The run already holds the quantized
+  model from feature 003, with identical bytes. The export set is what an author takes away, so it
+  carries its own copy next to the array, the header and the resolver rather than a reference into
+  another stage's output. Fifteen kilobytes against a self-contained set of artifacts is the right
+  trade; the report records both paths and their shared digest so the duplication is visible.
 - **One artifact set per run, with target-dependent parts per target.** The serialised model, the C
   array and the resolver do not depend on the board; coverage and the skeleton's runtime do. The
   layout follows that split rather than copying everything per target.

@@ -92,12 +92,23 @@ holds the model, the array, the header and the report, and the artifacts outlive
 - [ ] T014 [P] [US1] `tests/unit/test_c_array.py`: the generated source round-trips to the model's
   exact bytes; the header declares the same length; `alignas(16)` is present; two generations of the
   same model are byte-identical; no timestamp, path or host name appears in either file
+- [ ] T014b [P] [US1] `tests/unit/test_c_array_compiles.py`: compile the generated `.cc` and `.h`
+  with the host C++ compiler and assert it succeeds, skipping when no compiler is on the path. This
+  is what turns SC-004 from a claim into a check: the pair needs only `<cstdint>`, so a host
+  compiler settles it, while the resolver cannot be compiled here because it includes the runtime's
+  headers — which the test states as its reason for not trying
 - [ ] T015 [P] [US1] `tests/contract/test_export_contract.py`: exit 0 writes every artifact the
   manifest's formats imply; exit 1 for `X-1` with the format named and **no** artifact of any
   format; exit 1 for `X-2` naming the stage to run first; exit 2 for an unreadable manifest path;
   the absence of `--format`, `--target` and any skip option asserted over the whole parser
 - [ ] T016 [P] [US1] `tests/contract/test_export_report.py`: the report names every artifact with
-  its size and its `sha256:` digest, and the digest matches the file on disk
+  its size and its `sha256:` digest, the digest matches the file on disk, and the re-written model
+  and the quantize stage's model are recorded as two paths sharing one digest
+- [ ] T016b [P] [US1] `tests/unit/test_subgraph_refusal.py`: the stage refuses `X-3` for a graph
+  record carrying two subgraphs. The check is tested against the record rather than against a file,
+  because producing a genuine two-subgraph int8 model needs control flow in the template and is a
+  feature of its own; the test states that reason, so the next reader knows it is a deliberate seam
+  and not a shortcut
 
 ### Implementation for User Story 1
 
@@ -115,6 +126,10 @@ holds the model, the array, the header and the report, and the artifacts outlive
   the working-memory floor and what it omits
 - [ ] T022 [US1] Write `export.json` through the run report machinery of feature 002, carrying the
   artifact list, the graph record, the cache verdict and the provenance of every number
+- [ ] T022b [US1] `tests/contract/test_export_cache.py`: a second export of an unchanged run reuses
+  the stored result and records that it did; `--fresh` produces it again and records that too;
+  editing a manifest field the stage does not read changes nothing (FR-029, FR-030) — the same pair
+  of assertions feature 003 carries for quantize
 
 **Checkpoint**: `caravan export` produces the model, the array, the header and the report, and
 refuses `X-1`, `X-2` and `X-3` by name.
@@ -201,8 +216,11 @@ board, each carrying its source and date.
 - [ ] T036 [P] [US4] `tests/unit/test_kernel_data_files.py`: both data files parse, every mapped
   operator name is one the schema knows, `read_on` is a date, `source` is non-empty, and every
   listed source file appears in either `operators` or `unmapped` so nothing is silently dropped
-- [ ] T037 [P] [US4] `tests/fixtures/boards/x-5-unknown-accel.yaml` plus the manifest fixture that
-  points at it, for the `X-5` refusal
+- [ ] T037 [P] [US4] `tests/fixtures/boards/x-5-unknown-accel.yaml` for the `X-5` refusal, with a
+  `sources` entry for every field it claims so that it fails on `X-5` and not on `S-1`, loaded in
+  the test through `targets.registry.load_directory` and injected — **not** through a manifest,
+  because `B-1` rejects a board the shipped registry does not have, which is why the registry is an
+  instance in the first place
 
 ### Implementation for User Story 4
 
@@ -235,7 +253,8 @@ and no computed figure is presented as measured.
 - [ ] T043 [P] [US5] `tests/contract/test_no_unverified_claims.py`: no artifact and no report field
   claims the skeleton was compiled, linked or run; the working-memory figure always travels with its
   method and with the sentence saying what it omits; no latency, flash or memory figure for a target
-  appears anywhere in the report
+  appears anywhere in the report; and no coverage verdict is phrased as a statement about speed
+  (FR-023) — the field names and the human summary are asserted, not just the prose
 
 ### Implementation for User Story 5
 
@@ -256,6 +275,9 @@ and no computed figure is presented as measured.
   the `export/` package and `targets/kernels.py` must import no framework at all
 - [ ] T048 [P] Add the export verb to `tests/contract/test_no_network.py` and
   `tests/contract/test_no_skip_option.py`
+- [ ] T048b [P] Confirm the continuous integration images carry a host C++ compiler so T014b runs
+  rather than skips there, and record in `.github/workflows/ci.yml` which job owns that check — a
+  test that skips everywhere proves nothing
 - [ ] T049 [P] Update `README.md` with the `export` verb and what it produces
 - [ ] T050 [P] Update `docs/roadmap.md`: export delivered, and `conv1d` with the `pace-cnn` port is
   the last item of v0.1
@@ -288,10 +310,10 @@ not quietly kept: it means it was not testing what it claimed.
 ### Parallel Opportunities
 
 - T003, T004, T005 — three independent data files
-- T014, T015, T016 — three independent test modules for US1
+- T014, T014b, T015, T016, T016b, T022b — the independent test modules for US1
 - T023, T024, T025 — three independent test modules for US2
 - T035, T036, T037 — coverage tests and the fixture
-- T047 … T051 — five independent documents and tests
+- T047, T048, T048b, T049, T050, T051 — independent documents and tests
 
 ---
 

@@ -75,3 +75,28 @@ flagged rather than resolved here because it is a governance question, not a des
    asserting otherwise would be an unverified claim;
 6. `onnx` stays in the schema and is refused by name, rather than being removed from the schema or
    silently ignored.
+
+## The analysis pass, 2026-10-22
+
+`/speckit-analyze` found no critical issue and eight findings, four of them MEDIUM. All eight were
+fixed before implementation rather than carried into it. Two were only findable by checking the
+machine rather than re-reading the document, which is the argument for running the pass at all:
+
+- **SC-004 claimed the C array "compiles standing alone" and nothing compiled it.** A host C++
+  compiler is present (`g++ 13.3`), and the generated pair needs only `<cstdint>`, so the claim
+  became a test (T014b) instead of a hope. The resolver cannot be compiled here — it includes the
+  runtime's headers — and the criterion now says so rather than implying otherwise.
+- **The `X-5` refusal was not reachable the way its task described.** The task wanted a manifest
+  pointing at a board fixture; `B-1` rejects a board the shipped registry does not carry. The board
+  registry is an instance precisely so a test can load a directory of its own, so T037 now injects
+  one, and the fixture carries a `sources` entry per field so it fails on `X-5` and not on `S-1`.
+
+The other six: FR-003 said "plain C source file" for a file that is C++ as the runtime's own
+generator writes it (wording fixed); the multi-subgraph refusal had no test (T016b, against a graph
+record, with the reason stated); the cache requirements had no test (T022b, the pair feature 003
+carries); FR-023 had no assertion (folded into T043); the second copy of the model in the run
+directory was an unrecorded decision (now in Assumptions); and a test that would skip everywhere
+proves nothing (T048b).
+
+Requirement coverage after the pass: 32 of 32 with at least one task, 32 of 32 with a test task,
+10 of 10 success criteria, 56 tasks.
