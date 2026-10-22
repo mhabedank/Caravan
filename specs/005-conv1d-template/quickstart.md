@@ -89,12 +89,13 @@ from a table in a document.
 
 ## See it refuse
 
-**A window too short for the configuration.** Set `dataset.window: 16` with the fixture's blocks:
+**A window too short for the configuration.** Set `dataset.window: 16` in a copy of the fixture
+manifest, keeping its blocks, and widen the second block's kernel to 5:
 
 ```
 manifest.yaml: dataset.window — the conv1d template needs more window than this manifest has
-    window 16 reaches block 2 with 3 samples left, and that block's kernel spans 3
-    accepted: ...
+    window 16 reaches block 2 with 3 samples left, and that block's kernel spans 5
+    accepted: a kernel of 3 or less in block 2, no pooling in block 1, or a window of 23 or more
 ```
 
 Exit 1, nothing built. The message names the block and the length at that point, because "does not

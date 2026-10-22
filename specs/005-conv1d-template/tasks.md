@@ -176,6 +176,24 @@ changed.
 
 ---
 
+## Two requirements with no task, and why
+
+Found by the analysis pass rather than left implicit:
+
+- **FR-024 (the stage cache applies)** needs no task. `build.SPEC.reads` already includes
+  `model.params`, so a changed block is a changed key by construction, and feature 002's generic
+  projection test checks that declaration against what the code actually touches. A conv1d-specific
+  cache test would assert the same machinery twice.
+- **FR-025 (the gate can fail this template's runs)** needs no task either. It follows from FR-023 —
+  no stage branches on a template identifier, which T022 asserts by reading the sources — together
+  with feature 003's gate tests, which exercise the failure path on the machinery both templates
+  share.
+
+Both are stated here so that a reader counting tasks against requirements does not find a hole and
+assume it was forgotten.
+
+---
+
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T024 [P] Extend `tests/layering/test_no_framework_imported.py`: `templates.builders.conv1d`

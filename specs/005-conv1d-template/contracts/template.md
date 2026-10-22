@@ -15,9 +15,13 @@ model:
     head: average
 
 dataset:
-  window: 64          # required: this template consumes a window (CF-6)
-  labels: [normal, fault_a, fault_b, fault_c]
+  window: 64                               # required: this template consumes a window (CF-6)
+  labels: [normal, dos, fuzzy, replay]     # the committed fixture's own labels
 ```
+
+This one runs: the labels are the four the committed synthetic dataset actually carries, and the
+blocks fit a 64-sample window — 64 → 30 after the first convolution, 15 after its pooling, 13 after
+the second convolution, which the `average` head then reduces.
 
 At the named model's shape the same template reads:
 
@@ -27,10 +31,16 @@ At the named model's shape the same template reads:
       - {filters: 32, kernel: 3, normalise: true, pool: 2}
     head: average
 dataset:
-  window: 128         # 2.56 s at 50 Hz, 9 channels from the dataset's own width
+  window: 128         # 2.56 s at 50 Hz; 9 channels come from the data's own width
+  labels: [walking, walking_upstairs, walking_downstairs, sitting, standing, lying]
 ```
 
-The channel count is never written here: it comes from the data's own width, as it does for the
+**That second one is not runnable in this repository**, and deliberately so: the committed fixture
+has five columns and four labels, and the named model's dataset never enters here (Principle IX).
+It is shown because the template exists for that shape, and the shape is checked by building rather
+than by training (spec FR-013).
+
+The channel count is never written in either: it comes from the data's own width, as it does for the
 dense template.
 
 ## What it promises
@@ -52,14 +62,25 @@ manifest.yaml: model.params.blocks.0.kernel — the conv1d template rejects this
 
 **A configuration the window cannot carry** — rule `CF-6`, at validation, with the arithmetic shown:
 
+Shown for the manifest above with `window: 16` instead of 64, so the arithmetic can be checked
+against the formulas of research R5: 16 → 6 after the first convolution (kernel 5, stride 2), 3
+after its pooling, and the second block's kernel of 3 leaves exactly 1 — so a kernel of 5 there
+would not fit:
+
 ```
 manifest.yaml: dataset.window — the conv1d template needs more window than this manifest has
-    window 64 reaches block 2 with 7 samples left, and that block's kernel spans 9
-    accepted: a kernel of 7 or less in block 2, a stride of 1 in block 1, or no pooling in block 1
+    window 16 reaches block 2 with 3 samples left, and that block's kernel spans 5
+    accepted: a kernel of 3 or less in block 2, no pooling in block 1, or a window of 23 or more
 ```
 
 The message names the block, the length at that point, and a fitting alternative. Three things,
 because "does not fit" alone is a sentence an author cannot act on.
+
+The third one has to be *computed*, not guessed: this document first said "a window of 26 or more",
+and the smallest window that actually fits a kernel of 5 in block 2 is **23** — at 22 the first
+block leaves 4 samples and at 23 it leaves 5. The implementation computes it by walking the blocks
+rather than by estimating, and the test of that walk is `tests/unit/test_window_fit.py`. A
+suggestion an author follows has to be right, or it is worse than no suggestion.
 
 ## What the author is choosing when they pick a head
 

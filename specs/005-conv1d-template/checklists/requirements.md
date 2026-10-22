@@ -64,3 +64,29 @@ measurements, all reversible:
    by building rather than by training;
 6. nothing here claims an accuracy or a latency for a model built through this pipeline, because
    none has been trained on real data yet.
+
+## The analysis pass, 2026-10-22
+
+`/speckit-analyze` found no critical issue and four findings, two of them MEDIUM. All four were
+fixed before implementation. The two that mattered were both about numbers and examples that looked
+right:
+
+- **The contract's example manifest invented its labels.** It carried
+  `[normal, fault_a, fault_b, fault_c]`; the committed synthetic dataset has
+  `[normal, dos, fuzzy, replay]`. A manifest copied from the document would have been refused by the
+  dataset-label rule — and the fixture task would have produced exactly that manifest. Fixed, and
+  the second example, at the named model's shape, now says plainly that it is *not* runnable here,
+  because the committed fixture has five columns and four labels.
+- **A suggested window was wrong by three.** The refusal's message offers a fitting alternative, and
+  the document first said "a window of 26 or more" where the smallest window that actually fits is
+  23: at 22 the first block leaves four samples, at 23 it leaves five. Computed rather than
+  estimated, the correction is in the contract along with the reason it matters — a suggestion an
+  author follows has to be right, or it is worse than no suggestion.
+
+The other two: FR-024 and FR-025 had no task of their own, and both are covered by machinery that
+exists — the build stage already reads `model.params` into its cache key, and the gate is shared
+code that no stage branches around. That is now written into the task list rather than left as a
+hole a reader would read as an oversight.
+
+Requirement coverage after the pass: 26 of 26 with a task or a stated reason there is none, 24 of 26
+with a task of their own, 10 of 10 success criteria, 28 tasks.
