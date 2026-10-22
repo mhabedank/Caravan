@@ -1,7 +1,38 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.1.0 → 2.2.0
+Version change: 2.2.0 → 2.3.0
+Bump rationale: MINOR. It grants something 2.2.0 assumed was already possible and is not.
+2.2.0 let an extra "declare a narrower Python window than the project". Python packaging offers
+no such thing: `requires-python` is metadata of the whole distribution, and an extra can only
+carry environment markers on its own dependencies. With a floor of 3.14 and a framework that
+ships only for 3.13, `pip install caravan-ml[train]` cannot succeed on any interpreter — the
+extra 2.2.0 permitted could not be installed at all. So 2.2.0 solved the governance question and
+left the mechanical one, and the planning gate of feature 002 failed on it.
+
+What is granted: the published floor MAY be lowered to the extra's floor, under five conditions
+that keep the policy's substance — current and previous stable still supported *and tested*, the
+reason recorded with the version and date, markers so the default installation is untouched, an
+actionable message when the stage is run outside the window, and a return to the policy floor
+once the framework ships. The fifth condition is the one that makes this bearable: a lowered
+floor must be tested, or the support claim in the metadata is simply false.
+
+Checked 2026-10-22 against the live index: TensorFlow 2.21.0 (stable) publishes cp310 through
+cp313. 2.22.0rc0 does publish cp314 wheels, but depends on `keras-nightly`, so it resolves only
+with pre-releases globally enabled — it cannot be a declared dependency of a published
+distribution. That rc is also the evidence that this window closes soon, and the closing
+condition is now concrete rather than aspirational: a stable TensorFlow with a cp314 wheel that
+depends on a released `keras`.
+
+Modified principles:
+- XII. Small Core, Few Dependencies: how an extra's narrower window is actually expressed, and
+  what lowering the published floor costs.
+
+Modified sections:
+- Technical Baseline: the wheel evidence, the rc that depends on a nightly, and the floor of 3.13
+  with its closing condition.
+
+Previous report: 2.1.0 → 2.2.0
 Bump rationale: MINOR. Not a clarification: it grants something Principle XII did not address.
 The principle lists "moved behind an extra" as a remedy when a dependency cannot be installed on
 the project's Python versions, but says nothing about what window that extra may then declare —
@@ -446,6 +477,23 @@ builds models must make that ban structural, not a matter of how each user happe
   NOT narrow the default installation, and the window MUST close once the framework ships for the
   project's current version. A user who installs no extra is never affected, which is what makes
   this bearable rather than a quiet retreat from the policy.
+- That window is not a packaging feature: `requires-python` belongs to the whole distribution, and
+  an extra can only carry environment markers on its own dependencies. Where the extra's framework
+  ships solely for versions below the project's floor, the published floor MAY therefore be lowered
+  to the extra's floor, and only under all five of these conditions:
+  1. the current and the previous stable minor version remain supported **and tested** — the
+     lowered version MUST be tested too, or the support stated in the metadata is false;
+  2. the lowered floor is recorded with the framework that caused it, the version checked and the
+     date;
+  3. the extra's dependencies carry environment markers, so a default installation on the
+     project's current Python is unaffected;
+  4. a stage behind the extra, run on an interpreter outside the extra's window, MUST fail with a
+     message naming the window and the reason — never with a resolution error or a traceback;
+  5. the floor returns to the policy floor once the framework ships for the project's current
+     version, and the obligation is recorded where it will be seen.
+  A lowered floor also means the core keeps running on the lower version, which is a real
+  constraint on what the core may use. That cost is the price of the extra existing at all, and it
+  is paid knowingly or not at all.
 - The published distribution MUST NOT carry an upper version bound on a dependency unless a
   concrete incompatibility is documented with a reference, and the bound MUST be removed once it
   is fixed upstream.
@@ -524,13 +572,22 @@ These choices are architectural and apply until amended with a stated rationale:
 - Training and conversion: Keras/TensorFlow with post-training int8 quantization as the default
   deployment format. The converter toolchain MUST be pinned by package name and version in the
   provenance record, because which package provides it is moving.
-- TensorFlow publishes no wheel for either Python version this project supports (checked
-  2026-10-22: cp310 through cp313, against a floor of 3.14). The training extra therefore carries
-  its own narrower Python window under Principle XII, and says so. The alternative — Keras 3 on a
-  JAX backend, which does install on both — was rejected for now because the path from there to
-  int8 TFLite on these Python versions is unverified, and conversion is the one link in the chain
-  that cannot be swapped without moving this baseline and the whole export story with it. The
-  question reopens when the quantize stage is built.
+- TensorFlow publishes no stable wheel for either Python version this project supports: 2.21.0
+  ships cp310 through cp313 (checked 2026-10-22 against the package index). 2.22.0rc0 does ship
+  cp314 wheels, but it depends on `keras-nightly`, so it resolves only with pre-releases globally
+  enabled and cannot be a declared dependency of a published distribution. The training extra
+  therefore carries Python 3.13, and the published floor is 3.13 under the conditions in
+  Principle XII — including the one that matters most: 3.13, 3.14 and 3.15 are all tested. The
+  window closes, and the floor returns to 3.14, when a stable TensorFlow ships a cp314 wheel and
+  depends on a released `keras`. The rc says that is near.
+- The alternative — Keras 3 on a JAX backend, which does install on 3.14 and 3.15 (jaxlib ships
+  cp314 and cp315, torch ships cp314, checked 2026-10-22) — was rejected for now because the path
+  from there to int8 TFLite on those Python versions is unverified, and conversion is the one link
+  in the chain that cannot be swapped without moving this baseline and the whole export story with
+  it. Training on one framework and converting on another would also mean two frameworks in a
+  project whose central rule is to have few. The question reopens when the quantize stage is
+  built: `ai-edge-litert` ships cp314 (2.3.0, checked 2026-10-22), and if a converter path exists
+  there, this baseline changes rather than being worked around.
 - Identifiers that outlive a release — schema field values, format names, artifact names — MUST
   NOT be vendor product names. A product rename would otherwise become a schema migration.
 - Interface: a Python command line application. Manifest validation uses a schema library with
@@ -606,4 +663,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.2.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.3.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22

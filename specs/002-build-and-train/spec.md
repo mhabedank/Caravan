@@ -301,10 +301,12 @@ Deviations: none.
   manifest and the data disagree, and then one of them is wrong without anyone knowing.
 - The synthetic fixture stands in for the real dataset in every test. The real HCRL Car-Hacking
   data is never committed, and the author's own training runs use their copy of it.
-- The `train` extra's Python window is 3.13 because TensorFlow publishes no wheel for 3.14 or 3.15
-  (checked 2026-10-22). The default installation keeps the project's policy. This is permitted by
-  Principle XII as amended in constitution v2.2.0, and the window closes when the framework ships
-  for the current Python.
+- The `train` extra's Python window is 3.13 because TensorFlow publishes no stable wheel for 3.14 or
+  3.15 (checked 2026-10-22). Planning found that this costs more than the spec first assumed:
+  packaging has no per-extra Python window, so the published floor moves to 3.13 as well, and 3.13,
+  3.14 and 3.15 are all tested — see research R1 and Principle XII as amended in constitution
+  v2.3.0. The default installation gains a version rather than losing one, and the floor returns to
+  3.14 when the framework ships for the current Python.
 - No hardware, emulator or accelerator is needed to develop or test this feature. A CPU is enough
   for the fixture.
 - **The dataset is raw and record-level, and Caravan windows it** (FR-023, FR-024). The
