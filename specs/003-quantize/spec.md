@@ -30,7 +30,8 @@ quantized model, both accuracy figures, the verdict, and the per-layer table whe
 
 1. **Given** a trained model and a manifest stating int8 and an accepted accuracy drop, **When**
    the author quantizes, **Then** the run directory holds the quantized model, and the report
-   records the float accuracy, the quantized accuracy, the drop, the threshold and the verdict.
+   records the trained, converted and quantized accuracies, both differences, the threshold and the
+   verdict.
 2. **Given** that run, **When** the author reads the report, **Then** both accuracy figures name
    the split and the dataset version they were measured on, and the calibration record says how
    many samples were requested, how many were used and which split they came from.
@@ -182,13 +183,17 @@ produces a deployable model, and each belongs to a later feature with its own dr
 
 **The gate**
 
-- **FR-010**: The quantized model's accuracy MUST be measured on the test split, and compared with
-  the float model's accuracy measured on the same split and the same dataset version.
+- **FR-010**: Three accuracies MUST be measured on the test split, against the same dataset
+  version: the trained model's, the converted model's before quantization, and the quantized
+  model's. The gate MUST be the difference between the last two, because that difference is the
+  loss *from quantization*, which is what the manifest's threshold is about. The difference between
+  the first two MUST be recorded beside it, so a loss caused by conversion cannot hide inside a
+  passing gate — with one baseline the two are indistinguishable, and they have different fixes.
 - **FR-011**: The run MUST fail when the accuracy drop exceeds what the manifest accepts, with a
   non-zero status and a machine-readable reason.
 - **FR-012**: A failed gate MUST leave no quantized-model artifact.
-- **FR-013**: Both accuracy figures, the drop, the threshold and the verdict MUST be recorded
-  whether the gate passes or fails.
+- **FR-013**: All three accuracy figures, both differences, the threshold and the verdict MUST be
+  recorded whether the gate passes or fails.
 - **FR-014**: There MUST NOT be any option, flag or variable that skips the gate, lowers the
   threshold or continues past a failure. Loosening the budget is an edit to the manifest.
 - **FR-015**: A stage that cannot measure the comparison MUST fail rather than pass. Unknown is not
@@ -230,8 +235,9 @@ produces a deployable model, and each belongs to a later feature with its own dr
   actually contains — not what it was asked to contain.
 - **Calibration sample set**: samples drawn from the training split, with the counts requested,
   used and available, and the seed that chose them.
-- **Accuracy comparison**: two accuracy figures on one split and one dataset version, their
-  difference, the threshold it was judged against, and the verdict.
+- **Accuracy comparison**: three accuracy figures on one split and one dataset version — trained,
+  converted, quantized — the two differences between them, the threshold the second difference was
+  judged against, and the verdict.
 - **Per-layer error row**: a layer, and how much its output changed under quantization. Exists only
   for a failed gate.
 - **Tensor type record**: what the produced file says about each of its tensors, read from the file.
@@ -242,8 +248,8 @@ produces a deployable model, and each belongs to a later feature with its own dr
 
 - **SC-001**: The pilot manifest quantizes end to end on the synthetic fixture in under 60 seconds,
   with no network access.
-- **SC-002**: A passed run leaves the quantized model and a report carrying both accuracy figures,
-  the drop, the threshold and the verdict.
+- **SC-002**: A passed run leaves the quantized model and a report carrying all three accuracy
+  figures, both differences, the threshold and the verdict.
 - **SC-003**: 100% of the numbers this stage records name their split, their dataset version and
   their sample count.
 - **SC-004**: The report's claim about the model's tensor types matches an independent reading of
@@ -303,9 +309,13 @@ Deviations: none.
 - **The per-layer error table comes from the conversion half**, which already has the framework,
   and is therefore available on the same Python the conversion needs. It is recorded only for a
   failed gate (FR-016, user story 3 scenario 2).
-- **The float model's accuracy is re-measured here rather than read from the training report**, on
-  the same split and dataset version as the quantized model, so the comparison is between two
-  numbers taken the same way. Reading one from an earlier run would compare a measurement with a
-  memory.
+- **Every accuracy here is re-measured rather than read from the training report**, on the same
+  split and dataset version, so the figures being compared were taken the same way. Reading one
+  from an earlier run would compare a measurement with a memory.
+- **The gate compares the converted model with the quantized one, not the trained model with the
+  quantized one** (FR-010). With a single baseline, accuracy lost in conversion and accuracy lost
+  in quantization are one number, and a threshold on their sum fails runs for the wrong reason or
+  passes them while conversion quietly cost something. The planning phase settled this; it costs one
+  extra conversion of a small model.
 - No hardware, emulator or accelerator is needed to develop or test this feature. Nothing in it
   claims anything about hardware behaviour; the first such claim is the analysis stage.
