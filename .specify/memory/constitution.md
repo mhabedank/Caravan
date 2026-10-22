@@ -1,29 +1,55 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0
-Bump rationale: MINOR. Owner direction of 2026-10-22, from having contributed to Ludwig: the
-framework's own weight is the failure mode to prevent. A narrow feature set, executed well, is
-the product. Adds a principle with a dependency and install budget, a layering rule that keeps
-the training framework out of the core, and integrations only behind a removable boundary.
+Version change: 1.1.0 → 2.0.0
+Bump rationale: MAJOR, and the bump type is a judgement call the owner may overrule. Seven of
+the eight amendments below are additions (MINOR). The eighth redefines the central obligation of
+Principle IX: an older manifest is migrated rather than refused. An implementation built to
+satisfy 1.1.0 by refusing old manifests violates 2.0.0, so practice that was compliant is
+non-compliant now — the test this constitution's own governance section sets for MAJOR. Read as
+an extension of IX rather than a redefinition, this is 1.2.0 instead; nothing else in the
+amendment set would change.
 
-Added sections:
-- XII. Small Core, Few Dependencies
+Source: the research note docs/research/2026-10-22-prior-art-learnings.md, section F, applied on
+owner approval of 2026-10-22. Each amendment closes a trap that a cited source shows is real.
+
+Modified principles:
+- I. Declarative Manifest: no defaults or inheritance section; defaults resolve from the template
+  and the board description only (Ludwig's defaults block, note A3).
+- IV. Provenance labels: a memory figure derived from the model graph is `estimated` by
+  definition and carries the margin applied; a figure from the runtime's own allocation report is
+  `emulated` or `measured` by where it ran (TFLM arena, note C1).
+- V. Budgets Are Gates: peak activation memory is reported with the layer that causes it, and a
+  failed accuracy gate emits the per-layer quantization error table (MCUNetV2 note B1, TF
+  quantization debugger note C4).
+- VII. Targets and Templates Are Data: emulator support is stated honestly, `none` included, with
+  its source; an accelerated kernel library named by a board is a build-level claim, so the
+  export records per operator whether an accelerated kernel was linked and emits a minimal
+  operator resolver (CMSIS-NN note C2, Renode note C3).
+- IX. Stable Manifest Contract: the framework carries a registered migration per schema version
+  and upgrades an older manifest in memory, never rewriting the user's file; refusal is reserved
+  for a version it does not know (Ludwig's migration registry, note A1).
 
 Modified sections:
-- Technical Baseline: footprint analysis parses the exported flatbuffer as data, without
-  importing the training framework, and never rewrites it.
-- Development Workflow & Quality Gates: a gate before adding a dependency, and the core-import
-  and install-budget checks on every merge.
+- Pipeline & Artifact Contract: every run writes the fully resolved manifest beside its report
+  (note A4).
+- Target Hardware & the Verification Ladder: hardware benchmarks follow an established public
+  protocol so results are comparable outside this project (MLPerf Tiny, note D).
+- Technical Baseline: the runtime is named TFLM / LiteRT for Microcontrollers, the converter
+  toolchain is pinned by package and version in the provenance record, and format identifiers
+  avoid vendor product names (LiteRT rename, note E1).
 
-The numbers in Principle XII (six direct runtime dependencies, four extras) are the owner's to
-set. Changing one is a PATCH amendment with a stated reason, not a MINOR one.
+Added sections: none. Removed sections: none.
 
-Previous report: none → 1.0.0 (MAJOR, 2026-10-22). First ratified constitution for a new
-repository. Establishes eleven principles, the scope boundary against the Mobility Model Zoo,
-the pipeline and artifact contract, the verification ladder, the technical baseline, resource
-discipline, quality gates and governance. The decisions it took on the design document's open
-questions are listed below and still await review.
+Previous reports, newest first:
+- 1.0.0 → 1.1.0 (MINOR, 2026-10-22): added Principle XII (Small Core, Few Dependencies) on owner
+  direction, from having contributed to Ludwig — a dependency and install budget, a layering rule
+  keeping the training framework out of the core, and integrations only behind a removable
+  boundary. Its numbers (six direct runtime dependencies, four extras) are the owner's to set;
+  changing one is a PATCH amendment.
+- none → 1.0.0 (MAJOR, 2026-10-22): first ratified constitution for a new repository. Its
+  principle and section lists, and the decisions it took on the design document's open questions,
+  follow below and still await review.
 
 Source of this draft: the Caravan design document of 2026-10-22 (context, positioning,
 decisions, repo layout, manifest schema, pipeline stages, roadmap, open questions) and the
@@ -103,9 +129,15 @@ one board.
   exploration, and their findings enter the framework as code and tests.
 - Every field MUST have either a documented default or be required by the schema. A minimal
   manifest (model, dataset, export, compliance) MUST be sufficient to run the pipeline.
+- There MUST NOT be a defaults section, an inheritance mechanism or any other way for one part of
+  a manifest to set values for another. Defaults resolve from exactly two places: the template
+  and the board description.
 
 Rationale: Hand-built models in notebooks are what the framework exists to replace. A manifest
-that can hold code would drift back into the same unreproducible state within two models.
+that can hold code would drift back into the same unreproducible state within two models. The
+ban on a defaults section comes from Ludwig, where type-global defaults overridden per feature
+produced a hierarchy whose own documentation has to warn about repeated type keys, silently
+ignored settings and a scope that covers only part of the configuration.
 
 ### II. Embedded Targets Only
 
@@ -157,9 +189,20 @@ pipeline fast enough to use.
   the card MUST report the measurement, and MAY report the estimate beside it with its error.
 - A claim that a model fits a board MAY rest on `estimated` or `emulated` evidence only while it
   is labeled as such.
+- A memory figure derived from the model graph is `estimated` by definition, whatever the quality
+  of the derivation, and MUST be reported together with the safety margin applied to it. The
+  margin MUST be policy, documented once, not a per-model guess.
+- A memory figure taken from the runtime's own allocation report is `emulated` or `measured`
+  according to where that runtime ran. The generated runner MUST obtain it from the runtime
+  rather than recomputing it.
 
 Rationale: The model cards are the product of the zoo, and their value is that the numbers are
 honest. A heuristic estimate is a fine starting point; an unlabeled one is a false measurement.
+The rule for memory is not pessimism about our own analysis: the arena a TFLM model needs cannot
+be derived from the exported file, and the runtime's own report of it is documented to omit
+scratch buffers and the memory planner's working memory, so it can read lower than the smallest
+arena that works. An estimate is therefore the honest ceiling of static analysis, and the margin
+is part of the number.
 
 ### V. Budgets Are Gates, Not Warnings
 
@@ -173,12 +216,20 @@ honest. A heuristic estimate is a fine starting point; an unlabeled one is a fal
   to the manifest, visible in version control.
 - A stage that cannot determine whether a budget holds MUST fail, not pass. Unknown is not
   within budget.
+- Peak activation memory MUST be reported together with the layer that causes it. An aggregate
+  figure alone MUST NOT be the output of the analysis stage.
+- A failed gate MUST emit what is needed to act on it, not only a verdict: a failed accuracy gate
+  MUST emit the per-layer quantization error table, and a failed footprint gate MUST emit the
+  per-layer memory profile.
 - Automatic scaling of a template to fit a budget, where implemented, MUST record what it
   changed and MUST remain subject to the same gates.
 
 Rationale: Warnings are read once and then never again. A gate that can be silenced by a flag
 becomes a gate that is always silenced, and the budget is the entire reason an embedded model is
-built the way it is.
+built the way it is. Peak memory is named with its layer because it is concentrated, not spread:
+in most convolutional designs the first few blocks use an order of magnitude more memory than the
+rest, so one early tensor decides whether a model fits, and that tensor is the only thing a
+contributor can act on.
 
 ### VI. Compliance Is Enforced by the Schema
 
@@ -212,6 +263,15 @@ checked on every run by every contributor; a review checklist is checked when so
 - Model requirements MUST be derived from the model, not from the board: the analysis stage
   produces a hardware requirement record ("needs at least this much memory and flash, needs an
   FPU, needs int8 kernels") which is then resolved against the board descriptions.
+- A board description MUST state its emulator support as it is, including none, and MUST name the
+  source of that claim. An emulator platform MUST NOT be named in a board description unless it
+  exists.
+- An accelerated kernel library named by a board description is a claim about the build, not
+  about the model: acceleration is selected per operator and can depend on operand shapes, and an
+  operator without an accelerated kernel falls back to the reference implementation silently.
+  The export stage MUST therefore record, per operator of the converted graph, whether an
+  accelerated kernel is linked for the target, and MUST emit an operator resolver containing
+  exactly the operators the model uses.
 - Where a third party supplies a board description or template, it MUST pass the same validation
   and the same gates as a built-in one.
 
@@ -238,20 +298,30 @@ and the commercial tools it is an alternative to.
 
 ### IX. Stable Manifest Contract
 
-- Every manifest MUST declare the schema version it is written against. The framework MUST refuse
-  a manifest whose version it does not implement, naming the version it expected.
+- Every manifest MUST declare the schema version it is written against. A manifest that declares
+  none MUST be treated as the oldest version the framework knows.
+- The framework MUST carry one registered migration per schema version and MUST upgrade an older
+  manifest to the current version in memory on every load. It MUST NOT rewrite the user's file.
+  The run report MUST record both the declared version and the effective version after migration.
+- Refusal is reserved for a declared version the framework does not know. It MUST then name the
+  versions it implements.
 - Unknown or misspelled fields MUST be rejected with the field path and the accepted values. A
   manifest MUST NOT be silently reinterpreted and unknown input MUST NOT be ignored.
-- While the schema version is `v0`, breaking changes are permitted, but every one of them MUST be
-  recorded in a migration note that names the affected fields and the mechanical change required.
-- From the first stable schema version onward, a breaking change requires a new schema version;
-  a manifest that validated under a published stable version MUST keep validating or be rejected
-  with a migration message.
+- While the schema version is `v0`, breaking changes are permitted, but each one MUST ship its
+  migration together with a note that names the affected fields and the change required.
+- From the first stable schema version onward, a breaking change requires a new schema version,
+  and its migration MUST exist before the change is released. A manifest that validated under a
+  published stable version MUST keep loading through migration.
 - Validation errors MUST be actionable: field path, what was wrong, what is accepted.
 
 Rationale: The manifest is the public interface of the framework and it is also the archival
 record of how a published model was built. Silent reinterpretation of an old manifest would
-quietly break the reproducibility the zoo relies on.
+quietly break the reproducibility the zoo relies on — but refusing it is no better, because it
+turns the record of every published model into dead weight the moment the schema moves. Ludwig
+settled this by keeping the framework version inside the configuration and running a registry of
+per-version transforms on every load, on a copy; migrating in memory and never rewriting the file
+is cheap to add while the registry is empty and expensive to retrofit after the first migration
+is needed.
 
 ### X. Built for Real Models
 
@@ -347,6 +417,9 @@ integration that drags the core along with it is a defect, not a feature.
   through declared artifacts on disk, never through hidden global state.
 - Every run MUST write a machine-readable report containing its inputs, its provenance record
   (Principle III), its results with provenance labels (Principle IV) and its gate outcomes.
+- Every run MUST write the fully resolved manifest beside its report: every default expanded,
+  every template and board value applied, as it was actually used. It is an artifact of the run,
+  not an optional command, so that two runs can be compared field by field.
 - The command line interface is the contract for users and for continuous integration. Its exit
   codes MUST distinguish a failed gate from a crash.
 - The model card MUST be rendered from the manifest and the run reports. A card MUST NOT be
@@ -362,6 +435,11 @@ integration that drags the core along with it is a defect, not a feature.
   and that inference results match the host reference. It MUST NOT be used for timing claims.
 - Hardware benchmarks are the only source of latency, throughput and energy numbers. They MAY be
   run manually and MUST record the board, firmware, clock and toolchain.
+- Hardware benchmarks MUST follow an established public protocol rather than one invented here,
+  so that results are comparable outside this project: a stated minimum duration and iteration
+  count per run, the median of a stated number of runs, a single inference stream, and a
+  measurement window that excludes pre- and post-processing. The protocol and its source MUST be
+  named in the report.
 - A board whose emulator support is experimental or missing MUST say so in its description, and a
   model targeting it MUST be verified on the next rung available.
 - The target matrix is open and grows by board description (Principle VII). Boards already on the
@@ -371,11 +449,14 @@ integration that drags the core along with it is a defect, not a feature.
 
 These choices are architectural and apply until amended with a stated rationale:
 
-- Inference runtime on target: TensorFlow Lite for Microcontrollers with CMSIS-NN kernels, chosen
-  for portability across the whole target matrix. Caravan does not implement a runtime
-  (Principle II).
+- Inference runtime on target: TensorFlow Lite for Microcontrollers, now documented as LiteRT for
+  Microcontrollers, with CMSIS-NN kernels, chosen for portability across the whole target matrix.
+  Caravan does not implement a runtime (Principle II).
 - Training and conversion: Keras/TensorFlow with post-training int8 quantization as the default
-  deployment format.
+  deployment format. The converter toolchain MUST be pinned by package name and version in the
+  provenance record, because which package provides it is moving.
+- Identifiers that outlive a release — schema field values, format names, artifact names — MUST
+  NOT be vendor product names. A product rename would otherwise become a schema migration.
 - Interface: a Python command line application. Manifest validation uses a schema library with
   strict, typed models.
 - Emulation: Renode, using its own declarative platform descriptions. Caravan does not define a
@@ -450,4 +531,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
