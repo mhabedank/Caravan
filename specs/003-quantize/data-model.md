@@ -10,11 +10,11 @@ The manifest schema gains nothing (Principle IX). These are the in-memory and on
 
 | Field | Type | Meaning |
 |---|---|---|
-| `requested` | `int` | `dataset.representative_samples`, as the manifest states it |
+| `requested` | `int \| None` | `dataset.representative_samples`; **`None` when the manifest asks for no calibration** |
 | `available` | `int` | samples in the **training** split (never the test split) |
-| `used` | `int` | `min(requested, available)` |
+| `used` | `int` | `min(requested, available)`, or `0` when `requested` is `None` |
 | `seed` | `int` | `train.seed`; the draw is reproducible from it |
-| `indices` | `tuple[int, ...]` | which training samples, in the order they were drawn |
+| `indices` | `tuple[int, ...]` | which training samples, in the order they were drawn; empty when none |
 
 Rules:
 
@@ -22,6 +22,12 @@ Rules:
   manifest calibrate on the same samples.
 - `used < requested` is **recorded, not refused** (FR-003). The arbiter of whether calibration was
   enough is the accuracy gate.
+- **Only int8 calibrates.** `representative_samples` is `int | None` in the schema and rule CF-4
+  requires it only when `export.quantization` is `int8` — so on a valid `float16` or `none`
+  manifest it is legitimately `None`, and a plan that computed `min(None, available)` would raise
+  on correct input. For those settings the plan is built with `requested=None`, `used=0` and no
+  indices, and the conversion is given no representative dataset. The analysis pass caught this
+  before it was written.
 - `available == 0` cannot occur: feature 002 already refuses an empty split (DS-8).
 
 ## The produced model
@@ -92,7 +98,8 @@ The three figures and the two differences (FR-010, R7).
 | `quantization_drop` | `float` | `converted - quantized` — **what the gate judges** |
 | `threshold` | `float` | `export.accuracy_drop_max`, an absolute difference |
 | `verdict` | `"pass" \| "fail"` | `quantization_drop <= threshold` |
-| `samples` | `int` | the test split's size, so the verdict's resolution is readable |
+| `samples` | `int` | the test split's size |
+| `resolution` | `float` | `1 / samples`: the smallest difference this split can express |
 
 Rules:
 
@@ -169,11 +176,18 @@ they cannot have an invalid-manifest fixture, so they get their own coverage tes
 
 | Rule | Refuses because |
 |---|---|
-| Q-1 | the trained model is missing or unreadable, naming the stage that should have produced it |
+| Q-1 | the trained model cannot be read, naming the stage that produced it |
 | Q-2 | the conversion itself failed, reporting what the converter said |
 | Q-3 | a model declared int8 is not fully integer, naming the offending tensors |
 | Q-4 | **the accuracy gate failed**: the loss from quantization exceeds the manifest's threshold |
 | Q-5 | the comparison could not be measured, so the budget cannot be shown to hold |
+
+**Q-1 is about an unreadable model, not a missing one.** A missing `model/trained.keras` cannot
+occur: the stage runner of feature 002 runs the upstream stage first, and a cache entry whose
+artifacts are absent counts as a miss, so the artifact is always there by the time this stage runs.
+What *can* happen is that it is there and will not load — a truncated or corrupt cached file. The
+rule is written for that, and the analysis pass narrowed it rather than leaving a second
+unreachable rule after DS-7.
 
 Q-4 is also recorded as a `Gate` in the report's existing `gates` list — the mechanism feature 001
 built for exactly this — with its name, its result and the two numbers in its detail. The finding

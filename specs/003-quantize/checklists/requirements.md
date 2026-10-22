@@ -64,6 +64,36 @@ were to assert the mechanism (chosen), to grow the fixture past its 200 KB limit
 fixture manifest a wider threshold than the pilot's from the start. The third is held in reserve
 and only taken if quantization does flip a prediction, with the reason written in the file.
 
+**What the analysis pass changed** (2026-10-22, after plan and tasks, before any code). Seven
+findings, all fixed; two of them would have cost real time:
+
+- **The reuse matrix had no task at all.** FR-020 to FR-022 and SC-007 were written, the seven
+  cases were in the quickstart, and nothing implemented a test. In feature 002 the equivalent was
+  the most important test in the feature. Now T029a (the seven lived cases) and T029b (one line
+  that adds this stage to feature 002's generic projection test, after which no schema field can
+  quietly enter or leave what re-quantizes).
+- **A valid manifest would have crashed.** `representative_samples` is `int | None` and rule CF-4
+  demands it only for int8, so a `float16` or `none` manifest legitimately has none — and the
+  calibration plan computed `min(requested, available)`. That is `min(None, 56)`: a `TypeError`,
+  exit 3, "a defect in caravan itself", on correct input. Checked against the schema rather than
+  assumed. FR-005 now says an absent count is valid input and never an error.
+- **Q-1's "missing model" half was unreachable**, the same shape as DS-7 in feature 002: the stage
+  runner guarantees the upstream ran and a cache entry with absent artifacts counts as a miss, so
+  the file is always there. Narrowed to *unreadable*, which a corrupt cached file does reach.
+- **FR-018 and FR-019 had no owner**: nothing was assigned the `tools` record or the trained
+  model's size, since the inspection only ever sees the quantized file. Both named in T021.
+- **Where the error table is written was unstated, and it mattered**: a failing stage's working
+  directory is deleted by the runner — that is how a failed gate leaves no model — so a table
+  written there would be destroyed by the mechanism meant to protect the artifact. It goes straight
+  into the run directory.
+- **"Regenerate byte-identically" was the wrong promise** for a committed example model: a
+  flatbuffer carries its converter's version and layout choices and nothing promises two runs are
+  identical. The test asserts functional equivalence — tensor types, shapes, quantisation
+  parameters, predictions — and lives in `tests/train`, because regenerating needs a converter.
+- **`resolution` was required by both contracts and by a task but absent from FR-013.** Added:
+  a verdict whose resolution is coarser than its threshold is still the verdict, and must be
+  readable as such.
+
 **One verified fact the planning phase must not re-litigate**: there is no conversion path that
 avoids the training framework today — the standalone runtime package is a runtime, not a
 converter (checked 2026-10-22). So conversion stays on the Python the training extra needs, and

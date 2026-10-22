@@ -169,7 +169,10 @@ produces a deployable model, and each belongs to a later feature with its own dr
   what the training split holds, and the report MUST record requested, used and available.
 - **FR-004**: The choice of calibration samples MUST be reproducible from the manifest's seed.
 - **FR-005**: All three quantization settings the schema accepts MUST be handled with defined
-  behaviour. A setting of none MUST still produce a converted model and a measured comparison.
+  behaviour. A setting of none MUST still produce a converted model and a measured comparison. A
+  setting that needs no calibration MUST NOT require a calibration count: the schema makes that
+  count optional and demands it only for int8, so the absence of one is valid input and never an
+  error.
 
 **Proving what was produced**
 
@@ -192,8 +195,10 @@ produces a deployable model, and each belongs to a later feature with its own dr
 - **FR-011**: The run MUST fail when the accuracy drop exceeds what the manifest accepts, with a
   non-zero status and a machine-readable reason.
 - **FR-012**: A failed gate MUST leave no quantized-model artifact.
-- **FR-013**: All three accuracy figures, both differences, the threshold and the verdict MUST be
-  recorded whether the gate passes or fails.
+- **FR-013**: All three accuracy figures, both differences, the threshold, the verdict, the number
+  of samples and the smallest difference that number of samples can express MUST be recorded
+  whether the gate passes or fails. A verdict whose resolution is coarser than its threshold is
+  still the verdict — the author's number decides — but it must be readable as such.
 - **FR-014**: There MUST NOT be any option, flag or variable that skips the gate, lowers the
   threshold or continues past a failure. Loosening the budget is an edit to the manifest.
 - **FR-015**: A stage that cannot measure the comparison MUST fail rather than pass. Unknown is not
