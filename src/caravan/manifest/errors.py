@@ -127,6 +127,29 @@ QUANTIZE_RULES: frozenset[str] = frozenset(
     }
 )
 
+# --- Rules that reject a run at the export stage -------------------------------------------------
+# X rather than E, because E already belongs to the board emulator rules. X-4 and X-5 are the two
+# that exist to stop a *silence*: an operator the target's runtime cannot resolve, and a board
+# whose accelerated library nobody has read a source for. Both would otherwise turn into text that
+# looks like an answer.
+RULE_FORMAT_NOT_IMPLEMENTED = "X-1"
+RULE_NOTHING_TO_EXPORT = "X-2"
+RULE_MULTIPLE_SUBGRAPHS = "X-3"
+RULE_OPERATOR_UNRESOLVABLE = "X-4"
+RULE_KERNEL_COVERAGE_UNKNOWN = "X-5"
+
+#: Export rules. Like the DS and Q rules they refuse a *run*, so none of them has an
+#: invalid-manifest fixture and all five are covered by their own coverage test instead.
+EXPORT_RULES: frozenset[str] = frozenset(
+    {
+        RULE_FORMAT_NOT_IMPLEMENTED,
+        RULE_NOTHING_TO_EXPORT,
+        RULE_MULTIPLE_SUBGRAPHS,
+        RULE_OPERATOR_UNRESOLVABLE,
+        RULE_KERNEL_COVERAGE_UNKNOWN,
+    }
+)
+
 # --- Identifiers that never reject anything ---------------------------------------------------
 RULE_NO_SCHEMA_VERSION = "V-2"
 RULE_DATASET_UNRESOLVED = "D-1"
@@ -140,6 +163,7 @@ ALL_RULES: frozenset[str] = (
     | BOARD_RULES
     | RUN_RULES
     | QUANTIZE_RULES
+    | EXPORT_RULES
     | INFORMATIONAL_RULES
     | ENTAILED_RULES
 )

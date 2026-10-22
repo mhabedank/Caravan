@@ -352,6 +352,14 @@ target: this stage reads a file on a desktop and says what it read.
 - **`onnx` stays declared in the schema and refused by the stage.** Removing it from the schema
   would be a breaking schema change for a format the roadmap still intends; accepting it silently
   would be worse. A named refusal is the same pattern the unimplemented quantization settings use.
+- **The command needs both halves; the stage needs one.** The export *stage* needs only the
+  runtime that reads a model file, which is what FR-031 and SC-009 assert and what the `measure`
+  matrix checks. The `caravan export` *command* runs the pipeline that produces the model, so it
+  needs the conversion half too. An author on a Python the conversion half does not reach therefore
+  cannot run the command even with a quantized model in hand. The cause is the environment check
+  asking for every part the plan could need rather than every part it will need, and fixing it
+  moves one of two invariants feature 002 wrote down on purpose. Recorded as an obligation, with
+  its reasoning, rather than improvised inside this feature (contracts/cli.md).
 - **The export writes the model again under its own name.** The run already holds the quantized
   model from feature 003, with identical bytes. The export set is what an author takes away, so it
   carries its own copy next to the array, the header and the resolver rather than a reference into

@@ -1,7 +1,36 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.3.1 → 2.3.2
+Version change: 2.3.2 → 2.4.0
+Bump rationale: MINOR. It narrows what a MUST requires of one stage, after feature 004 found that
+the stage cannot satisfy it and that this document already names the stage that can.
+
+Principle VIII required: "The export MUST document the runtime, the operator set and the tensor
+arena size it requires." The runtime and the operator set come from data and are exact. The arena
+figure cannot be produced by the export at all: the runtime plans that memory with its own
+allocator, on the target, from the operators it actually linked, and the analysis tool available in
+the runtime extra reports the model size and its buffer split and no arena (checked 2026-10-22).
+
+Two figures *can* be computed from the model file, and the difference between them is the reason
+this amendment is not a loosening. The sum of the read-write tensors is an upper bound on the
+tensor area, because the runtime reuses one buffer for tensors whose lifetimes do not overlap — and
+it bounds the whole arena in neither direction, because scratch buffers are not in it. The peak of
+simultaneously live tensors *is* a lower bound on the arena, because any planner must hold at once
+what is live at once. On the pilot model: 720 bytes summed, 648 bytes peak. Emitting the first and
+calling it the arena would have been a Principle IV violation committed to avoid a Principle VIII
+one.
+
+The Verification section already said where the real figure comes from — "Emulation verifies that
+the firmware builds, that the model loads, that the tensor arena fits" — so the two sections
+disagreed with each other, and the export's clause was the one that could not be met. It now asks
+the export for a computed floor with its method named, and points at the stage that establishes
+what a board needs.
+
+Modified sections:
+- Principle VIII: the export's documentation clause; the arena figure becomes a computed floor
+  with its method, and the required figure is attributed to emulated verification.
+
+Previous report: 2.3.1 → 2.3.2
 Bump rationale: PATCH. It corrects a measured figure and adds no rule. 2.3.1 recorded the weight
 of the read-only runtime as "116 MiB and 8 packages". Re-measured on 2026-10-22, the number is
 114 MiB and 7 packages: a default installation is 7 MiB and 7 packages, the same environment with
@@ -413,7 +442,11 @@ also lets a contributor find out what hardware a model needs before buying any.
   flatbuffer, a plain C array with its header, and a runner skeleton that builds with the board's
   own open toolchain.
 - A model built with Caravan MUST remain deployable by someone who does not use Caravan. The
-  export MUST document the runtime, the operator set and the tensor arena size it requires.
+  export MUST document the runtime, the operator set, and a **computed floor** on the working
+  memory the model needs, with the method that produced it named. It MUST NOT present that floor
+  as the figure a target requires: the runtime plans that memory with its own allocator on the
+  target, so the required figure is established by emulated verification (see Verification), and
+  the export MUST say so beside the floor.
 - No stage required to build, train, quantize, export, analyze or verify a model may depend on a
   hosted service. Publication to a model hub is optional and is the only stage allowed to require
   network access.
@@ -705,4 +738,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.3.2 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.4.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22

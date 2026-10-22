@@ -28,19 +28,19 @@ repository.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Add rule identifiers `X-1` … `X-5` with their one-line reasons and an `EXPORT_RULES`
+- [X] T001 Add rule identifiers `X-1` … `X-5` with their one-line reasons and an `EXPORT_RULES`
   frozenset in `src/caravan/manifest/errors.py`, included in `ALL_RULES`
-- [ ] T002 Amend the constitution to v2.4.0 (MINOR) in `.specify/memory/constitution.md`:
+- [X] T002 Amend the constitution to v2.4.0 (MINOR) in `.specify/memory/constitution.md`:
   Principle VIII's export clause becomes "documents the runtime, the operator set and a computed
   floor on the working memory with its method named; the figure a target requires is documented by
   the stage that can measure it", with a Sync Impact Report carrying the rationale from
   `plan.md` and the two measured figures from `research.md`
-- [ ] T003 [P] Write the kernel coverage data file `src/caravan/targets/kernels/cmsis-nn.yaml` with
+- [X] T003 [P] Write the kernel coverage data file `src/caravan/targets/kernels/cmsis-nn.yaml` with
   the 11 mapped operators, the four unmapped source files, the source statement
   `tensorflow/lite/micro/kernels/cmsis_nn/ in tensorflow/tflite-micro` and `read_on: 2026-10-22`
-- [ ] T004 [P] Write `src/caravan/targets/kernels/esp-nn.yaml` the same way, from
+- [X] T004 [P] Write `src/caravan/targets/kernels/esp-nn.yaml` the same way, from
   `tensorflow/lite/micro/kernels/esp_nn/ in espressif/esp-tflite-micro`, 7 source files
-- [ ] T005 [P] Write the resolver method table `src/caravan/export/methods.py`: builtin operator
+- [X] T005 [P] Write the resolver method table `src/caravan/export/methods.py`: builtin operator
   name → public resolver method, with the source `tensorflow/lite/micro/micro_mutable_op_resolver.h`
   and the date, covering at least every operator the implemented templates can emit plus the
   irregular names research R4 names (`AddConv2D`, `AddMaxPool2D`, `AddAveragePool2D`, `AddSvdf`)
@@ -51,23 +51,23 @@ repository.
 
 **Everything in Phase 3 and later depends on this phase.**
 
-- [ ] T006 Write `tests/unit/test_working_memory_floor.py` first: the lifetime arithmetic on
+- [X] T006 Write `tests/unit/test_working_memory_floor.py` first: the lifetime arithmetic on
   hand-built graphs — a chain where reuse is possible, a graph where two large tensors are live at
   once, a graph input live from the start, a graph output live to the end — asserting the peak and
   that the peak is never greater than the read-write sum
-- [ ] T007 Write `tests/verify/test_flatbuffer_reading.py` first: on the committed quantized
+- [X] T007 Write `tests/verify/test_flatbuffer_reading.py` first: on the committed quantized
   fixture model, the operator records carry name, builtin code, version and node count; the
   subgraph count is 1; both memory figures are present and the floor is the smaller
-- [ ] T008 Implement `src/caravan/runtime/flatbuffer.py` (`verify` extra): `OperatorRecord`,
+- [X] T008 Implement `src/caravan/runtime/flatbuffer.py` (`verify` extra): `OperatorRecord`,
   `TensorLifetime`, `GraphInspection`, `inspect_graph(path)` reading through
   `ai_edge_litert.schema_py_generated`, with the tensor-type byte widths taken from the schema's own
   type table rather than hard-coded by name
-- [ ] T009 Implement the floor in the same module: first and last use per non-constant tensor,
+- [X] T009 Implement the floor in the same module: first and last use per non-constant tensor,
   graph inputs live from `-1`, graph outputs live to the node count, the peak as `max` over nodes
-- [ ] T010 Write `tests/train/test_batch_fix.py` first: cloning a trained model onto a batch of one
+- [X] T010 Write `tests/train/test_batch_fix.py` first: cloning a trained model onto a batch of one
   is faithful — predictions equal element by element, on an `mlp` and on a `conv1d` model — and the
   cloned model's input shape has a leading 1
-- [ ] T011 Implement `src/caravan/convert/batch.py` (`train` extra): `fix_batch(model)` via
+- [X] T011 Implement `src/caravan/convert/batch.py` (`train` extra): `fix_batch(model)` via
   `keras.models.clone_model(model, input_tensors=Input(batch_shape=(1, *shape[1:])))` plus
   `set_weights`, refusing a model whose input shape is already fixed to something other than 1
 - [ ] T012 Write `tests/unit/test_export_rules_coverage.py` first: every identifier in
@@ -124,6 +124,10 @@ holds the model, the array, the header and the report, and the artifacts outlive
   `src/caravan/cli/main.py`, with the stage options the other verbs share and no option of its own
 - [ ] T021 [US1] Implement the human summary of `contracts/cli.md`, including the two lines about
   the working-memory floor and what it omits
+- [ ] T021b [US1] Record in `docs/roadmap.md` the obligation the contract names: the environment
+  check asks for every part the plan could need rather than every part it will need, so an author
+  on a Python the conversion half does not reach cannot export a model they already have. Name the
+  two feature-002 invariants a fix has to preserve, so the next person does not rediscover them
 - [ ] T022 [US1] Write `export.json` through the run report machinery of feature 002, carrying the
   artifact list, the graph record, the cache verdict and the provenance of every number
 - [ ] T022b [US1] `tests/contract/test_export_cache.py`: a second export of an unchanged run reuses
@@ -188,7 +192,7 @@ operator set is the three-operator one.
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Call `fix_batch` in `src/caravan/convert/tflite.py` before conversion, inside the
+- [X] T031 [US3] Call `fix_batch` in `src/caravan/convert/tflite.py` before conversion, inside the
   existing `Q-2` guard so a failure there is still a conversion failure and not a trace
 - [ ] T032 [US3] Record in the quantize report that the conversion fixed the batch, and what the
   input shape became, so the change is visible in the artefact rather than only in a commit message

@@ -45,24 +45,38 @@ number a reader can be misled by.
 | 1 | a rule said no: `X-1` … `X-5`, or any upstream rule reached through the quantize stage |
 | 2 | usage: an unknown option, a missing argument, an unreadable manifest path |
 | 3 | a defect in caravan itself, reported as one, with a trace |
-| 4 | the environment is incomplete: the part that reads a model file is not installed |
+| 4 | the environment is incomplete: a part that installs separately is not there |
 
-Code 4 here means the `verify` extra, not the training one. Exporting reads a model and writes
-text; it never converts, so it does not need the conversion half. That is the layering rule paying
-for itself: the command runs on every Python the runtime installs on, not only the one the training
-framework allows.
+## Which parts, and an honesty note about the command versus the stage
 
-## When a part is missing
+The **export stage** needs only the runtime that reads a model file: no conversion, no training
+framework. That is what lets its whole proving half run in the `measure` matrix, and it is asserted
+by tests rather than asserted here (FR-031, SC-009).
+
+The **command** needs both halves, exactly as `caravan quantize` does, because it runs the pipeline
+that produces the model it exports — build, train, quantize, export — and three of those four
+convert or train. So:
 
 ```
 $ caravan export manifest.yaml
-manifest.yaml: export needs the runtime that reads a model file, which installs separately
-    pip install "caravan-ml[verify]"
-    this part reads and runs exported models; it needs no training framework
+manifest.yaml: export needs TensorFlow, which installs separately
+    pip install "caravan-ml[train,verify]"
 ```
 
-Exit 4, no run directory, no partial artifact. The message names the one extra the command needs
-and not both, as feature 003 established.
+Exit 4, no run directory, no partial artifact.
+
+**What this costs, stated plainly**: an author on Python 3.14 holding a quantized model from a 3.13
+machine cannot export it with this command, even though the stage that would do the work needs
+nothing the 3.14 install lacks. The reason is the environment check, which asks for every part the
+plan *could* need rather than every part the plan *will* need — a cached upstream result makes the
+difference, and the check happens before the cache is consulted.
+
+Fixing it is a change to the pipeline runner, not to this stage, and it collides with two
+invariants feature 002 wrote down deliberately: the run directory is created before the dataset is
+resolved, so a disagreeing dataset lands in a report; and a missing extra creates no run directory
+at all. Computing cache keys early enough to know which stages will actually run requires the
+dataset, so one of the two has to move. That is its own piece of work with its own reasoning, and
+it is recorded as an obligation rather than improvised here.
 
 ## What this command never does
 

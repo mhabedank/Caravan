@@ -42,6 +42,10 @@ EXTRA_ONLY_MODULES = frozenset(
         "caravan.templates.builders.mlp",
         "caravan.convert.tflite",
         "caravan.convert.debugger",
+        # Feature 004: cloning a trained model onto a batch of one needs the framework that owns
+        # the model. The *arithmetic* of the export does not, which is why only this one module of
+        # the feature is here and `caravan.export.*` is not.
+        "caravan.convert.batch",
         # the verify extra
         "caravan.runtime.measure",
     }
