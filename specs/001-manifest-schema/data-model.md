@@ -193,9 +193,16 @@ One declarative file per board, shipped as package data.
 | `flash_kb` | number | yes | greater than zero |
 | `accel` | one of `cmsis-nn`, `esp-nn`, `none` | yes | a build-level claim, not a model-level one |
 | `interfaces` | list of strings | yes | non-empty, unique |
+| `toolchain` | Toolchain | yes | named by Principle VII; no stage in this feature reads it |
 | `emulator` | Emulator or `null` | yes | `null` states that none exists; E-1 |
 | `sources` | mapping | yes | S-1 |
 | `notes` | string | no | |
+
+**Toolchain**: `compiler` (the cross compiler a firmware build uses), `optimization` (the
+optimization level Caravan builds with — a project decision, not a vendor default) and `runtime`
+(the inference runtime, `tflm` throughout). Principle VII requires the field; no stage in this
+feature interprets it, which is exactly why it has to be present now: adding it after the export
+and analysis stages exist means migrating every board file that was shipped without it.
 
 **Emulator**: `backend` (currently only `renode`), `platform` (the backend's own platform
 identifier) and `status` (`supported` or `experimental`).
@@ -203,7 +210,8 @@ identifier) and `status` (`supported` or `experimental`).
 - **E-1**: the field is required and may be `null`, so "no emulator" is stated rather than omitted.
   A platform identifier must not be recorded unless it exists in the named backend (Principle VII).
 - **S-1**: `sources` must contain an entry for every one of `clock_mhz`, `ram_kb`, `flash_kb`,
-  `accel` and `emulator`, each a citation a reader can check (FR-024).
+  `accel`, `toolchain` and `emulator`, each a citation a reader can check (FR-024). A value that is
+  a project decision rather than a datasheet fact says so in its citation.
 
 Shipped in this feature, with emulator support as the prior-art research established it:
 
@@ -241,6 +249,8 @@ The machine-readable record of one invocation (FR-012).
 | `command` | which command ran |
 | `started_at` | UTC timestamp |
 | `manifest_path`, `manifest_sha256` | which input, and its exact content |
+| `dataset` | the dataset identifier as the manifest states it — provenance, not a resolution (Principle III) |
+| `template` | the template identifier the manifest names (Principle III) |
 | `schema_version_declared`, `schema_version_effective` | both, always (FR-010) |
 | `migrations_applied` | ordered list, empty when none |
 | `outcome` | `valid`, `invalid` or `error` |

@@ -39,8 +39,8 @@ caravan validate tests/fixtures/manifests/valid/picket-mlp.yaml
 ```
 
 Expected: a one-line confirmation on standard error, exit code 0, and a run directory under
-`runs/` containing `report.json` with `"outcome": "valid"` and the dataset reference listed under
-`unresolved`.
+`runs/` containing `report.json` with `"outcome": "valid"`, the provenance fields `dataset` and
+`template` filled in, and the dataset reference listed under `unresolved`.
 
 The unresolved entry is the point: a valid manifest does not mean a resolved dataset, and the
 report says so without being asked.
@@ -67,6 +67,16 @@ caravan validate tests/fixtures/manifests/invalid/unknown-field-misplaced.yaml
 
 Expected: the first lists the registered template identifiers; the second says both where the
 field was found and where it belongs. Neither mentions a Python type or a module path.
+
+Board files have their own rules, which no manifest can exercise, so they have their own fixtures:
+
+```bash
+pytest tests/unit/test_board_schema.py -v
+```
+
+Expected: a board description with the `emulator` field omitted rather than set to `null` is
+rejected (E-1), so is one naming a platform that does not exist, so is one with a value that has no
+citation (S-1) — and all three shipped board files validate.
 
 ## Scenario 3 — The resolved manifest shows everything (US2, SC-007)
 

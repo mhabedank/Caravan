@@ -195,14 +195,19 @@ that loading the tool does not pull a training framework in.
 - **FR-011**: The tool MUST provide a command that writes the fully resolved manifest: every
   default expanded, every value the pipeline will use made explicit, no field left implicit.
 - **FR-012**: The resolved manifest MUST be written as an artifact of the run, beside a run report
-  that records the tool version, the manifest identity, the declared and effective schema version
-  and the date. Each invocation MUST write into its own new run directory; an existing artifact
+  that records the provenance Principle III requires: the tool version, the manifest identity, the
+  dataset identifier, the template identifier, the declared and effective schema version and the
+  date. Converter and compiler versions are part of that record from the feature that first
+  converts or compiles something; nothing here does. Each invocation MUST write into its own new run directory; an existing artifact
   MUST NOT be overwritten or removed.
-- **FR-013**: Resolving the same manifest twice with the same tool version MUST produce identical
-  output.
-- **FR-014**: Defaults MUST resolve from exactly two sources: the template named by the manifest,
-  and the board descriptions it targets. The schema MUST NOT accept a defaults section, an
-  inheritance mechanism, or any other way for one part of a manifest to set values for another.
+- **FR-013**: Resolving the same manifest twice with the same tool version MUST produce a
+  byte-identical **resolved manifest**. The run report is exempt and must be: it records the run's
+  own identity and date, which is the provenance FR-012 requires. Two reports of the same input
+  MUST differ only in those fields.
+- **FR-014**: Defaults MUST resolve from the schema itself and the template named by the manifest,
+  and from no other source. No board description contributes a default at this schema version; when
+  one does, that is the only other source permitted. The schema MUST NOT accept a defaults section,
+  an inheritance mechanism, or any other way for one part of a manifest to set values for another.
 
 **What the schema requires**
 
@@ -210,10 +215,13 @@ that loading the tool does not pull a training framework in.
   intended use and known limits. A manifest without it MUST be invalid, not merely incomplete.
 - **FR-016**: A manifest that declares publication MUST be invalid when any required compliance
   field is missing or empty.
-- **FR-017**: The schema MUST enforce rules that span fields, at minimum: split ratios adding up
-  to one with every part greater than zero, no duplicate target boards, no claim of the lowest
-  risk class together with personal data, and a calibration sample count at or above a documented
-  minimum when integer quantization is declared.
+- **FR-017**: The schema MUST enforce rules that span fields: split ratios adding up to one with
+  every part greater than zero; no duplicate target boards; no claim of the lowest risk class
+  together with personal data; a calibration sample count at or above a documented minimum when
+  integer quantization is declared; a dataset window present exactly when the named template
+  declares that it consumes one; and no emulator named for verification when any target board
+  states that none exists for it. The last two are how a template and a board state a requirement
+  without the schema knowing anything about model architecture or hardware.
 - **FR-018**: The dataset split MUST be expressed as named parts, not as a positional list.
 - **FR-019**: Model identity fields (name, version) MUST follow one stated form, and the tool MUST
   state that form when rejecting a value.
@@ -231,8 +239,11 @@ that loading the tool does not pull a training framework in.
 - **FR-023**: Board descriptions MUST be declarative data files, loadable and listable without
   code changes, and a manifest naming an unknown board MUST be rejected with the known boards
   listed.
-- **FR-024**: A board description MUST be checked for the fields and types it declares and for the
-  presence of a stated source for each value. Interpreting those values is out of scope here.
+- **FR-024**: A board description MUST carry the values Principle VII names — core, clock, memory,
+  flash, accelerated kernels, interfaces, toolchain and emulator support — and MUST be checked for
+  the types it declares and for the presence of a stated source for each value. Interpreting those
+  values is out of scope here; carrying them is not, because the board files written here are the
+  ones later stages will read.
 - **FR-025**: A board description MUST be able to state that no emulator platform exists for it,
   and MUST NOT be accepted while naming an emulator platform that does not exist.
 

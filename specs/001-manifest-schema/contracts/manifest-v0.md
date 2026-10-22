@@ -126,6 +126,10 @@ ram_kb: 1024
 flash_kb: 2048
 accel: cmsis-nn
 interfaces: [can-fd, i2c, spi, uart]
+toolchain:
+  compiler: arm-none-eabi-gcc
+  optimization: "-O3"
+  runtime: tflm
 emulator:
   backend: renode
   platform: stm32h743
@@ -135,6 +139,7 @@ sources:
   ram_kb: "ST RM0433, system RAM map"
   flash_kb: "ST RM0433, embedded flash"
   accel: "CMSIS-NN supports Cortex-M7 with DSP and FPU"
+  toolchain: "Caravan build decision, not a vendor default; unexercised until the export stage exists"
   emulator: "Renode supported boards list, platform stm32h743, read 2026-10-22"
 notes: "Performance reference; not an automotive part"
 ```
@@ -150,12 +155,17 @@ ram_kb: 64
 flash_kb: 512
 accel: cmsis-nn
 interfaces: [can-fd, i2c, spi, uart]
+toolchain:
+  compiler: arm-none-eabi-gcc
+  optimization: "-O3"
+  runtime: tflm
 emulator: null
 sources:
   clock_mhz: "NXP S32K1xx data sheet"
   ram_kb: "NXP S32K1xx data sheet, SRAM plus 4 KB FlexRAM excluded"
   flash_kb: "NXP S32K1xx data sheet, program flash"
   accel: "CMSIS-NN supports Cortex-M4 with DSP and FPU"
+  toolchain: "Caravan build decision, not a vendor default; unexercised until the export stage exists"
   emulator: "Renode supported boards list read 2026-10-22: nxp-s32k388, nxp-s32k388evb and s32k118 only; no S32K144"
 notes: "ASIL-B automotive MCU; bench hardware only, no emulated rung"
 ```

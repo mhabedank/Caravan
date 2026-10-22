@@ -58,6 +58,17 @@ unambiguous"):
   "installs and runs on an ordinary laptop in seconds", which cannot be stated without referring
   to what is absent. The second names where the check runs, not how it is built.
 
+**Post-analysis, 2026-10-22**: the cross-artifact consistency analysis found 19 items across
+spec, plan and tasks. Eighteen were fixed in place — two constitution gaps (the run report was
+missing the dataset and template provenance fields Principle III names; the board description was
+missing the `toolchain` value Principle VII names), two task-level contradictions (the fixture
+coverage test would have failed by construction over rules that cannot have manifest fixtures, and
+one fixture was assigned to both `valid/` and `invalid/`), two zero-coverage requirements (FR-005
+and SC-001, now T062 and T063), and the rest spec and plan drift. One item is left open on purpose
+and is the owner's to decide: Principle VI requires every dataset reference to resolve to a
+declaration, which this feature defers by design, and no artifact yet names the feature that
+honours it.
+
 **Open for review** (not a checklist failure, an owner decision recorded in Assumptions):
 
 - Board descriptions are pulled into this feature as data with a schema, so that a target name can

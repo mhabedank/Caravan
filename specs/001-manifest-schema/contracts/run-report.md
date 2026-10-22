@@ -31,6 +31,8 @@ runs/
   "started_at": "2026-10-22T11:04:31Z",
   "manifest_path": "manifests/picket-mlp.yaml",
   "manifest_sha256": "9f3c1a2e…",
+  "dataset": "datasets/car-hacking/",
+  "template": "mlp",
   "schema_version_declared": "caravan/v0",
   "schema_version_effective": "caravan/v0",
   "migrations_applied": [],
@@ -52,6 +54,10 @@ runs/
 
 Field rules:
 
+- `dataset` and `template` are provenance fields in their own right, not derived from `gates` or
+  `unresolved`. Principle III names both in the record every artifact must carry, so a reader gets
+  them without parsing a gate's `detail` string. `dataset` repeats the manifest's identifier
+  verbatim and says nothing about resolution — that is what `unresolved` is for.
 - `schema_version_declared` and `schema_version_effective` are both always present, even when
   equal (FR-010). `migrations_applied` is an ordered list of the transforms that ran.
 - `outcome` is one of `valid`, `invalid`, `error`, matching exit codes 0, 1 and 3.

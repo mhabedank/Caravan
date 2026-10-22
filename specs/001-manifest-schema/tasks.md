@@ -56,9 +56,9 @@ structure changes.
 **⚠️ CRITICAL**: no user story work can begin until this phase is complete
 
 - [ ] T008 Implement `src/caravan/manifest/_yaml.py` as the **only** module that imports `ruamel.yaml` (research R2): safe mode, returns plain Python structures, and reports an empty file, invalid YAML, or a document that is not a mapping each as what it is, naming the file and the position
-- [ ] T009 [P] Implement `src/caravan/manifest/errors.py`: the `Finding` type carrying `path`, `problem`, `found`, `accepted` and `rule`; the rule identifier constants from [data-model.md](./data-model.md) (`V-1`, `V-2`, `T-1`, `T-2`, `B-1`, `D-1`, `CF-1`…`CF-7`, `E-1`, `S-1`); and the renderer producing the three-part text form of [contracts/cli.md](./contracts/cli.md) — field path first, then what was wrong, then what is accepted, with a nearest-name suggestion at small edit distance, and never a pydantic type name, module path or traceback
+- [ ] T009 [P] Implement `src/caravan/manifest/errors.py`: the `Finding` type carrying `path`, `problem`, `found`, `accepted` and `rule`; the rule identifier constants from [data-model.md](./data-model.md), in two groups that must stay distinguishable in code: **rejection rules**, which refuse a manifest (`V-1`, `T-1`, `T-2`, `B-1`, `CF-1`…`CF-7`), and **non-rejection identifiers**, which never do (`V-2` accepts a manifest without a version, `D-1` records an unresolved reference, `E-1` and `S-1` govern board files rather than manifests). The distinction is what T019 and T061 check against; and the renderer producing the three-part text form of [contracts/cli.md](./contracts/cli.md) — field path first, then what was wrong, then what is accepted, with a nearest-name suggestion at small edit distance, and never a pydantic type name, module path or traceback
 - [ ] T010 [P] Implement `src/caravan/run/paths.py`: the run directory `runs/<UTC basic ISO timestamp>-<first 8 hex of the manifest SHA-256>/`, created fresh; an existing directory makes the run **fail rather than overwrite**; `--runs-dir` relocates the parent and may not point inside an existing run directory ([contracts/run-report.md](./contracts/run-report.md))
-- [ ] T011 Implement `src/caravan/run/report.py` writing `report.json` with exactly the field set of [contracts/run-report.md](./contracts/run-report.md): `schema_version_declared` and `schema_version_effective` both always present even when equal (FR-010), `migrations_applied` as an ordered list, `outcome` one of `valid`, `invalid`, `error`, `gates` listing only the groups actually reached, `unresolved`, `artifacts` as paths relative to the run directory, and `seed`
+- [ ] T011 Implement `src/caravan/run/report.py` writing `report.json` with exactly the field set of [contracts/run-report.md](./contracts/run-report.md): `dataset` and `template` as provenance fields in their own right, because Principle III names both in the record every artifact must carry and a reader must not have to parse a gate's `detail` string for them; `schema_version_declared` and `schema_version_effective` both always present even when equal (FR-010), `migrations_applied` as an ordered list, `outcome` one of `valid`, `invalid`, `error`, `gates` listing only the groups actually reached, `unresolved`, `artifacts` as paths relative to the run directory, and `seed`
 - [ ] T012 Implement `src/caravan/manifest/migrate.py` as an **instance-based** registry, not a module-level singleton (research R6): schema version identifiers with the transform that brings each up to the next, `caravan/v0` registered with no transform, rule V-1 refusing an unknown declared version while naming the implemented ones, and rule V-2 treating an absent `apiVersion` as the oldest known version
 - [ ] T013 Implement `src/caravan/cli/main.py`: `argparse` subcommands (research R1), the exit-code policy 0 valid / 1 rule said no / 2 usage / 3 internal defect, the stream policy from [contracts/cli.md](./contracts/cli.md) (answers on standard output, messages for people on standard error), and the global `--version`, `-q/--quiet` and `--json` options
 - [ ] T014 [P] Add `tests/contract/test_cli_contract.py` asserting the exit-code policy and the stream separation, including that `--quiet` leaves standard error empty on success and that `--json` puts nothing but the JSON document on standard output
@@ -80,10 +80,10 @@ structure changes.
 
 - [ ] T016 [P] [US1] Add `tests/fixtures/manifests/valid/picket-mlp.yaml`, the pilot manifest exactly as given in [contracts/manifest-v0.md](./contracts/manifest-v0.md) — including `split` as named parts, `formats: [flatbuffer, c_array]`, `verify.emulator: none` and `representative_samples: 500`
 - [ ] T017 [P] [US1] Add `tests/fixtures/manifests/valid/pilot-min.yaml`, the minimal manifest from the same contract, which must validate with everything optional left out
-- [ ] T018 [P] [US1] Add the invalid fixture library under `tests/fixtures/manifests/invalid/`, one file per rule identifier, named `<rule>-<slug>.yaml` with a sibling `<rule>-<slug>.expected.json` holding the expected `path`, `problem`, `accepted` and `rule` — covering V-1, V-2, T-1, T-2, B-1, CF-1 through CF-7, an unknown field, and a field that exists in the schema but sits at the wrong level
-- [ ] T019 [US1] Add `tests/unit/test_fixture_coverage.py` failing if any rule identifier declared in `src/caravan/manifest/errors.py` has no invalid fixture — this is what keeps SC-002 true as rules are added, rather than true only today
-- [ ] T020 [P] [US1] Add `tests/integration/test_validate.py` covering quickstart scenarios 1 and 2: the pilot manifest exits 0 with `"outcome": "valid"` and the dataset reference listed under `unresolved`; every invalid fixture exits 1 with the expected rule in `findings[0].rule`
-- [ ] T021 [P] [US1] Add `tests/unit/test_errors.py` asserting the message form of [contracts/cli.md](./contracts/cli.md): the field path immediately after the file name, the accepted list for an unknown field, the did-you-mean suggestion, both locations for a misplaced field, every related field named for a cross-field rule, and no pydantic type, module path or traceback anywhere
+- [ ] T018 [P] [US1] Add the invalid fixture library under `tests/fixtures/manifests/invalid/`, one file per **rejection rule** (T009), named `<rule>-<slug>.yaml` with a sibling `<rule>-<slug>.expected.json` holding the expected `path`, `problem`, `accepted` and `rule` — covering V-1, T-1, T-2, B-1 and CF-1 through CF-7. Two further fixtures cover errors that are not rule-numbered and therefore use a bare slug: `unknown-field.yaml` and `unknown-field-misplaced.yaml`. **No V-2 fixture here** — V-2 accepts a manifest that declares no version, so its fixture is a valid one (T047)
+- [ ] T019 [US1] Add `tests/unit/test_fixture_coverage.py` failing if any **rejection rule** declared in `src/caravan/manifest/errors.py` has no invalid fixture, and failing if a non-rejection identifier has one — this is what keeps SC-002 true as rules are added, rather than true only today. The non-rejection identifiers are covered instead by T047 (V-2) and T061 (E-1, S-1); D-1 is asserted by T020, which checks that the dataset reference is reported as unresolved
+- [ ] T020 [P] [US1] Add `tests/integration/test_validate.py` covering quickstart scenarios 1 and 2: the pilot manifest exits 0 with `"outcome": "valid"`, the report carrying `dataset` and `template` as provenance and the dataset reference listed under `unresolved` (rule D-1); every invalid fixture exits 1 with the expected rule in `findings[0].rule`; and the same manifest with CRLF line endings, a trailing newline difference and a non-UTF-8 locale set produces the identical verdict and the identical findings (spec edge case)
+- [ ] T021 [P] [US1] Add `tests/unit/test_errors.py` asserting the message form of [contracts/cli.md](./contracts/cli.md): the field path immediately after the file name, the accepted list for an unknown field, the did-you-mean suggestion, both locations for a misplaced field, every related field named for a cross-field rule, the **stated form** quoted back when a `model.name` or `model.version` is rejected (FR-019), and no pydantic type, module path or traceback anywhere
 
 ### Implementation for User Story 1
 
@@ -96,15 +96,25 @@ structure changes.
 - [ ] T028 [US1] Implement `src/caravan/manifest/schema/__init__.py`: the `Manifest` root with `apiVersion`, `model`, `dataset`, `export` and `compliance` required and `train`, `verify`, `bench`, `publish` optional, plus cross-field rules CF-1 through CF-7 verbatim from [data-model.md](./data-model.md) — split parts summing to 1 within 1e-6 with every part strictly greater than zero, no duplicate targets, `personal-data` incompatible with `minimal-risk`, int8 requiring `representative_samples` of at least 100, `publish` requiring every compliance field non-empty, the template's `consumes_window` deciding whether `window` must be present or absent, and `verify.emulator: renode` rejected when any target board states no emulator platform. No `defaults` key accepted at any level (FR-014). Depends on T022–T027
 - [ ] T029 [P] [US1] Implement `src/caravan/templates/registry.py`: the `TemplateParameterSpec` with `identifier`, `parameters`, `consumes_window` and `summary`, and a registry populated by the modules of the package and extensible from outside it without editing a central list (FR-021). **Parameter half only — no training framework** (research R7)
 - [ ] T030 [P] [US1] Implement `src/caravan/templates/mlp.py`: identifier `mlp`, parameters `hidden` (list of integers, at least one entry, each greater than zero) and `dropout` (number from 0 up to but excluding 1, default 0.0), `consumes_window` true, and a one-line summary. The only template registered in this feature (Principle X)
-- [ ] T031 [P] [US1] Implement `src/caravan/targets/schema.py`: the board description model per [data-model.md](./data-model.md), with `emulator` **required and nullable** so that "no emulator" is stated rather than omitted (rule E-1), and `sources` required to carry an entry for each of `clock_mhz`, `ram_kb`, `flash_kb`, `accel` and `emulator` (rule S-1)
+- [ ] T031 [P] [US1] Implement `src/caravan/targets/schema.py`: the board description model per [data-model.md](./data-model.md), with `emulator` **required and nullable** so that "no emulator" is stated rather than omitted (rule E-1), the `toolchain` block (`compiler`, `optimization`, `runtime`) that Principle VII requires even though no stage here reads it, and `sources` required to carry an entry for each of `clock_mhz`, `ram_kb`, `flash_kb`, `accel`, `toolchain` and `emulator` (rule S-1)
 - [ ] T032 [US1] Implement `src/caravan/targets/registry.py` loading and listing board descriptions from package data, validating each against the model, and asserting that `board` equals the file stem. Depends on T031
-- [ ] T033 [P] [US1] Add `src/caravan/targets/boards/stm32h743.yaml` exactly as in [contracts/manifest-v0.md](./contracts/manifest-v0.md), with the Renode platform `stm32h743` and a source for every value
-- [ ] T034 [P] [US1] Add `src/caravan/targets/boards/s32k144.yaml` with `emulator: null` and the source recording the evidence and the date: Renode models `nxp-s32k388`, `nxp-s32k388evb` and `s32k118`, not the S32K144 (research R13)
-- [ ] T035 [P] [US1] Add `src/caravan/targets/boards/esp32.yaml` with `accel: esp-nn`, `emulator: null`, and the source recording that Renode has no ESP32 platform
+- [ ] T033 [P] [US1] Add `src/caravan/targets/boards/stm32h743.yaml` exactly as in [contracts/manifest-v0.md](./contracts/manifest-v0.md), with the Renode platform `stm32h743`, the `toolchain` block, and a source for every value including the toolchain's citation that it is a project decision rather than a vendor default
+- [ ] T034 [P] [US1] Add `src/caravan/targets/boards/s32k144.yaml` with `emulator: null`, the `toolchain` block, and the source recording the evidence and the date: Renode models `nxp-s32k388`, `nxp-s32k388evb` and `s32k118`, not the S32K144 (research R13)
+- [ ] T035 [P] [US1] Add `src/caravan/targets/boards/esp32.yaml` with `accel: esp-nn`, `emulator: null`, a `toolchain` block naming the Xtensa cross compiler, and the source recording that Renode has no ESP32 platform
 - [ ] T036 [US1] Implement `src/caravan/manifest/load.py` as the one entry point for the load sequence of [data-model.md](./data-model.md): read, version check, migrate, schema validation collecting **all** field errors of one pass before reporting, template resolution and parameter validation, board resolution, then the cross-field rules. The author's file is never written (FR-006). Depends on T008, T012, T028, T029, T032
 - [ ] T037 [US1] Implement `src/caravan/cli/validate.py`: the `validate` command with `--runs-dir`, `--no-report`, `--json` and `--quiet`, recording the dataset reference as unresolved with its reason (rule D-1) so a valid manifest is never mistaken for a resolved dataset. Depends on T011, T036
 - [ ] T038 [P] [US1] Implement `src/caravan/cli/listing.py`: `caravan templates` and `caravan boards`, each one identifier per line with its summary, reading from the same registries the error messages cite — a test asserts the two agree (quickstart scenario 8)
 - [ ] T039 [US1] Wire `validate`, `templates` and `boards` into `src/caravan/cli/main.py` and confirm the whole invalid fixture library produces its expected rule. Depends on T013, T037, T038
+
+### Added after the consistency analysis (US1)
+
+> These four tasks close gaps the cross-artifact analysis of 2026-10-22 found. Their numbers follow
+> the existing ones rather than renumbering sixty tasks; their position in the phase is their
+> position in the order.
+
+- [ ] T061 [P] [US1] Add `tests/fixtures/boards/` with one invalid board description per board-file rule — `e-1-emulator-omitted.yaml` (the field missing rather than `null`), `e-1-platform-that-does-not-exist.yaml`, `s-1-source-missing.yaml` (a value with no citation) — and `tests/unit/test_board_schema.py` asserting each is rejected with its rule, plus that the three shipped board files all validate. Rules E-1 and S-1 govern board files, not manifests, so they cannot appear in the manifest fixture library (T018) and would otherwise go untested (FR-024, FR-025)
+- [ ] T062 [P] [US1] Add `tests/contract/test_no_skip_option.py` asserting that no subcommand exposes an option that skips, forces, ignores or downgrades a check — walk every registered parser's option strings and fail on `--force`, `--skip*`, `--ignore*`, `--no-validate` and the like. FR-005 is the executable form of Principle V, and an absent flag is exactly what gets added back by accident
+- [ ] T063 [US1] Add a timing assertion to `tests/integration/test_validate.py`: a verdict on the pilot manifest in under two seconds, with no network and no dataset present (SC-001). The plan states both performance goals are measured rather than estimated, so this is what makes that true. Depends on T020
 
 **Checkpoint**: User Story 1 is complete — a manifest can be authored and checked, with actionable errors, and nothing heavier than two dependencies is installed
 
@@ -128,6 +138,10 @@ structure changes.
 - [ ] T044 [US2] Implement `src/caravan/cli/render.py`: the `render` command writing `resolved-manifest.yaml` and `report.json` into a new run directory, plus `--stdout` which writes the resolved manifest to standard output, creates no run directory and produces output byte-identical to the file form. Depends on T010, T011, T043
 - [ ] T045 [US2] Wire `render` into `src/caravan/cli/main.py` and confirm `validate` and `render` agree on the same manifest — same findings, same unresolved references, same effective schema version. Depends on T039, T044
 
+### Added after the consistency analysis (US2)
+
+- [ ] T064 [P] [US2] Add `tests/contract/test_run_directory.py` asserting the collision rule of [contracts/run-report.md](./contracts/run-report.md): a second run into an existing run directory fails rather than overwriting, nothing outside the run directory is created or removed, and `--runs-dir` pointing inside an existing run directory is refused
+
 **Checkpoint**: User Stories 1 and 2 both work independently
 
 ---
@@ -141,7 +155,7 @@ structure changes.
 ### Tests for User Story 3
 
 - [ ] T046 [P] [US3] Add `tests/unit/test_migration.py` building a registry that contains a synthetic older version with one transform (possible because the registry is an instance, not a singleton — research R6) and asserting: the manifest loads migrated, the file on disk is byte-identical afterwards, the report names both the declared and the effective version, and `migrations_applied` lists the transform
-- [ ] T047 [P] [US3] Add the fixtures `tests/fixtures/manifests/invalid/v-1-unknown-version.yaml` and `tests/fixtures/manifests/valid/v-2-no-version.yaml` with their expected results — the first refused with `caravan/v0` named as implemented, the second accepted as the oldest known version
+- [ ] T047 [P] [US3] Add the fixture `tests/fixtures/manifests/valid/v-2-no-version.yaml` with its expected result: accepted as the oldest known version, with the report naming the effective version. The V-1 refusal fixture belongs to T018, because the unknown-version refusal is already reachable in User Story 1 through the Foundational version registry — keeping it there stops T019 from failing while User Story 3 is still unbuilt
 
 ### Implementation for User Story 3
 
@@ -162,7 +176,7 @@ structure changes.
 
 - [ ] T050 [P] [US4] Add `tests/layering/test_no_framework_imported.py`: after importing every core module, no training framework appears in the loaded module table (level 1 of research R11)
 - [ ] T051 [P] [US4] Add `tests/layering/test_hostile_import.py`: an import hook makes importing a training framework raise, and the end-to-end `validate` and `render` runs must still pass — this catches a lazy import inside a function, which level 1 cannot (level 2 of research R11)
-- [ ] T052 [P] [US4] Add `tests/layering/test_declared_dependencies.py` reading the built distribution's metadata and failing when the runtime dependency set exceeds six, contains a training framework, or carries an upper version bound without a documented incompatibility (FR-028, FR-031, level 4 of research R11)
+- [ ] T052 [P] [US4] Add `tests/layering/test_declared_dependencies.py` reading the built distribution's metadata and failing when the runtime dependency set exceeds six, **the optional extras exceed four**, the set contains a training framework, or any requirement carries an upper version bound without a documented incompatibility (FR-028, FR-031, level 4 of research R11). The extras limit binds before the first extra exists, which is the only time it is free
 
 ### Implementation for User Story 4
 
@@ -191,7 +205,7 @@ structure changes.
 - **Setup (Phase 1)**: no dependencies
 - **Foundational (Phase 2)**: needs Setup — **blocks every user story**
 - **US1 (Phase 3)**: needs Foundational. No dependency on another story
-- **US2 (Phase 4)**: needs Foundational; T045 touches the same file as T039, so it follows US1's wiring task
+- **US2 (Phase 4)**: needs Foundational; T045 touches the same file as T039, so it follows US1's wiring task; T064 needs only T010 and T044
 - **US3 (Phase 5)**: needs Foundational only. Independent of US1 and US2
 - **US4 (Phase 6)**: the three layering tests need Foundational only; the two CI jobs need a working end-to-end run, so T053 follows T045
 - **Polish (Phase 7)**: needs the stories that are being shipped
@@ -208,7 +222,7 @@ structure changes.
 
 - Setup: T002, T003, T004, T006 together
 - Foundational: T009, T010 together; T014, T015 together
-- US1 tests: T016, T017, T018, T020, T021 together
+- US1 tests: T016, T017, T018, T020, T021, T061, T062 together
 - US1 schema: T022–T027 all together — six files, no shared state
 - US1 board files: T033, T034, T035 together
 - US2 tests: T040, T041, T042 together
@@ -247,7 +261,7 @@ Task: "Add src/caravan/targets/boards/esp32.yaml"
 
 ### MVP: Setup + Foundational + User Story 1
 
-T001 through T039. That delivers a tool an author can actually use: write a manifest, get a verdict,
+T001 through T039, plus T061 to T063. That delivers a tool an author can actually use: write a manifest, get a verdict,
 get an actionable message when it is wrong. It is also the point at which the feature's central
 claim is testable — that checking a manifest needs no machine-learning framework at all.
 
@@ -274,11 +288,15 @@ is the minimum that keeps the promise honest.
 
 ## Notes
 
-- 60 tasks: 7 setup, 8 foundational, 24 for US1, 6 for US2, 4 for US3, 6 for US4, 5 polish
+- 64 tasks: 7 setup, 8 foundational, 27 for US1, 7 for US2, 4 for US3, 6 for US4, 5 polish.
+  T061 to T064 were added by the cross-artifact analysis of 2026-10-22; they carry the next free
+  numbers rather than renumbering everything after them, so read the order from the position, not
+  from the number
 - Every schema task quotes its constraints verbatim from [data-model.md](./data-model.md), so no
   limit, enum or default is decided at implementation time
 - Rule identifiers (`CF-1`, `B-1`, …) are carried into the code, the findings and the fixture file
   names, so a test asserts which rule fired rather than matching prose
-- Two tasks are deliberately about absence: T051 proves the core works while a framework is
-  *unimportable*, and T034/T035 record that no emulator exists for two boards, with the evidence
+- Three tasks are deliberately about absence: T051 proves the core works while a framework is
+  *unimportable*, T062 proves no option exists to skip a check, and T034/T035 record that no
+  emulator exists for two boards, with the evidence
 - Commit after each task or logical group; stop at any checkpoint to validate a story on its own

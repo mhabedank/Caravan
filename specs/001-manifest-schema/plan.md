@@ -129,9 +129,18 @@ src/caravan/
 ├── cli/
 │   ├── main.py                     # argparse wiring, exit-code policy
 │   ├── validate.py                 # the validate command
-│   └── render.py                   # the render command
+│   ├── render.py                   # the render command
+│   └── listing.py                  # caravan templates, caravan boards
 ├── manifest/
-│   ├── schema.py                   # pydantic models for caravan/v0, extra="forbid"
+│   ├── schema/                     # pydantic models for caravan/v0, extra="forbid"
+│   │   ├── __init__.py             #   the Manifest root and the cross-field rules
+│   │   ├── model.py                #   one module per manifest section, so six tasks run parallel
+│   │   ├── dataset.py
+│   │   ├── train.py
+│   │   ├── export.py
+│   │   ├── compliance.py
+│   │   └── misc.py                 #   verify, bench, publish
+│   ├── _yaml.py                    # the only module that imports ruamel.yaml
 │   ├── load.py                     # read → migrate → validate, one entry point
 │   ├── migrate.py                  # version registry and per-version transforms
 │   ├── resolve.py                  # default expansion → resolved manifest
@@ -140,7 +149,7 @@ src/caravan/
 │   ├── registry.py                 # identifier → template parameter spec
 │   └── mlp.py                      # parameter schema for the pilot's template
 ├── targets/
-│   ├── schema.py                   # board description model, incl. honest emulator support
+│   ├── schema.py                   # board description model, incl. toolchain and honest emulator support
 │   ├── registry.py                 # load and list board descriptions
 │   └── boards/
 │       ├── s32k144.yaml
