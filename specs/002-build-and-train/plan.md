@@ -48,6 +48,12 @@ is collected only where the framework is importable, and one test that asserts t
 exit code 4 with an actionable message — which is collected only where it is not. The generic cache
 test in R7 walks every leaf of the pilot manifest rather than listing cases.
 
+**Every test that needs the framework lives under `tests/train/`**, without exception. The `test`
+job names `unit`, `contract`, `integration` and `layering` explicitly and runs them on all three
+Pythons, and `clean-environment` runs the whole tree with no framework installed — so a
+framework-dependent test placed in any other directory turns two jobs red. The analysis pass caught
+two such tests in the task list before they were written.
+
 **Target Platform**: any machine with a supported Python, for the core. Training additionally needs
 Python 3.13 and about 700 MB of installed framework. No hardware, no emulator, no network in any
 stage of this feature.
@@ -125,6 +131,12 @@ Re-checked once the design existed. Four things it surfaced:
 4. **Principle IV's habit applies to a training promise.** Enabling op determinism would buy a
    stronger reproducibility claim at the cost of refusing to run some models, and the claim would
    still be per-machine. Not enabled; the promise stays the one that holds (R9). **PASS.**
+5. **One rule turned out to be unreachable, and was withdrawn before it was written.** DS-7 would
+   have compared the data's feature width against "what the manifest's window implies" — and the
+   manifest implies nothing about feature width, because the width comes from the data (FR-004).
+   The same thing happened to CF-5 in feature 001, which is a sign the analysis pass earns its
+   place: FR-011 now states what is checkable, DS-7 is marked entailed so the coverage test does
+   not demand a fixture for it, and the case it reached for is covered by DS-3 and DS-6. **PASS.**
 
 No deviation. Complexity Tracking stays empty.
 
@@ -181,9 +193,9 @@ src/caravan/
 tests/
 ├── unit/                            # windowing, splitting, fingerprint, cache key, env messages
 ├── contract/                        # the two verbs, exit codes, artifact names, report shape
-├── integration/                     # end to end on the fixture; reuse; --fresh
+├── integration/                     # end to end *without* the framework: run dirs, input untouched
 ├── layering/                        # extended: builders, reader and metrics stay unimported
-├── train/                           # NEW — collected only where the framework is importable
+├── train/                           # NEW — every test that needs the framework, and only those
 │   └── conftest.py                  #   importorskip, and the fixture dataset's path
 └── fixtures/
     ├── datasets/synthetic/          # NEW — records.csv and the make.py that generated it

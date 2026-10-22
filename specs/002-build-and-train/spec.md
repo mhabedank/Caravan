@@ -46,8 +46,10 @@ dataset and confirm the artifacts, the metrics and the report. No other story ne
 ### User Story 2 - See the model before paying for training (Priority: P2)
 
 Before spending training time, the author asks what the manifest actually describes: the input and
-output shape and how many parameters the model has. They get an answer in seconds, and the same
-artifact the training stage will consume.
+output shape and how many parameters the model has. They get an answer in seconds plus the time to
+read the dataset once — the dataset's version is part of what identifies the result, and it is a
+hash of its bytes, about a second per gigabyte — and they get the same artifact the training stage
+will consume.
 
 **Why this priority**: a template parameter that is wrong by an order of magnitude is cheapest to
 notice here. It is also the structural half of the pipeline — training needs a model to train —
@@ -167,6 +169,10 @@ status, the message naming the extra, and the absence of a traceback.
   patience and seed.
 - **FR-006**: Training MUST write the trained model, the best checkpoint by the validation metric
   and the final checkpoint into the run directory.
+- **FR-006a**: The quality metrics MUST be measured on the validation split, because the model was
+  selected on it, and on the test split, because it is the reference. They MUST NOT be measured on
+  the training split: a number from data the model fitted is not evidence, and reporting it beside
+  the others invites the comparison.
 - **FR-007**: Every quality metric MUST state what it was measured against: which split, and which
   dataset version. A metric without that statement MUST NOT be reported.
 - **FR-008**: The effective value of every training setting MUST be recorded, whether it came from
@@ -176,12 +182,15 @@ status, the message naming the extra, and the absence of a traceback.
 - **FR-010**: The dataset reference MUST be resolved here: a path that does not exist, cannot be
   read, or holds no usable data MUST fail with the path named and the reason stated. What the
   reference points at is specified under *Reading the dataset* below.
-- **FR-011**: A dataset that disagrees with the manifest MUST be rejected, naming the
-  disagreement — at minimum its label names against the manifest's labels, and the number of
-  features a sample actually has against the number the manifest's window implies.
+- **FR-011**: A dataset that disagrees with the manifest MUST be rejected, naming both sides of
+  the disagreement — at minimum its label names against the manifest's labels, in both directions,
+  and too few records to fill a single window against the window the manifest states. The manifest
+  declares no feature width, so there is nothing for the data's feature count to disagree with:
+  the width comes from the data (FR-004), and two files that disagree with *each other* about
+  their columns are the rejection that replaces it.
 - **FR-012**: A run that fails, diverges to a non-finite loss, or is interrupted MUST leave no
   trained-model artifact, and its report MUST say that the run did not finish.
-- **FR-013**: No dataset MUST be written into the repository. The only committed data is the
+- **FR-013**: A dataset MUST NOT be written into the repository. The only committed data is the
   synthetic fixture the tests need.
 
 **Reusing a result**
@@ -204,8 +213,12 @@ status, the message naming the extra, and the absence of a traceback.
 - **FR-020**: Building and training without the extra installed MUST fail with a message naming
   the extra to install, and with the status that means the environment is incomplete rather than
   the one that means a rule was broken. No traceback MUST reach the user.
-- **FR-021**: The extra MUST declare its own Python window with the reason, and MUST NOT narrow the
-  default installation's window.
+- **FR-021**: The extra's Python window MUST be stated with its reason, and MUST NOT narrow the
+  default installation. Packaging has no per-extra window, so the window MUST be expressed as all
+  three of: a published floor that admits it, an environment marker on every dependency the extra
+  carries, and a message naming the window and the reason when a stage is run outside it. Every
+  version the published floor admits MUST be tested — a floor that is claimed and not tested is a
+  false claim (Principle XII, conditions 1 to 4, constitution v2.3.0).
 - **FR-022**: The framework and its version MUST be recorded in the run report of any run that
   used it.
 
@@ -219,7 +232,8 @@ status, the message naming the extra, and the absence of a traceback.
   column.
 - **FR-024**: When the manifest states a window, a sample MUST be that many consecutive records in
   sequence order, and windows MUST NOT overlap. When the manifest states no window, one record
-  MUST be one sample.
+  MUST be one sample — a path no manifest can reach at 0.1.0, because the only registered template
+  requires a window, so it is proven by a direct test of the rule rather than through a manifest.
 - **FR-025**: A window whose records do not all carry the same label MUST be discarded rather than
   given a label it cannot be known to have, and the number of windows discarded for that reason
   MUST be recorded in the run report alongside the number kept.

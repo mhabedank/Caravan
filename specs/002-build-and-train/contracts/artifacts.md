@@ -92,6 +92,10 @@ Rules that the writer enforces rather than documents:
   them is a programming error and raises; it is never written without them (FR-007, SC-003). This is
   Principle IV's labelling habit applied to a quality number: a number that does not say what it was
   measured against is not a result.
+- The metrics are measured on `val` and on `test`, and on nothing else (FR-006a). There is no
+  training-split entry: a number from data the model fitted is not evidence, and putting it beside
+  the others invites exactly the comparison it cannot support. The example above shows `test`; the
+  same set appears for `val`.
 - `settings_from_default` names which settings the author did not state, so FR-008's record is
   readable rather than merely complete.
 - `framework` and its version appear in the report of any run that used it (FR-022). The provenance

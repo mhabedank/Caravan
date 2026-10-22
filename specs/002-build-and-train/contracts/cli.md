@@ -6,6 +6,18 @@ Everything in the 001 contract still holds: the streams, the message form, the J
 rule that no option skips a rule, lowers a threshold or continues past a failure. This document adds
 two verbs, one exit code and three options.
 
+**The verb set, written down.** Principle XII fixes the command line's verbs and requires an
+amendment to add one, and until now the set existed only in whichever contract happened to mention
+it. It is this, and the pair of these two contract documents is the list the principle refers to:
+
+| Verb | Feature | Sanctioned by |
+|---|---|---|
+| `validate`, `render`, `templates`, `boards` | 001 | the pipeline contract's stage list and the rejection messages that promise a listing |
+| `build`, `train` | 002 | the pipeline contract's stage list |
+| *planned*: `quantize`, `analyze`, `verify`, `bench`, `card`, `publish` | later | the same list — each arrives with its feature, none by convenience |
+
+A verb not in that table does not exist, and adding one is an amendment, not a feature decision.
+
 ## `caravan build <manifest>`
 
 Validates the manifest, resolves the dataset reference, constructs the model from the template's

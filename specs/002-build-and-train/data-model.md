@@ -67,8 +67,12 @@ Rules:
   (FR-025).
 - `kept` empty → **DS-6**, naming the records read, the windows examined and how many were
   discarded for which reason. "No usable data" is never reported as an empty training run.
-- The feature width a sample presents is `window × len(feature_names)`; when it disagrees with what
-  the manifest implies → **DS-7**, naming both numbers.
+- The feature width a sample presents is `window × len(feature_names)`, and it is recorded. There is
+  nothing to check it against: the manifest declares no feature width (FR-004), so the width is
+  derived, not verified. A dataset whose files disagree with *each other* about their columns is
+  caught by DS-3 instead.
+- Too few records to fill one window → **DS-6**, naming the records read and the window stated. This
+  is the case a feature-width check would otherwise have been asked to cover.
 
 ### `SplitPlan` (core — `caravan/data/windows.py`)
 
@@ -118,7 +122,7 @@ The entity the spec calls inseparable from what it was measured against (FR-007)
 |---|---|---|
 | `name` | `str` | `accuracy`, `precision_macro`, `recall_macro`, `f1_macro`, `recall_per_class` |
 | `value` | `float \| dict[str, float]` | a number, or per class |
-| `split` | `"train" \| "val" \| "test"` | never omitted |
+| `split` | `"val" \| "test"` | never omitted, and never `train` (FR-006a) |
 | `dataset_version` | `str` | the fingerprint of R4 |
 | `samples` | `int` | how many windows the number is over |
 
@@ -187,10 +191,18 @@ exactly as the board rules did.
 | DS-3 | two files disagree about their header |
 | DS-4 | a cell is empty or not a number |
 | DS-5 | the data's labels and the manifest's labels disagree |
-| DS-6 | no usable sample remains after windowing |
-| DS-7 | the feature width disagrees with what the manifest's window implies |
+| DS-6 | no usable sample remains after windowing, including too few records for one window |
+| DS-7 | — withdrawn before implementation; see below |
 | DS-8 | a split part would be empty |
 | DS-9 | the author's `permitted_use` forbids training (FR-009) |
+
+**DS-7 was withdrawn during the analysis pass**, for the same reason CF-5 was in feature 001: it
+turned out to be unreachable. It would have compared the data's feature width against "what the
+manifest's window implies", and the manifest implies nothing about feature width — the width comes
+from the data. The identifier is left in the table rather than renumbering DS-8 and DS-9, and it is
+listed in the entailed group so the coverage test does not demand a fixture for it. The case it was
+reaching for is covered twice over: DS-3 for two files that disagree about their columns, DS-6 for
+too few records to fill a window.
 
 DS-9 is the author's own statement enforced against them, which is the whole of what Principle VI
 claims. It names the field, not a licence interpretation.

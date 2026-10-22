@@ -42,6 +42,7 @@ in `metrics.json` carrying `split`, `dataset_version` and `samples`. Check the l
 ```bash
 jq '[.metrics[] | select(.split == null or .dataset_version == null or .samples == null)] | length' \
   runs/*/report.json   # must be 0
+jq '[.metrics[].split] | unique' runs/*/report.json   # must be ["test","val"] — never "train"
 ```
 
 ## 3 — Editing compliance text retrains nothing (SC-004)
@@ -73,23 +74,32 @@ And expect `build` to stay `reused` for the seed and the learning rate, because 
 ## 5 — No framework installed (SC-006)
 
 ```bash
-uv run --python 3.14 --no-project caravan build picket-mlp.yaml ; echo "exit: $?"
+uv build
+uv venv --python 3.14 /tmp/no-extra
+VIRTUAL_ENV=/tmp/no-extra uv pip install dist/caravan_ml-*.whl   # no [train]
+/tmp/no-extra/bin/caravan build picket-mlp.yaml ; echo "exit: $?"
 ```
 
+The package has to be installed for the command to exist at all — `--no-project` would fail as
+"command not found", which is not the thing being tested. Install the default wheel, not the extra.
+
 Expect: exit 4; the window-and-reason message of the CLI contract; no traceback anywhere in the
-output; and no run directory left behind.
+output; and no run directory left behind. The same check runs in continuous integration as the
+`clean-environment` job, which installs exactly this wheel.
 
 ## 6 — The core still loads no framework (SC-007)
 
 ```bash
 uv run pytest tests/layering -q
 uv run python -c "import sys, caravan.manifest.load, caravan.stages.train, caravan.templates.registry; \
+from caravan.templates.registry import default_registry; default_registry(); \
 print([m for m in sys.modules if m.split('.')[0] in {'tensorflow','keras','numpy'}])"
 ```
 
 Expect: the layering tests pass on every Python in the matrix, and the printed list is empty — note
 that `caravan.stages.train` is among the imports, because importing a stage must not import what the
-stage loads by name.
+stage loads by name, and that the template registry is actually *built*, because building it walks
+`caravan.templates` and that walk is the one place the core could reach the builder half.
 
 ## 7 — A dataset that disagrees with its manifest (SC-008)
 

@@ -54,8 +54,13 @@ genuinely has two labels; majority voting has no answer for a tie, and "the last
 mislabels every boundary. So it is dropped and counted, and the report says how many — the habit
 Principle IV applies to a measurement, applied to a sample count.
 
-If nothing is left, the run fails (DS-6) naming all three counts. "No usable data" never arrives as
-a training run over zero samples.
+If nothing is left, the run fails (DS-6) naming all three counts — and so does a dataset with fewer
+records than one window, which is the same failure arriving earlier. "No usable data" never arrives
+as a training run over zero samples.
+
+What is *not* checked: the number of features. The manifest declares no feature width, so there is
+nothing for the data to disagree with; the width is derived from the header and recorded. Two files
+that disagree with each other about their columns are caught by DS-3.
 
 ## The split
 
