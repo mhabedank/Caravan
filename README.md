@@ -84,6 +84,18 @@ rights to the data stays with whoever brings the data: the manifest may state a 
 permitted use, Caravan holds the author to what they state, and reports what they did not state as
 unverified rather than as a checked fact.
 
+## Where things are
+
+| | |
+|---|---|
+| `.specify/memory/constitution.md` | the rules: twelve principles, the scope boundary, the gates |
+| `specs/<nnn>-<name>/` | one feature's spec, plan, research, data model, contracts and tasks |
+| `docs/roadmap.md` | what is planned per version, and the non-goals, each with its reason |
+| `docs/design/` | the design document Caravan was started from, frozen as a dated record |
+| `docs/research/` | sourced research notes that decisions cite |
+| `docs/budgets.md` | the dependency, install and Python-version budgets, with measurements |
+| `src/caravan/targets/boards/` | the board descriptions, one data file per board |
+
 ## Development
 
 ```bash

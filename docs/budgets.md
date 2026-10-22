@@ -13,7 +13,7 @@ not measured is a warning, and warnings are read once (Principle V).
 | Cold install, size | 50 MB | **9 MiB** installed, 7 packages | same job |
 | Python versions supported | current and previous stable minor | 3.14 and 3.15 | the `test` matrix in CI |
 
-Measured on 2026-10-22 against `caravan_ml-0.1.0-py3-none-any.whl` in an empty environment with
+Measured on 2026-10-22 against `caravan_ml-0.1.0.dev1-py3-none-any.whl` in an empty environment with
 the package index cache disabled. The installed set is `caravan-ml`, `pydantic`, `pydantic-core`,
 `ruamel-yaml`, `annotated-types`, `typing-extensions` and `typing-inspection`.
 
