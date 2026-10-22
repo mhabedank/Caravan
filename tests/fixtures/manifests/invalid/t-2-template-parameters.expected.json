@@ -1,0 +1,4 @@
+{
+  "rule": "T-2",
+  "path": "model.params.hidden[0]"
+}

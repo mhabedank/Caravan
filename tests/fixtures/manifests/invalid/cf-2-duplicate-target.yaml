@@ -1,0 +1,29 @@
+# Invalid on purpose. The same board is named twice; duplicates are rejected, not de-duplicated.
+# Expected: CF-2 at export.targets
+apiVersion: caravan/v0
+model:
+  name: pilot-min
+  version: 0.0.1
+  topic: automotive-security
+  task: can-ids
+  template: mlp
+  params:
+    hidden:
+    - 8
+dataset:
+  source: datasets/example/
+  window: 32
+  labels:
+  - normal
+  - attack
+  representative_samples: 100
+export:
+  targets:
+  - stm32h743
+  - stm32h743
+compliance:
+  eu_ai_act_class: minimal-risk
+  privacy: no-personal-data
+  intended_use: Example model used to exercise the schema end to end
+  known_limits:
+  - Not trained; exists to validate the manifest contract

@@ -1,0 +1,18 @@
+# Invalid on purpose: the emulator field is omitted rather than set to null. "No emulator" must
+# be stated, not left out (rule E-1).
+board: omitted-emulator
+family: test
+core: cortex-m4f
+clock_mhz: 80
+ram_kb: 64
+flash_kb: 512
+accel: cmsis-nn
+interfaces: [uart]
+toolchain: {compiler: arm-none-eabi-gcc, optimization: "-O3", runtime: tflm}
+sources:
+  clock_mhz: "test"
+  ram_kb: "test"
+  flash_kb: "test"
+  accel: "test"
+  toolchain: "test"
+  emulator: "test"

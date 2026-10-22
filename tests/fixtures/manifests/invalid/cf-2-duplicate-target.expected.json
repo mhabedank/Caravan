@@ -1,0 +1,4 @@
+{
+  "rule": "CF-2",
+  "path": "export.targets"
+}

@@ -1,0 +1,4 @@
+{
+  "rule": "B-1",
+  "path": "export.targets[0]"
+}

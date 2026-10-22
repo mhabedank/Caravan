@@ -1,0 +1,21 @@
+board: esp32
+family: espressif-esp32
+core: xtensa-lx6
+clock_mhz: 240
+ram_kb: 520
+flash_kb: 4096
+accel: esp-nn
+interfaces: [can, i2c, spi, uart, wifi, bluetooth]
+toolchain:
+  compiler: xtensa-esp32-elf-gcc
+  optimization: "-O2"
+  runtime: tflm
+emulator: null
+sources:
+  clock_mhz: "Espressif ESP32 series data sheet, CPU clock"
+  ram_kb: "Espressif ESP32 series data sheet, internal SRAM"
+  flash_kb: "Typical module configuration of the development boards on the bench"
+  accel: "ESP-NN provides optimized kernels for Xtensa; CMSIS-NN is Arm-only"
+  toolchain: "Caravan build decision, not a vendor default; unexercised until the export stage exists"
+  emulator: "Renode supported boards list read 2026-10-22: no ESP32 or Xtensa platform beyond xtensa-sample-controller"
+notes: "Consumer and retrofit mobility hardware; already on the bench"

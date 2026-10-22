@@ -1,0 +1,24 @@
+board: stm32h743
+family: st-stm32h7
+core: cortex-m7
+clock_mhz: 480
+ram_kb: 1024
+flash_kb: 2048
+accel: cmsis-nn
+interfaces: [can-fd, i2c, spi, uart]
+toolchain:
+  compiler: arm-none-eabi-gcc
+  optimization: "-O3"
+  runtime: tflm
+emulator:
+  backend: renode
+  platform: stm32h743
+  status: supported
+sources:
+  clock_mhz: "ST RM0433 reference manual, clock tree"
+  ram_kb: "ST RM0433, system RAM map"
+  flash_kb: "ST RM0433, embedded flash"
+  accel: "CMSIS-NN supports Cortex-M7 with DSP and FPU"
+  toolchain: "Caravan build decision, not a vendor default; unexercised until the export stage exists"
+  emulator: "Renode supported boards list, platform stm32h743, read 2026-10-22"
+notes: "Performance reference; not an automotive part"

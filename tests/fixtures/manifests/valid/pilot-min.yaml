@@ -1,0 +1,32 @@
+# Everything optional left out. This must validate: a minimal manifest is sufficient (FR-014).
+#
+# window is present because the mlp template declares that it consumes one (CF-6), and
+# representative_samples because quantization defaults to int8 (CF-4). Those two are the only
+# non-obvious requirements in a minimal manifest, and both are reported with the rule that
+# demands them.
+apiVersion: caravan/v0
+
+model:
+  name: pilot-min
+  version: 0.0.1
+  topic: automotive-security
+  task: can-ids
+  template: mlp
+  params:
+    hidden: [8]
+
+dataset:
+  source: datasets/example/
+  window: 32
+  labels: [normal, attack]
+  representative_samples: 100
+
+export:
+  targets: [stm32h743]
+
+compliance:
+  eu_ai_act_class: minimal-risk
+  privacy: no-personal-data
+  intended_use: "Example model used to exercise the schema end to end"
+  known_limits:
+    - "Not trained; exists to validate the manifest contract"

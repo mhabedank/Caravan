@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Caravan run artifacts: every invocation writes its own run directory.
+# They are outputs, never inputs, and are never committed.
+runs/
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

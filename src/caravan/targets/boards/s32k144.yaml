@@ -1,0 +1,21 @@
+board: s32k144
+family: nxp-s32k
+core: cortex-m4f
+clock_mhz: 80
+ram_kb: 64
+flash_kb: 512
+accel: cmsis-nn
+interfaces: [can-fd, i2c, spi, uart]
+toolchain:
+  compiler: arm-none-eabi-gcc
+  optimization: "-O3"
+  runtime: tflm
+emulator: null
+sources:
+  clock_mhz: "NXP S32K1xx data sheet"
+  ram_kb: "NXP S32K1xx data sheet, SRAM; the 4 KB FlexRAM is excluded"
+  flash_kb: "NXP S32K1xx data sheet, program flash"
+  accel: "CMSIS-NN supports Cortex-M4 with DSP and FPU"
+  toolchain: "Caravan build decision, not a vendor default; unexercised until the export stage exists"
+  emulator: "Renode supported boards list read 2026-10-22: nxp-s32k388, nxp-s32k388evb and s32k118 only; no S32K144"
+notes: "ASIL-B automotive MCU; bench hardware only, no emulated rung"

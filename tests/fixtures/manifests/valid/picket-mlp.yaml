@@ -1,0 +1,57 @@
+# The pilot manifest: the acceptance fixture of feature 001 (SC-004).
+#
+# dataset.license and dataset.permitted_use are deliberately left unset. Filling them means
+# stating a licence and a permitted use for a real third-party dataset, which is the author's
+# statement to make and not the framework's. Left unset, this manifest exercises the `unknown`
+# path and its unverified marking (FR-032).
+apiVersion: caravan/v0
+
+model:
+  name: picket-mlp
+  version: 0.1.0
+  topic: automotive-security
+  task: can-ids
+  template: mlp
+  params:
+    hidden: [32, 16]
+    dropout: 0.1
+
+dataset:
+  source: datasets/car-hacking/
+  split:
+    train: 0.7
+    val: 0.15
+    test: 0.15
+    stratified: true
+  window: 64
+  labels: [normal, dos, fuzzy, replay]
+  representative_samples: 500
+
+train:
+  epochs: 50
+  batch: 256
+  optimizer: adam
+  early_stopping: true
+
+export:
+  quantization: int8
+  formats: [flatbuffer, c_array]
+  targets: [s32k144, stm32h743, esp32]
+  accuracy_drop_max: 0.02
+
+verify:
+  emulator: none
+
+bench:
+  metrics: [latency_p50, ram_peak, flash]
+
+publish:
+  hf_repo: mhabedank/picket-mlp
+  license: apache-2.0
+
+compliance:
+  eu_ai_act_class: limited-risk
+  privacy: no-personal-data
+  intended_use: "CAN bus intrusion detection on gateway and zonal ECUs"
+  known_limits:
+    - "Trained on the HCRL Car-Hacking dataset; behaviour on zero-day attacks is untested"
