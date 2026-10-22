@@ -173,8 +173,13 @@ uv pip install --python .venv313 -e ".[train,verify]" pytest
 .venv313/bin/python -m pytest tests   # the whole suite
 ```
 
-`tests/verify` needs the model runtime and runs on all three Pythons; `tests/train` needs the
-training framework and runs on 3.13 only. A test that needs a framework lives in one of those two
+`tests/verify` needs the model runtime and runs on 3.13 and 3.14; `tests/train` needs the training
+framework and runs on 3.13 only.
+
+One footgun worth knowing: an editable install records the project's **extras** at install time,
+so after adding or renaming one, re-run the `uv pip install -e` line. The layering tests read that
+metadata, and a stale environment makes them report an extra that the file already has.
+Continuous integration always installs fresh and never sees it. A test that needs a framework lives in one of those two
 directories and nowhere else — putting one elsewhere turns two continuous-integration jobs red,
 which is how the rule was learned.
 

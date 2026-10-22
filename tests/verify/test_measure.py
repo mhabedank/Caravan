@@ -97,9 +97,41 @@ def test_an_empty_split_cannot_be_measured(int8_model) -> None:
         )
 
 
-def test_measuring_needs_no_training_framework(int8_model) -> None:
-    import sys
+CHILD = """
+import sys
+import numpy as np
+from caravan.runtime.measure import measure
 
-    measure(int8_model, features(2), [0, 0], 3, split="test", dataset_version="sha256:x")
-    loaded = {name.split(".")[0] for name in sys.modules}
-    assert not loaded & {"tensorflow", "keras"}
+result = measure(
+    {path!r}, np.zeros((2, 8, 3), dtype=np.float32), [0, 0], 3,
+    split="test", dataset_version="sha256:x",
+)
+loaded = sorted({{name.split(".")[0] for name in sys.modules}} & {{"tensorflow", "keras"}})
+print(result.samples, loaded)
+"""
+
+
+def test_measuring_needs_no_training_framework(int8_model) -> None:
+    """In a **fresh interpreter**, for the reason feature 002 learned the hard way.
+
+    Reading ``sys.modules`` in this process proves nothing once the suite also contains tests that
+    legitimately import a training framework — on Python 3.13 with both extras installed, a
+    sibling in ``tests/train`` has already put Keras there. A subprocess is also the honest shape
+    of the claim: what matters is what a user's process loads when it measures a model, not what
+    this one happens to have lying around.
+    """
+    import subprocess
+    import sys
+    from pathlib import Path as _Path
+
+    result = subprocess.run(
+        [sys.executable, "-c", CHILD.format(path=str(int8_model))],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=_Path(__file__).resolve().parents[2],
+    )
+    assert result.returncode == 0, result.stderr
+    samples, loaded = result.stdout.strip().split(" ", 1)
+    assert samples == "2"
+    assert loaded == "[]", f"measuring loaded a training framework: {loaded}"
