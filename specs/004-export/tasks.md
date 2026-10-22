@@ -70,10 +70,10 @@ repository.
 - [X] T011 Implement `src/caravan/convert/batch.py` (`train` extra): `fix_batch(model)` via
   `keras.models.clone_model(model, input_tensors=Input(batch_shape=(1, *shape[1:])))` plus
   `set_weights`, refusing a model whose input shape is already fixed to something other than 1
-- [ ] T012 Write `tests/unit/test_export_rules_coverage.py` first: every identifier in
+- [X] T012 Write `tests/unit/test_export_rules_coverage.py` first: every identifier in
   `EXPORT_RULES` is raised somewhere in the stage and carries a message naming what to do, the same
   shape of test the `DS` and `Q` rules have
-- [ ] T013 Declare the stage in `src/caravan/stages/export.py`: `StageSpec(name="export",
+- [X] T013 Declare the stage in `src/caravan/stages/export.py`: `StageSpec(name="export",
   upstream="quantize", reads=("export.formats", "export.targets", "export.quantization"),
   reads_dataset=False, artifacts=(…))`, and extend the generic cache-key projection test of
   feature 002 with the new stage in one line
@@ -89,22 +89,22 @@ holds the model, the array, the header and the report, and the artifacts outlive
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] `tests/unit/test_c_array.py`: the generated source round-trips to the model's
+- [X] T014 [P] [US1] `tests/unit/test_c_array.py`: the generated source round-trips to the model's
   exact bytes; the header declares the same length; `alignas(16)` is present; two generations of the
   same model are byte-identical; no timestamp, path or host name appears in either file
-- [ ] T014b [P] [US1] `tests/unit/test_c_array_compiles.py`: compile the generated `.cc` and `.h`
+- [X] T014b [P] [US1] `tests/unit/test_c_array_compiles.py`: compile the generated `.cc` and `.h`
   with the host C++ compiler and assert it succeeds, skipping when no compiler is on the path. This
   is what turns SC-004 from a claim into a check: the pair needs only `<cstdint>`, so a host
   compiler settles it, while the resolver cannot be compiled here because it includes the runtime's
   headers — which the test states as its reason for not trying
-- [ ] T015 [P] [US1] `tests/contract/test_export_contract.py`: exit 0 writes every artifact the
+- [X] T015 [P] [US1] `tests/contract/test_export_contract.py`: exit 0 writes every artifact the
   manifest's formats imply; exit 1 for `X-1` with the format named and **no** artifact of any
   format; exit 1 for `X-2` naming the stage to run first; exit 2 for an unreadable manifest path;
   the absence of `--format`, `--target` and any skip option asserted over the whole parser
-- [ ] T016 [P] [US1] `tests/contract/test_export_report.py`: the report names every artifact with
+- [X] T016 [P] [US1] `tests/contract/test_export_report.py`: the report names every artifact with
   its size and its `sha256:` digest, the digest matches the file on disk, and the re-written model
   and the quantize stage's model are recorded as two paths sharing one digest
-- [ ] T016b [P] [US1] `tests/unit/test_subgraph_refusal.py`: the stage refuses `X-3` for a graph
+- [X] T016b [P] [US1] `tests/unit/test_subgraph_refusal.py`: the stage refuses `X-3` for a graph
   record carrying two subgraphs. The check is tested against the record rather than against a file,
   because producing a genuine two-subgraph int8 model needs control flow in the template and is a
   feature of its own; the test states that reason, so the next reader knows it is a deliberate seam
@@ -112,25 +112,25 @@ holds the model, the array, the header and the report, and the artifacts outlive
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Implement `src/caravan/export/c_array.py`: the `.cc` and `.h` text exactly as
+- [X] T017 [US1] Implement `src/caravan/export/c_array.py`: the `.cc` and `.h` text exactly as
   research R3 records the runtime's generator writing it, from bytes plus an artifact name
-- [ ] T018 [US1] Implement `src/caravan/export/artifacts.py`: `Artifact`, `ExportSet`,
+- [X] T018 [US1] Implement `src/caravan/export/artifacts.py`: `Artifact`, `ExportSet`,
   `RunnerRequirements`, and the digest-and-size recording used for every written file
-- [ ] T019 [US1] Implement the stage body in `src/caravan/stages/export.py`: read the upstream
+- [X] T019 [US1] Implement the stage body in `src/caravan/stages/export.py`: read the upstream
   quantized model, refuse `X-2` when it is absent, refuse `X-1` for an unimplemented format before
   writing anything, refuse `X-3` for more than one subgraph, write the model and the array into the
   stage's private work directory
-- [ ] T020 [US1] Implement `src/caravan/cli/export.py` and register the `export` subcommand in
+- [X] T020 [US1] Implement `src/caravan/cli/export.py` and register the `export` subcommand in
   `src/caravan/cli/main.py`, with the stage options the other verbs share and no option of its own
-- [ ] T021 [US1] Implement the human summary of `contracts/cli.md`, including the two lines about
+- [X] T021 [US1] Implement the human summary of `contracts/cli.md`, including the two lines about
   the working-memory floor and what it omits
-- [ ] T021b [US1] Record in `docs/roadmap.md` the obligation the contract names: the environment
+- [X] T021b [US1] Record in `docs/roadmap.md` the obligation the contract names: the environment
   check asks for every part the plan could need rather than every part it will need, so an author
   on a Python the conversion half does not reach cannot export a model they already have. Name the
   two feature-002 invariants a fix has to preserve, so the next person does not rediscover them
-- [ ] T022 [US1] Write `export.json` through the run report machinery of feature 002, carrying the
+- [X] T022 [US1] Write `export.json` through the run report machinery of feature 002, carrying the
   artifact list, the graph record, the cache verdict and the provenance of every number
-- [ ] T022b [US1] `tests/contract/test_export_cache.py`: a second export of an unchanged run reuses
+- [X] T022b [US1] `tests/contract/test_export_cache.py`: a second export of an unchanged run reuses
   the stored result and records that it did; `--fresh` produces it again and records that too;
   editing a manifest field the stage does not read changes nothing (FR-029, FR-030) — the same pair
   of assertions feature 003 carries for quantize
@@ -149,25 +149,25 @@ with the desktop interpreter's node list; they differ, and the export agrees wit
 
 ### Tests for User Story 2
 
-- [ ] T023 [P] [US2] `tests/verify/test_interpreter_differs.py`: the interpreter's node list for the
+- [X] T023 [P] [US2] `tests/verify/test_interpreter_differs.py`: the interpreter's node list for the
   fixture model contains `DELEGATE` and the file's operator set does not — the finding of research
   R1 asserted rather than trusted, so that a future runtime version cannot quietly make the stage
   wrong
-- [ ] T024 [P] [US2] `tests/unit/test_resolver_methods.py`: every operator the implemented templates
+- [X] T024 [P] [US2] `tests/unit/test_resolver_methods.py`: every operator the implemented templates
   can emit has a method in the table; the table's names match the source research R4 cites;
   `AddConv2D` is spelled with a capital D; an operator absent from the table raises `X-4`
-- [ ] T025 [P] [US2] `tests/unit/test_resolver.py`: the generated resolver names each distinct
+- [X] T025 [P] [US2] `tests/unit/test_resolver.py`: the generated resolver names each distinct
   operator exactly once, carries the operator count as the template argument, comments each line
   with the version and the node count, and emits `AddCustom` with its name for a custom operator
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Implement `src/caravan/export/resolver.py`: the header text of
+- [X] T026 [US2] Implement `src/caravan/export/resolver.py`: the header text of
   `contracts/artifacts.md`, from the operator records and the method table, refusing `X-4` for an
   operator with no public method
-- [ ] T027 [US2] Record the operator set in the report: name, builtin code, version, node count,
+- [X] T027 [US2] Record the operator set in the report: name, builtin code, version, node count,
   custom name where there is one, plus the node total beside the distinct count
-- [ ] T028 [US2] Write the resolver as a run artifact from the stage body, after the array
+- [X] T028 [US2] Write the resolver as a run artifact from the stage body, after the array
 
 **Checkpoint**: the resolver is generated from the file's operator set and nothing else, and an
 operator the runtime cannot resolve refuses the run instead of producing code that fails to compile.
@@ -183,10 +183,10 @@ operator set is the three-operator one.
 
 ### Tests for User Story 3
 
-- [ ] T029 [P] [US3] `tests/train/test_quantize_fixed_batch.py`: the quantized fixture model has a
+- [X] T029 [P] [US3] `tests/train/test_quantize_fixed_batch.py`: the quantized fixture model has a
   leading input dimension of 1, three distinct operators and four nodes, and contains none of
   `SHAPE`, `STRIDED_SLICE`, `PACK`
-- [ ] T030 [P] [US3] `tests/train/test_export_end_to_end.py`: quantize then export the pilot
+- [X] T030 [P] [US3] `tests/train/test_export_end_to_end.py`: quantize then export the pilot
   fixture; the exported model's bytes equal the quantized model's; the report's operator set equals
   an independent reading of the file; the whole run completes under the 30-second budget
 
@@ -194,11 +194,11 @@ operator set is the three-operator one.
 
 - [X] T031 [US3] Call `fix_batch` in `src/caravan/convert/tflite.py` before conversion, inside the
   existing `Q-2` guard so a failure there is still a conversion failure and not a trace
-- [ ] T032 [US3] Record in the quantize report that the conversion fixed the batch, and what the
+- [X] T032 [US3] Record in the quantize report that the conversion fixed the batch, and what the
   input shape became, so the change is visible in the artefact rather than only in a commit message
-- [ ] T033 [US3] Update the quantize stage's recorded figures and any test that asserted the old
+- [X] T033 [US3] Update the quantize stage's recorded figures and any test that asserted the old
   operator count or model size, with the reason named in the test rather than only in the diff
-- [ ] T034 [US3] Update `specs/003-quantize/quickstart.md` and the feature-003 numbers that this
+- [X] T034 [US3] Update `specs/003-quantize/quickstart.md` and the feature-003 numbers that this
   change makes stale, marking them as superseded by 004 rather than silently editing them
 
 **Checkpoint**: one conversion, one model, one set of numbers, and they describe what ships.
@@ -214,28 +214,40 @@ board, each carrying its source and date.
 
 ### Tests for User Story 4
 
-- [ ] T035 [P] [US4] `tests/unit/test_kernel_coverage.py`: the three outcomes of
+- [X] T035 [P] [US4] `tests/unit/test_kernel_coverage.py`: the three outcomes of
   `contracts/coverage.md` — accelerated with its evidence file, falling back, and a board declaring
   no library — plus `X-5` for a board naming a library with no data file
-- [ ] T036 [P] [US4] `tests/unit/test_kernel_data_files.py`: both data files parse, every mapped
+- [X] T036 [P] [US4] `tests/unit/test_kernel_data_files.py`: both data files parse, every mapped
   operator name is one the schema knows, `read_on` is a date, `source` is non-empty, and every
   listed source file appears in either `operators` or `unmapped` so nothing is silently dropped
-- [ ] T037 [P] [US4] `tests/fixtures/boards/x-5-unknown-accel.yaml` for the `X-5` refusal, with a
-  `sources` entry for every field it claims so that it fails on `X-5` and not on `S-1`, loaded in
-  the test through `targets.registry.load_directory` and injected — **not** through a manifest,
-  because `B-1` rejects a board the shipped registry does not have, which is why the registry is an
-  instance in the first place
+- [~] T037 [P] [US4] **Superseded**: the fixture was for `X-5`, and `X-5` was withdrawn during
+  implementation. The board schema admits `accel` only from a closed list and every board file is
+  validated when loaded, so a board naming an unknown accelerated library cannot exist — the
+  fixture would have been a file no code path could reach. The protection moved earlier instead:
+  `test_every_library_the_schema_admits_has_sourced_data` pairs the schema's list with the data
+  files, so widening the list without reading a source fails in continuous integration rather than
+  in somebody's run. Same reasoning as DS-7 in feature 003
 
 ### Implementation for User Story 4
 
-- [ ] T038 [US4] Implement `src/caravan/targets/kernels.py`: `KernelLibrary` loading from the data
+- [X] T038 [US4] Implement `src/caravan/targets/kernels.py`: `KernelLibrary` loading from the data
   files, `CoverageVerdict`, and `coverage(operators, board)` returning one verdict per operator
-- [ ] T039 [US4] Refuse `X-5` when a target's `accel` names a library with no data file, with the
-  message naming the file to add and what it must carry
-- [ ] T040 [US4] Record the verdicts in the report, grouped by target, each with its evidence,
+- [~] T039 [US4] **Superseded** with T037, for the same reason: there is no reachable state to
+  refuse. `X-5` lives in `ENTAILED_RULES`, with the explanation beside it, and a test asserts it is
+  the one `X` identifier deliberately outside `EXPORT_RULES`
+- [X] T040 [US4] Record the verdicts in the report, grouped by target, each with its evidence,
   source and date, and summarise them in the human output as "n of m accelerated"
-- [ ] T041 [US4] Add the board descriptions to the stage's cache key through the resolved targets,
-  so a board whose `accel` changed produces new coverage rather than a reused verdict
+- [~] T041 [US4] **Reduced, with the reason recorded.** The intent was that a board whose `accel`
+  changed produces new coverage rather than a reused verdict. Board descriptions are not in the
+  resolved manifest, so putting them in the key means either adding them to feature 001's resolve
+  output — which also changes the `resolved-manifest.yaml` artifact — or giving the stage machinery
+  a second data fingerprint beside `dataset_version`. Both are changes to another feature's
+  contract, decided in a feature about exporting, which is how contracts get bent.
+  What holds today: the key already carries the tool version, so every board or kernel-data change
+  a *user* can see — they come with an upgrade — produces a new key. What does not hold: a
+  contributor editing a board file in place, same version, gets a reused result until they pass
+  `--fresh`. Asserted by a test so the limit is stated rather than assumed, and recorded in
+  `data-model.md` as the obligation it is
 
 **Checkpoint**: coverage is a sourced claim per operator per board, and a new accelerated library
 costs a data file rather than a code change.
@@ -251,10 +263,10 @@ and no computed figure is presented as measured.
 
 ### Tests for User Story 5
 
-- [ ] T042 [P] [US5] `tests/unit/test_skeleton.py`: the skeleton names the runtime the board
+- [X] T042 [P] [US5] `tests/unit/test_skeleton.py`: the skeleton names the runtime the board
   declares, references both generated headers, carries the arena as a named constant with the floor
   in its comment, and is deterministic
-- [ ] T043 [P] [US5] `tests/contract/test_no_unverified_claims.py`: no artifact and no report field
+- [X] T043 [P] [US5] `tests/contract/test_no_unverified_claims.py`: no artifact and no report field
   claims the skeleton was compiled, linked or run; the working-memory figure always travels with its
   method and with the sentence saying what it omits; no latency, flash or memory figure for a target
   appears anywhere in the report; and no coverage verdict is phrased as a statement about speed
@@ -262,11 +274,11 @@ and no computed figure is presented as measured.
 
 ### Implementation for User Story 5
 
-- [ ] T044 [US5] Implement `src/caravan/export/skeleton.py`: the per-target skeleton of
+- [X] T044 [US5] Implement `src/caravan/export/skeleton.py`: the per-target skeleton of
   `contracts/artifacts.md`, with the runtime and the accelerated library from the board description
-- [ ] T045 [US5] Implement `RunnerRequirements` in the report: runtime, operator set, floor,
+- [X] T045 [US5] Implement `RunnerRequirements` in the report: runtime, operator set, floor,
   `floor_method`, and `floor_is_not_the_requirement` as the full sentence
-- [ ] T046 [US5] Write the skeleton per target from the stage body, under `runner/<target>/`
+- [X] T046 [US5] Write the skeleton per target from the stage body, under `runner/<target>/`
 
 **Checkpoint**: an author can see what to supply, and nothing claims more than was done.
 
@@ -274,20 +286,20 @@ and no computed figure is presented as measured.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T047 [P] Extend the layering test `tests/layering/test_no_framework_imported.py`:
+- [X] T047 [P] Extend the layering test `tests/layering/test_no_framework_imported.py`:
   `convert.batch` joins the framework-importing modules, `runtime.flatbuffer` is extra-only, and
   the `export/` package and `targets/kernels.py` must import no framework at all
-- [ ] T048 [P] Add the export verb to `tests/contract/test_no_network.py` and
+- [X] T048 [P] Add the export verb to `tests/contract/test_no_network.py` and
   `tests/contract/test_no_skip_option.py`
-- [ ] T048b [P] Confirm the continuous integration images carry a host C++ compiler so T014b runs
+- [X] T048b [P] Confirm the continuous integration images carry a host C++ compiler so T014b runs
   rather than skips there, and record in `.github/workflows/ci.yml` which job owns that check — a
   test that skips everywhere proves nothing
-- [ ] T049 [P] Update `README.md` with the `export` verb and what it produces
-- [ ] T050 [P] Update `docs/roadmap.md`: export delivered, and `conv1d` with the `pace-cnn` port is
+- [X] T049 [P] Update `README.md` with the `export` verb and what it produces
+- [X] T050 [P] Update `docs/roadmap.md`: export delivered, and `conv1d` with the `pace-cnn` port is
   the last item of v0.1
-- [ ] T051 [P] Record in `docs/budgets.md` that this feature adds no dependency and no extra, with
+- [X] T051 [P] Record in `docs/budgets.md` that this feature adds no dependency and no extra, with
   the measured install unchanged
-- [ ] T052 Run the full suite in all four environments of the continuous integration matrix and the
+- [X] T052 Run the full suite in all four environments of the continuous integration matrix and the
   quickstart end to end, then record the measured figures in the feature documents where the
   documents currently say the figure is not predicted
 

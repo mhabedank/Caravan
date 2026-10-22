@@ -35,11 +35,13 @@ Expected, on the second command:
 - exit 0
 - `model/model.tflite`, `model/model_data.cc`, `model/model_data.h`, `model/resolver.h`,
   `runner/{s32k144,stm32h743,esp32}/main.cc` and `export.json` in the run directory
-- **three** distinct operators — `RESHAPE`, `FULLY_CONNECTED`, `SOFTMAX` — in **four** nodes
-- a model smaller than the 15,664 bytes feature 003 recorded before the batch was fixed; the exact
-  figure is in the report, and is not predicted here
+- **three** distinct operators — `RESHAPE`, `FULLY_CONNECTED`, `SOFTMAX` — in **five** nodes (the
+  fixture's mlp has three hidden layers, so `FULLY_CONNECTED` accounts for three of the five)
+- **14,848 bytes**, down from the 15,664 feature 003 recorded before the batch was fixed (measured
+  2026-10-22; the figure was deliberately left unpredicted in this document until the code ran)
 - coverage: two of three operators accelerated on every board, `RESHAPE` falling back on all three
-- a working-memory floor in bytes, with its method named and with the sentence saying what it omits
+- a working-memory floor of **640 bytes**, with its method named and with the sentence saying what
+  it omits
 
 ## Check the thing most likely to be wrong
 

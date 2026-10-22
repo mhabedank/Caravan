@@ -205,3 +205,26 @@ def test_no_core_module_imports_an_extra_only_module_at_module_level() -> None:
         if hits:
             offenders[name] = hits
     assert not offenders, f"core modules importing extra-only modules at module level: {offenders}"
+
+
+def test_the_export_package_needs_no_extra_at_all() -> None:
+    """Feature 004: once a model has been read, turning it into files is plain formatting.
+
+    The generic check above already covers this — a module that is not declared must import no
+    framework — but it covers it by omission, and an omission is a poor place for an intention.
+    The export package and the kernel data loader are in the *core* on purpose: behind an extra
+    they would be denied to the default installation for no reason, and their tests would need one
+    to run.
+
+    Read from the source rather than by importing and inspecting ``sys.modules``: in a full suite
+    run a sibling test has already imported a framework, so a check on the live interpreter would
+    fail for somebody else's import. The same trap caught two tests in feature 003.
+    """
+    root = Path(caravan.__file__).parent
+    modules = [root / "targets" / "kernels.py", *sorted((root / "export").glob("*.py"))]
+    assert len(modules) >= 6, "the export package should have more modules than this"
+    for path in modules:
+        name = "caravan." + str(path.relative_to(root).with_suffix("")).replace("/", ".")
+        assert name.removesuffix(".__init__") not in EXTRA_ONLY_MODULES
+        imported = module_level_imports(path) & set(FRAMEWORKS)
+        assert not imported, f"{name} imports {sorted(imported)} at module level and must not"

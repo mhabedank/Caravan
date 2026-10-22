@@ -187,7 +187,15 @@ def run_pipeline(
     command: str,
     stages: Sequence[StagePlan],
     summary: Summary,
+    *,
+    extras: tuple[str, ...] = ("train",),
 ) -> int:
+    """Run a verb's stages. ``extras`` is what *this* verb needs installed.
+
+    Per verb rather than one constant, because telling someone who asked to quantize or export to
+    install only the conversion half would refuse them twice: once here, and again from the stage
+    that also needs the runtime.
+    """
     path = Path(args.manifest)
     try:
         outcome = load_manifest(path)
@@ -208,7 +216,7 @@ def run_pipeline(
 
     # Before anything is written: this installation either can do the work or it cannot.
     if not training_framework_available():
-        print(f"{name}: {missing_extra_message(command)}", file=sys.stderr)
+        print(f"{name}: {missing_extra_message(command, extras=extras)}", file=sys.stderr)
         return EXIT_ENVIRONMENT
 
     assert outcome.manifest is not None

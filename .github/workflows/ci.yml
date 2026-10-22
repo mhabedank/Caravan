@@ -33,6 +33,11 @@ jobs:
       # No extras here: this job is the one that proves the default installation works on
       # every supported Python. tests/verify and tests/train each need an extra and have
       # their own jobs, on the matrix their extra can actually be installed on.
+      # Feature 004 generates C source, and one test compiles it. A test that skips everywhere
+      # proves nothing, so this job is the one that owns that check: it fails here if the image
+      # ever loses its compiler, rather than skipping quietly and leaving SC-004 unchecked.
+      - name: a host C++ compiler is present, because a test needs one
+        run: g++ --version
       - run: uv run --python ${{ matrix.python-version }} pytest tests/unit tests/contract tests/integration tests/layering -q
 
   measure:

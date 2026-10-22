@@ -93,8 +93,20 @@ RULE_PUBLISH_NEEDS_COMPLIANCE = "CF-5"
 #: nothing for the data to disagree with. Two files that disagree with *each other* are DS-3, and
 #: too few records for one window is DS-6. The identifier stays reserved rather than renumbering
 #: DS-8 and DS-9, and lives here so the coverage test does not demand a test for it.
+#: Defined here rather than with the other X identifiers because it is used here, and a forward
+#: reference would be a worse trade than a comment: this is the export rule that refuses nothing.
+RULE_KERNEL_COVERAGE_UNKNOWN = "X-5"
+
+#: X-5 joins them for the same kind of reason, found while implementing feature 004 rather than
+#: while planning it. It was meant to refuse a board naming an accelerated library caravan has no
+#: sourced coverage data for — but the board schema admits ``accel`` only from a closed list, and
+#: ``load_directory`` validates every file it reads, so no board description can ever carry a
+#: library that is not in that list. The protection is better placed anyway: a test pairs the
+#: schema's list with the data files, so adding a library without reading a source for it fails in
+#: continuous integration rather than in somebody's run. The identifier stays reserved rather than
+#: renumbering the rules that are reachable.
 ENTAILED_RULES: frozenset[str] = frozenset(
-    {RULE_PUBLISH_NEEDS_COMPLIANCE, RULE_DATASET_FEATURE_WIDTH}
+    {RULE_PUBLISH_NEEDS_COMPLIANCE, RULE_DATASET_FEATURE_WIDTH, RULE_KERNEL_COVERAGE_UNKNOWN}
 )
 
 # --- Rules that reject a board description, never a manifest ----------------------------------
@@ -136,17 +148,17 @@ RULE_FORMAT_NOT_IMPLEMENTED = "X-1"
 RULE_NOTHING_TO_EXPORT = "X-2"
 RULE_MULTIPLE_SUBGRAPHS = "X-3"
 RULE_OPERATOR_UNRESOLVABLE = "X-4"
-RULE_KERNEL_COVERAGE_UNKNOWN = "X-5"
+# X-5 is defined above, with the other identifiers that reject nothing.
 
 #: Export rules. Like the DS and Q rules they refuse a *run*, so none of them has an
-#: invalid-manifest fixture and all five are covered by their own coverage test instead.
+#: invalid-manifest fixture and all of them are covered by their own coverage test instead. X-5 is
+#: deliberately absent: see ``ENTAILED_RULES`` below.
 EXPORT_RULES: frozenset[str] = frozenset(
     {
         RULE_FORMAT_NOT_IMPLEMENTED,
         RULE_NOTHING_TO_EXPORT,
         RULE_MULTIPLE_SUBGRAPHS,
         RULE_OPERATOR_UNRESOLVABLE,
-        RULE_KERNEL_COVERAGE_UNKNOWN,
     }
 )
 

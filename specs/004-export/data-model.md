@@ -159,9 +159,18 @@ downstream of a dataset edit re-export for nothing — and the generic projectio
 checks the declaration against what the code actually touches, so an over-broad `reads` is caught
 rather than merely regretted.
 
-The board descriptions are part of the cache key through the targets the manifest names: a board
-whose `accel` field changed must produce new coverage. They enter the key as the resolved board
-data, the same way the dataset's digest enters the training key.
+**What the cache key covers, and what it does not.** The targets the manifest names are in the key,
+so exporting for different boards is a different result. The board *descriptions* are not: they are
+package data, not manifest fields, and the resolved manifest carries no board section. What covers
+them in practice is the tool version, which is already part of every key — so every change to the
+shipped board or kernel data that a user can see arrives with an upgrade and produces a new key.
+
+What is not covered is a contributor editing a board or kernel file in place at the same version:
+that reuses the stored result until `--fresh`. Closing the gap properly means either adding resolved
+board data to feature 001's resolve output, which also changes the `resolved-manifest.yaml`
+artifact, or giving the stage machinery a second data fingerprint beside `dataset_version`. Both
+belong to a decision about the machinery rather than to this feature, so the limit is stated here
+and asserted by a test instead of being quietly assumed away.
 
 ---
 

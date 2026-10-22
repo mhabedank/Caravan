@@ -29,8 +29,8 @@ YAML like the zoo's.
 | `mlp` template, parameter half | v0.1 | **delivered** (feature 001) | `picket-mlp` |
 | build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **delivered** (feature 002) | `picket-mlp` |
 | quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | **delivered** (feature 003) | `picket-mlp` |
-| export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | next | `picket-mlp` |
-| `conv1d` template, both halves | v0.1 | planned | **`pace-cnn`** (decided 2026-10-22) |
+| export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | **delivered** (feature 004) | `picket-mlp` |
+| `conv1d` template, both halves | v0.1 | next | **`pace-cnn`** (decided 2026-10-22) |
 
 Feature numbers under `specs/` and git branch names are independent; features are named here
 rather than numbered, because the numbering continues from 001 while a chore branch may carry any
@@ -48,6 +48,30 @@ v0.1 the port makes the *recipe* reproducible — manifest, training, int8, C ar
 reproduce the *card*: the footprint and latency figures come from `analyze` (v0.2) and `bench`
 (v1.0) and stay hand-made until then. And because a published version is immutable (zoo
 Principle IX), a Caravan-built `pace-cnn` is a new version, not a replacement of 0.1.0.
+
+**What feature 004 changed about every number before it.** The conversion now fixes the model's
+input batch to one, because a board runs one window at a time. The converted mlp previously carried
+`SHAPE`, `STRIDED_SLICE`, `PACK` and `RESHAPE` to compute a flatten shape from a dimension that
+never varies — four kernels in flash and four resolver entries for arithmetic whose answer was
+known. On the pilot fixture the quantized model went from six distinct operators in eight nodes to
+three in five, and from 15,664 bytes to 14,848. The function is unchanged to the bit (checked on an
+`mlp` and on a `conv1d` model, maximum absolute difference 0.0), and it happens inside the
+conversion so that the model the accuracy gate measures is the model that ships. Converting twice
+would have meant two models and two accuracies, with the shipped one ungated.
+
+**An obligation feature 004 recorded rather than improvised.** `caravan export` needs both extras,
+although the export *stage* needs only the runtime that reads a model file. The cause is the
+environment check in the pipeline runner: it asks for every part the plan *could* need rather than
+every part it *will* need, and a cached upstream result is what makes the difference. So an author
+on Python 3.14 holding a quantized model from a 3.13 machine cannot export it, even though nothing
+the stage does requires anything their installation lacks.
+
+Fixing it means consulting the cache before the environment check, which needs the dataset
+resolved, which collides with two invariants feature 002 wrote down on purpose: the run directory
+is created *before* the dataset is resolved, so a dataset that disagrees with the manifest lands in
+a report rather than only on a terminal; and a missing extra creates no run directory at all. One
+of the two has to move, and which one is a decision with reasons on both sides. It is not a thing
+to improvise inside a feature about exporting, so it is written down here instead.
 
 **The Python floor, and when it comes back up.** Feature 002 lowered the published floor from 3.14
 to 3.13, because TensorFlow publishes no stable wheel above 3.13 and Python packaging has no

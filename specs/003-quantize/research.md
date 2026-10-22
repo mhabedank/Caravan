@@ -23,6 +23,14 @@ document is named and quoted.
 `from_keras_model` exports a temporary saved model internally — it prints the same "Saved artifact
 at /tmp/…" line — so the second path only moves that step into the project's own code.
 
+**Superseded by feature 004, and the comparison still holds.** Those 15,664 bytes were measured
+before the conversion fixed the model's input batch to one. The pilot model is now 14,848 bytes
+with three distinct operators instead of six, because a dynamic batch made the converter emit four
+operators to compute a flatten shape that never varies. What this section established — that the
+two conversion paths produce identical output — is untouched: they were equal to each other, and
+they still are. The number is left as it was measured and dated, with this note, rather than
+rewritten to today's figure, because a research document is a record of what was found when.
+
 **Rationale**: identical output, one fewer artifact to manage, and no temporary directory of ours to
 clean up. **Alternatives considered**: the explicit export (rejected: more code, same bytes); the
 `tflite_convert` command line (rejected: it cannot take a representative dataset, so it cannot do

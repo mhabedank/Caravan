@@ -64,3 +64,21 @@ def test_no_run_directory_is_left_behind(command, tmp_path) -> None:
     runs = tmp_path / "runs"
     main([command, str(PILOT_FIXTURE), "--runs-dir", str(runs), "--cache-dir", str(tmp_path / "c")])
     assert not runs.exists()
+
+
+def test_the_verbs_that_need_both_halves_say_so() -> None:
+    """The pipeline's own check names what *this* verb needs, not what the first verb needed.
+
+    Added with feature 004. Before it, `caravan quantize` on a machine with neither extra was told
+    to install the conversion half, and then refused a second time by the stage that also needs the
+    runtime. Two refusals for one missing install is a message that under-reports, which is the
+    same category of fault as a number without its provenance.
+    """
+    import inspect
+
+    from caravan.cli import export as export_command
+    from caravan.cli import quantize as quantize_command
+
+    for module in (quantize_command, export_command):
+        source = inspect.getsource(module.run)
+        assert 'extras=("train", "verify")' in source, module.__name__

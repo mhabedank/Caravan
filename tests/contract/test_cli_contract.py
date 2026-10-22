@@ -105,7 +105,7 @@ def test_the_parser_exposes_only_the_documented_commands() -> None:
     parser = build_parser()
     actions = [a for a in parser._subparsers._group_actions if hasattr(a, "choices")]
     # Principle XII fixes the verb set, so this is where the set is written down and the second
-    # of only two assertions feature 002 changes. ``build`` and ``train`` need no amendment: the
+    # of only two assertions each pipeline feature changes. The stage verbs need no amendment: the
     # constitution's pipeline contract already names them as stages, and a stage must be
     # separately invocable. A verb that is not in this set does not exist.
     assert set(actions[0].choices) == {
@@ -114,6 +114,7 @@ def test_the_parser_exposes_only_the_documented_commands() -> None:
         "build",
         "train",
         "quantize",
+        "export",
         "templates",
         "boards",
     }

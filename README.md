@@ -60,9 +60,24 @@ caravan render   manifest.yaml     # what will the pipeline actually use?
 caravan build    manifest.yaml     # what model does it describe, and how large is it?
 caravan train    manifest.yaml     # train it on the dataset it names
 caravan quantize manifest.yaml     # convert it, and judge what the quantization cost
+caravan export   manifest.yaml     # write the model, its C array, its resolver and a runner
 caravan templates                  # which templates are registered?
 caravan boards                     # which target boards are known?
 ```
+
+`caravan export` is where the pipeline stops being Caravan's business and becomes a firmware
+author's. It writes the model, the same bytes the accuracy gate measured; a C array with its
+header, aligned the way the runtime requires; an operator resolver holding exactly the operators
+the model file declares and no others; and one runner skeleton per target board, naming that
+board's runtime and compiler. It also records, per operator and per board, whether that board's
+accelerated kernel library supplies a kernel for it — with the source and the date that claim was
+read — because an operator with no accelerated kernel falls back to the reference implementation
+without saying so.
+
+What it does not do is claim anything it has not done. It does not compile the skeleton, it does
+not say which kernel the build will select, and it does not state the working memory the model
+needs on a board: it states a computed floor, names the method, and says that the figure a board
+requires is measured and not computed here.
 
 Every command exits 0 when it did the work, 1 when a rule says no, 2 on a usage error, 3 on a
 defect in the tool itself and 4 when the environment is missing something that installs
