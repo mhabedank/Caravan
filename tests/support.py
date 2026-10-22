@@ -14,6 +14,18 @@ PILOT = VALID / "picket-mlp.yaml"
 MINIMAL = VALID / "pilot-min.yaml"
 NO_VERSION = VALID / "v-2-no-version.yaml"
 
+# Feature 002: the pilot manifest pointed at the one committed dataset.
+PILOT_FIXTURE = VALID / "picket-mlp-fixture.yaml"
+SYNTHETIC_DATASET = FIXTURES / "datasets" / "synthetic"
+
+#: What the committed fixture is, in numbers, so a test can assert against the shape rather than
+#: against whatever the file happens to contain. Changing the generator means changing these.
+FIXTURE_RECORDS = 5184
+FIXTURE_WINDOWS_KEPT = 80
+FIXTURE_WINDOWS_DISCARDED = 1
+FIXTURE_FEATURES = 5
+FIXTURE_LABELS = ("dos", "fuzzy", "normal", "replay")
+
 
 def invalid_cases() -> list[tuple[str, Path, dict]]:
     """Every invalid manifest fixture with the result its sibling file expects."""

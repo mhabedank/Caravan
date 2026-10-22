@@ -141,14 +141,28 @@ That is the whole mechanism behind SC-003 — it is not a convention the writer 
 | `upstream` | `str \| None` | the stage whose key enters this one's |
 | `artifacts` | `tuple[str, ...]` | relative paths the stage writes, declared as the constitution requires |
 
-Declared sets for this feature:
+Declared sets for this feature, as implemented:
 
-- `build.reads` = `model.template`, `model.params`, `dataset.window`, `dataset.labels`
+- `build.reads` = `model.template`, `model.params`, `dataset.window`, `dataset.labels`,
+  **`train.seed`**
 - `build.reads_dataset` = true — the feature width comes from the data (FR-004), so the data is an
   input to the built shape
 - `train.reads` = `train.epochs`, `train.batch`, `train.optimizer`, `train.learning_rate`,
-  `train.early_stopping`, `train.patience`, `train.seed`, `dataset.split`, `dataset.permitted_use`
+  `train.early_stopping`, `train.patience`, `train.seed`, `dataset.split`, **`dataset.labels`**,
+  **`dataset.window`**, `dataset.permitted_use`
 - `train.upstream` = `build`
+
+**Three fields were added to these sets during implementation**, and the projection is why: a
+stage receives only what it declared, so a field it needs and did not declare is missing the
+moment the stage runs.
+
+- `train.seed` belongs to **build**, which the plan had wrong. Keras draws the initial weights when
+  the model is constructed, so `built.keras` already contains them — reusing a built model across
+  seeds would hand back weights the manifest did not ask for. The seed is in both sets, because
+  both stages depend on it.
+- `dataset.window` and `dataset.labels` belong to **train**, which the plan left to build alone.
+  Forming samples needs the window and ordering the output units needs the labels. The cache was
+  never at risk here (build's key is train's upstream), but the stage could not have run.
 
 `dataset.source` is deliberately **not** in either set: the path is not part of the identity of a
 result, the dataset's content is. Moving a dataset must not retrain; changing it must.
@@ -195,6 +209,13 @@ exactly as the board rules did.
 | DS-7 | — withdrawn before implementation; see below |
 | DS-8 | a split part would be empty |
 | DS-9 | the author's `permitted_use` forbids training (FR-009) |
+| DS-10 | training diverged: the loss stopped being a finite number (FR-012) |
+
+DS-10 was added during implementation. FR-012 requires a diverged run to fail, to say so and to
+leave no model behind — which is a refusal, and every refusal here carries a rule identifier, a
+field path and a message of the same shape. Giving it one keeps the mechanism single: the stage
+raises it like any other run rule, the command line renders it like any other finding, and the
+coverage test demands a test for it like any other.
 
 **DS-7 was withdrawn during the analysis pass**, for the same reason CF-5 was in feature 001: it
 turned out to be unreachable. It would have compared the data's feature width against "what the

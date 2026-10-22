@@ -11,12 +11,23 @@ being wrong: a cache that reuses a result it should not have is a silent incorre
 ```python
 BUILD = StageSpec(
     name="build",
-    reads=("model.template", "model.params", "dataset.window", "dataset.labels"),
+    reads=(
+        "model.template",
+        "model.params",
+        "dataset.window",
+        "dataset.labels",
+        "train.seed",      # the built artifact already contains initialised weights
+    ),
     reads_dataset=True,
     upstream=None,
     artifacts=("model/built.keras", "model/built.json"),
 )
 ```
+
+`train.seed` is in the build stage's set because Keras draws the initial weights when the model is
+constructed, so they are part of `built.keras`. A cache that reused a built model across seeds
+would hand back weights the manifest did not ask for — and the seed being in *both* sets is not a
+redundancy: each stage depends on it for a different reason.
 
 The runner builds a **projection** from `reads` and hands the stage only that. A stage does not
 receive the resolved manifest, so it cannot read a field it did not declare. The declaration is not

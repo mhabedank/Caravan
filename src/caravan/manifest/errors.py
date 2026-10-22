@@ -46,6 +46,38 @@ MANIFEST_REJECTION_RULES: frozenset[str] = frozenset(
     }
 )
 
+# --- Rules that reject a run, never a manifest ------------------------------------------------
+# The manifest can be perfectly valid and the data still disagree with it. These fire when a stage
+# resolves the dataset, so they cannot have an invalid-manifest fixture; they build their bad data
+# in a temporary directory instead (FR-013 — only one dataset is ever committed).
+RULE_DATASET_UNREADABLE = "DS-1"
+RULE_DATASET_COLUMNS = "DS-2"
+RULE_DATASET_HEADERS_DIFFER = "DS-3"
+RULE_DATASET_CELL = "DS-4"
+RULE_DATASET_LABELS = "DS-5"
+RULE_DATASET_NO_SAMPLES = "DS-6"
+RULE_DATASET_FEATURE_WIDTH = "DS-7"
+RULE_SPLIT_EMPTY = "DS-8"
+RULE_TRAINING_NOT_PERMITTED = "DS-9"
+RULE_TRAINING_DIVERGED = "DS-10"
+
+#: Run rules. Every one of these must have a test that provokes it, and
+#: ``tests/unit/test_run_rules_coverage.py`` fails when one does not. DS-7 is deliberately absent:
+#: see ``ENTAILED_RULES`` below.
+RUN_RULES: frozenset[str] = frozenset(
+    {
+        RULE_DATASET_UNREADABLE,
+        RULE_DATASET_COLUMNS,
+        RULE_DATASET_HEADERS_DIFFER,
+        RULE_DATASET_CELL,
+        RULE_DATASET_LABELS,
+        RULE_DATASET_NO_SAMPLES,
+        RULE_SPLIT_EMPTY,
+        RULE_TRAINING_NOT_PERMITTED,
+        RULE_TRAINING_DIVERGED,
+    }
+)
+
 # --- Rules that are entailed by the schema itself, and can therefore never fire ---------------
 RULE_PUBLISH_NEEDS_COMPLIANCE = "CF-5"
 
@@ -55,7 +87,15 @@ RULE_PUBLISH_NEEDS_COMPLIANCE = "CF-5"
 #: manifest passes the compliance section and still fails CF-5, so it is not a runtime rule and
 #: can have no fixture. FR-016 is satisfied structurally, by FR-015 plus the field constraints —
 #: which is a stronger guarantee than a cross-field check, not a weaker one.
-ENTAILED_RULES: frozenset[str] = frozenset({RULE_PUBLISH_NEEDS_COMPLIANCE})
+#: DS-7 ("the feature width disagrees with what the manifest's window implies") was withdrawn
+#: during the analysis pass of feature 002, for the same reason as CF-5: it is unreachable. The
+#: manifest declares no feature width — the width comes from the data (FR-004) — so there is
+#: nothing for the data to disagree with. Two files that disagree with *each other* are DS-3, and
+#: too few records for one window is DS-6. The identifier stays reserved rather than renumbering
+#: DS-8 and DS-9, and lives here so the coverage test does not demand a test for it.
+ENTAILED_RULES: frozenset[str] = frozenset(
+    {RULE_PUBLISH_NEEDS_COMPLIANCE, RULE_DATASET_FEATURE_WIDTH}
+)
 
 # --- Rules that reject a board description, never a manifest ----------------------------------
 RULE_EMULATOR_STATED = "E-1"
@@ -74,8 +114,35 @@ RULE_DATASET_UNRESOLVED = "D-1"
 INFORMATIONAL_RULES: frozenset[str] = frozenset({RULE_NO_SCHEMA_VERSION, RULE_DATASET_UNRESOLVED})
 
 ALL_RULES: frozenset[str] = (
-    MANIFEST_REJECTION_RULES | BOARD_RULES | INFORMATIONAL_RULES | ENTAILED_RULES
+    MANIFEST_REJECTION_RULES | BOARD_RULES | RUN_RULES | INFORMATIONAL_RULES | ENTAILED_RULES
 )
+
+
+class RunRuleFailure(Exception):
+    """A run refused by a rule, carrying the finding rather than a formatted string.
+
+    Raised by a stage, not by a validator, which is why it is an exception of its own: a run rule
+    fires when the data and the manifest disagree, long after the manifest itself was accepted.
+    The command line turns it into the three-part message and exit code 1 — never a traceback.
+    """
+
+    def __init__(self, finding: Finding) -> None:
+        super().__init__(finding.problem)
+        self.finding = finding
+
+
+def run_rule_error(
+    rule: str,
+    path: str,
+    problem: str,
+    *,
+    found: Any = None,
+    accepted: Sequence[str] = (),
+) -> NoReturn:
+    """Refuse a run with a finding that keeps its rule identifier and its field path."""
+    raise RunRuleFailure(
+        Finding(path=path, problem=problem, found=found, accepted=tuple(accepted), rule=rule)
+    )
 
 
 def rule_error(

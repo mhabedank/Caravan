@@ -33,13 +33,17 @@ builder half, and writes it with its shape report into a new run directory.
 
 Human output on success, on standard error:
 
+Real output, from the pilot manifest against the committed fixture (2026-10-22):
+
 ```text
-picket-mlp.yaml: built mlp — input (64, 5), output 4, 5,124 parameters (5,124 trainable)
-    dense_1 (64, 5) → 32    2,592
-    dropout_1         32         0
-    dense_2           16       528
-    output             4        68
-    run: runs/2026-10-22T17-04-31Z-ab12cd
+picket-mlp-fixture.yaml: built mlp — input (64, 5), output 4, 10,868 parameters (10,868 trainable)
+    flatten        (320)         0
+    hidden_1       (32)    10,272
+    dropout_1      (32)         0
+    hidden_2       (16)       528
+    dropout_2      (16)         0
+    output         (4)        68
+    run: runs/20261022T184528Z-b271d5b3
 ```
 
 ## `caravan train <manifest>`
@@ -58,15 +62,34 @@ rebuild for nothing.
 
 Human output on success ends with the metrics and what they were measured against:
 
+Real output, same run (2026-10-22). The fixture is 80 windows of synthetic data, so the figures
+are a smoke test and nothing more — `replay` is deliberately almost indistinguishable from
+`normal` in the generator, and the model duly fails to tell them apart:
+
 ```text
-picket-mlp.yaml: trained mlp — 23 of 50 epochs, stopped early at 23 (best: 18)
-    test, 15 windows, dataset sha256:4f1c…  accuracy 0.933  f1_macro 0.921
-    recall: normal 1.000  dos 0.750  fuzzy 1.000  replay 0.667
-    run: runs/2026-10-22T17-05-02Z-cd34ef
+picket-mlp-fixture.yaml: trained — 26 of 50 epochs, stopped early at 26 (best: 21)
+    test, 12 windows, dataset sha256:8fac6d55c7e…  accuracy 0.667  f1_macro 0.581
+    recall: dos 1.000  fuzzy 0.667  normal 1.000  replay 0.000
+    build: reused the result of run 20261022T184528Z-b271d5b3
+    run: runs/20261022T184531Z-b271d5b3
 ```
 
 A number on this line always carries its split, its sample count and its dataset version, because a
 metric without them is not writable at all (see data-model).
+
+## One thing `-q` cannot promise
+
+With `-q`, **Caravan** writes nothing to standard error on success. The training framework is not
+so disciplined: TensorFlow's C++ layer writes its own startup lines to the process's standard
+error before Python can intervene, and neither `TF_CPP_MIN_LOG_LEVEL=3` nor anything else
+reachable from Python suppresses all of them (checked 2026-10-22 against 2.21.0 — the absl
+pre-initialisation warning and the CUDA-stub line survive both).
+
+So the contract is about Caravan's own output: under `-q` no Caravan line appears, and the
+framework's startup lines may. The alternative — redirecting the process's standard error around
+the framework's import — would also hide a genuine failure to load it, which is a worse trade than
+a noisy line. `--json` is unaffected, because the answer goes to standard output: `caravan train
+manifest.yaml --json > result.json` is clean whatever the framework prints.
 
 ## Exit codes
 

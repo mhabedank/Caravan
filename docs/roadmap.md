@@ -27,8 +27,8 @@ YAML like the zoo's.
 |---|---|---|---|
 | Manifest schema, `validate`, `render`, package skeleton | v0.1 | **delivered** (feature 001) | `picket-mlp` |
 | `mlp` template, parameter half | v0.1 | **delivered** (feature 001) | `picket-mlp` |
-| build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **in progress** (feature 002) | `picket-mlp` |
-| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | planned | `picket-mlp` |
+| build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **delivered** (feature 002) | `picket-mlp` |
+| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | next | `picket-mlp` |
 | export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | planned | `picket-mlp` |
 | `conv1d` template, both halves | v0.1 | planned | **`pace-cnn`** (decided 2026-10-22) |
 

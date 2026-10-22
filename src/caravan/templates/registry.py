@@ -58,7 +58,12 @@ class TemplateRegistry:
 def _discover_builtin(registry: TemplateRegistry) -> None:
     package = importlib.import_module(__package__)
     for info in pkgutil.iter_modules(package.__path__):
-        if info.name.startswith("_") or info.name == "registry":
+        # Subpackages are skipped, and that is a layering rule rather than tidiness: a parameter
+        # spec is always a module, and ``templates/builders/`` is a package whose modules import
+        # the training framework. Importing it from here would pull a framework into the core on
+        # every registry build — the exact failure Principle XII forbids. The layering tests prove
+        # the consequence; this line is what makes it true.
+        if info.ispkg or info.name.startswith("_") or info.name == "registry":
             continue
         module = importlib.import_module(f"{__package__}.{info.name}")
         spec = getattr(module, "SPEC", None)

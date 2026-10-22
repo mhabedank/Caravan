@@ -46,7 +46,7 @@ Added to the document of feature 001, which keeps every field it had:
     "root": "tests/fixtures/datasets/synthetic",
     "files": ["records.csv"],
     "version": "sha256:4f1c…",
-    "total_bytes": 163840,
+    "total_bytes": 113616,
     "records": 5184,
     "feature_names": ["can_id", "dlc", "b0", "b1", "b2"],
     "windows_kept": 80,
@@ -54,6 +54,7 @@ Added to the document of feature 001, which keeps every field it had:
     "records_dropped_remainder": 0,
     "split": {"train": 56, "val": 12, "test": 12},
     "split_per_label": {"normal": {"train": 14, "val": 3, "test": 3}, "...": {}}
+    // every figure above is from a real run of 2026-10-22, not an illustration
   },
   "training": {
     "framework": {"name": "tensorflow", "version": "2.21.0"},
@@ -64,24 +65,25 @@ Added to the document of feature 001, which keeps every field it had:
       "early_stopping": true, "patience": 5, "seed": 42
     },
     "settings_from_default": ["learning_rate", "patience", "seed"],
-    "epochs_run": 23,
+    "epochs_run": 26,
     "stopped_early": true,
-    "stopped_epoch": 23,
-    "best_epoch": 18,
+    "stopped_epoch": 26,
+    "best_epoch": 21,
+    "monitor": "val_loss",
     "finished": true
   },
   "metrics": [
-    {"name": "accuracy", "value": 0.9333, "split": "test",
-     "dataset_version": "sha256:4f1c…", "samples": 12},
+    {"name": "accuracy", "value": 0.666667, "split": "test",
+     "dataset_version": "sha256:8fac…", "samples": 12},
     {"name": "recall_per_class",
-     "value": {"normal": 1.0, "dos": 0.75, "fuzzy": 1.0, "replay": 0.667},
-     "split": "test", "dataset_version": "sha256:4f1c…", "samples": 12}
+     "value": {"dos": 1.0, "fuzzy": 0.666667, "normal": 1.0, "replay": 0.0},
+     "split": "test", "dataset_version": "sha256:8fac…", "samples": 12}
   ],
   "confusion_matrix": {
     "labels": ["normal", "dos", "fuzzy", "replay"],
     "split": "test",
-    "dataset_version": "sha256:4f1c…",
-    "rows": [[3, 0, 0, 0], [0, 3, 1, 0], [0, 0, 3, 0], [0, 1, 0, 2]]
+    "dataset_version": "sha256:8fac…",
+    "rows": [[3, 0, 0, 0], [0, 3, 0, 0], [0, 1, 2, 0], [3, 0, 0, 0]]
   }
 }
 ```

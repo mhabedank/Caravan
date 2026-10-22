@@ -19,6 +19,9 @@ venv/
 # They are outputs, never inputs, and are never committed.
 runs/
 
+# The stage cache: an artifact, like a run directory (feature 002).
+.caravan/
+
 # Editors and operating systems
 .DS_Store
 Thumbs.db

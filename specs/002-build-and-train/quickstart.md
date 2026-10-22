@@ -5,6 +5,20 @@ Date: 2026-10-22 · Feature: 002
 Runnable scenarios that prove the feature works. Each one maps to a success criterion of
 [spec.md](./spec.md). Details live in the contracts; this is the run guide.
 
+**Measured on 2026-10-22**, Python 3.13.16, TensorFlow 2.21.0, Keras 3.15.1, on an ordinary
+container with no accelerator:
+
+| | |
+|---|---|
+| `caravan train` on the fixture, cold | **6.96 s** (budget: 60 s) |
+| the same command again, both stages reused | **0.27 s** |
+| `caravan build` alone | 3.1 s, of which about 2 s is importing the framework |
+| the fixture dataset | 5,184 records, 113,616 bytes (limit: 200 KB) |
+| the whole suite with the extra installed | 230 passed, 9 skipped, 81 s |
+| the suite on 3.14 without the extra | 182 passed, 1 skipped, 1.5 s |
+
+The 25-fold difference between the first and second run is what the stage cache is for.
+
 ## Prerequisites
 
 ```bash
@@ -27,7 +41,7 @@ caravan build tests/fixtures/manifests/valid/picket-mlp-fixture.yaml
 
 Expect: exit 0; the shape line of the CLI contract on standard error; a new run directory holding
 `model/built.keras` and `model/built.json`; `built.json` reporting input shape `[64, 5]`, output 4,
-and a parameter count that matches the layer table.
+and 10,868 parameters, matching the sum of its layer table.
 
 ## 2 — Train it end to end (SC-001, SC-002, SC-003)
 
@@ -35,7 +49,7 @@ and a parameter count that matches the layer table.
 time caravan train tests/fixtures/manifests/valid/picket-mlp-fixture.yaml
 ```
 
-Expect: exit 0 in under 60 seconds including the framework's import; the run directory holding
+Expect: exit 0 in about 7 seconds — the budget is 60 — and the run directory holding
 `model/trained.keras`, both checkpoints, `metrics.json` and `training-history.json`; and every entry
 in `metrics.json` carrying `split`, `dataset_version` and `samples`. Check the last part directly:
 
@@ -54,8 +68,9 @@ caravan train manifest.yaml                      # reuses
 jq '.stages[] | {name, outcome}' runs/*/report.json | tail -4
 ```
 
-Expect: both stages `reused` on the second run, and a wall-clock difference that makes it obvious no
-training happened.
+Expect: both stages `reused` on the second run, and a wall-clock difference that makes it obvious
+no training happened — 6.96 s against 0.27 s on the fixture, and the gap only grows with the
+dataset.
 
 ## 4 — The four things that must retrain (SC-005)
 
