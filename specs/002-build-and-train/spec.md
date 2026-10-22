@@ -143,8 +143,11 @@ status, the message naming the extra, and the absence of a traceback.
   than failing.
 - The dataset changes while the manifest does not: the dataset version is part of the cache key,
   so it retrains.
-- Two runs of the same manifest land in the same second: handled by feature 001 — a run never
-  overwrites another's directory.
+- Two runs of the same manifest land in the same second: each gets its own run directory. Feature
+  001 chose to *fail* the second run here, which was right about never overwriting and wrong about
+  failing — a fully reused run takes under a third of a second, so back-to-back runs land in one
+  second routinely, and that is an ordinary thing to do. The name takes the next free `-2`, `-3`
+  and so on; the invariant that a run never touches another's artifacts is unchanged.
 
 ## Requirements *(mandatory)*
 

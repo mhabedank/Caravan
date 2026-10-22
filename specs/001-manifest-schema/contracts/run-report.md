@@ -14,7 +14,9 @@ runs/
 ```
 
 - The name is a UTC timestamp in basic ISO form, a hyphen, and the first eight hex characters of
-  the manifest's SHA-256. The timestamp orders runs; the hash distinguishes runs of different
+  the manifest's SHA-256 — **extended by feature 002** with an optional `-2`, `-3`, … when runs of
+  the same manifest start inside the same second, which the stage cache made an everyday case. The
+  timestamp orders runs; the hash distinguishes runs of different
   manifests without opening them.
 - The directory is created fresh by the invocation. If it exists, the run fails rather than
   overwriting — the only way to collide is to run the same manifest twice within the same second,

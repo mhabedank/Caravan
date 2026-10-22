@@ -126,3 +126,26 @@ def test_a_reused_result_names_the_run_that_produced_it(tmp_path) -> None:
     train(manifest, tmp_path)
     report = json.loads((latest_run(tmp_path / "runs") / "report.json").read_text(encoding="utf-8"))
     assert all(stage["produced_by_run"] == first_run for stage in report["stages"])
+
+
+def test_three_runs_in_a_row_get_three_run_directories(tmp_path) -> None:
+    """The regression the `train` job caught on its first push.
+
+    A fully reused run takes under a third of a second, so consecutive runs of one manifest land
+    in the same second — and the run directory name is only accurate to the second. The first two
+    runs here are fast enough on most machines to collide, which used to fail with exit 3, "a
+    defect in caravan itself". The deterministic version of this is in
+    ``tests/contract/test_run_directory.py``, with a frozen clock; this one is the end-to-end
+    shape of what a person actually does.
+    """
+    manifest = dataset_and_manifest(tmp_path)
+    for _ in range(3):
+        train(manifest, tmp_path)
+
+    runs = sorted(path.name for path in (tmp_path / "runs").iterdir())
+    assert len(runs) == 3, runs
+    assert len(set(runs)) == 3
+    # Each one is complete on its own, reused or not.
+    for name in runs:
+        assert ((tmp_path / "runs" / name) / "report.json").is_file()
+        assert ((tmp_path / "runs" / name) / "model" / "trained.keras").is_file()

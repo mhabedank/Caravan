@@ -6,6 +6,11 @@ The run directory of feature 001 is unchanged in shape: one directory per invoca
 overwritten, carrying the resolved manifest and the report. This document says what `build` and
 `train` add to it, and what the report says about them.
 
+**One change to the name.** A fully reused run takes under a third of a second, so two runs of one
+manifest land in the same second routinely — and the name is only accurate to the second. Feature
+001 failed the second run; it now takes the next free `-2`, `-3`, and so on. The invariant is the
+same one it always was: a run never touches another run's artifacts.
+
 ## The run directory after `caravan train`
 
 ```text
