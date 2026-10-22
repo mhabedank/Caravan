@@ -35,6 +35,14 @@ def all_option_strings(parser: argparse.ArgumentParser) -> set[str]:
     return options
 
 
+def test_the_walk_reaches_the_stage_verbs_of_feature_002() -> None:
+    # The walk below is recursive, so ``build`` and ``train`` were covered the moment they were
+    # added. This says so out loud: a guarantee that holds by accident is one that stops holding
+    # the first time somebody flattens the walk.
+    options = all_option_strings(build_parser())
+    assert "--cache-dir" in options and "--fresh" in options
+
+
 def test_no_option_can_silence_a_gate() -> None:
     options = all_option_strings(build_parser())
     offenders = sorted(

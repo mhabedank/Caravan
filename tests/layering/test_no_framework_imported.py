@@ -7,9 +7,12 @@ somebody remembers.
 
 from __future__ import annotations
 
-import importlib
+import ast
+import json
 import pkgutil
+import subprocess
 import sys
+from pathlib import Path
 
 import caravan
 
@@ -27,28 +30,152 @@ FRAMEWORKS = (
 )
 
 
-def core_module_names() -> list[str]:
+#: The modules that are *allowed* to import a training framework, because they are only ever
+#: reachable with the ``train`` extra installed. Added by feature 002, and deliberately a short
+#: explicit list: a new framework-importing module in the core fails the test below rather than
+#: joining this set quietly.
+EXTRA_ONLY_MODULES = frozenset(
+    {
+        "caravan.data.reader",
+        "caravan.metrics.classification",
+        "caravan.templates.builders.mlp",
+    }
+)
+
+
+def all_module_names() -> list[str]:
     names = [caravan.__name__]
     for info in pkgutil.walk_packages(caravan.__path__, prefix="caravan."):
         names.append(info.name)
     return names
 
 
-def test_importing_the_whole_core_loads_no_framework() -> None:
-    for name in core_module_names():
+def core_module_names() -> list[str]:
+    # Feature 002: the extra-only modules are excluded here and checked by their own test below.
+    # Importing them would load a framework by design, which is what the extra is for.
+    return [name for name in all_module_names() if name not in EXTRA_ONLY_MODULES]
+
+
+def module_level_imports(path: Path) -> set[str]:
+    """The root packages a module imports at module level, read without importing it."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    roots: set[str] = set()
+    for node in tree.body:  # module level only: a function-level import loads nothing on import
+        if isinstance(node, ast.Import):
+            roots.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+            roots.add(node.module.split(".")[0])
+    return roots
+
+
+CHILD = """
+import importlib, json, pkgutil, sys
+import caravan
+
+FRAMEWORKS = {frameworks}
+EXTRA_ONLY = {extra_only}
+
+names = [caravan.__name__] + [
+    info.name for info in pkgutil.walk_packages(caravan.__path__, prefix="caravan.")
+]
+for name in names:
+    if name not in EXTRA_ONLY:
         importlib.import_module(name)
 
-    loaded = {
-        framework
-        for framework in FRAMEWORKS
-        if framework in sys.modules or any(m.startswith(f"{framework}.") for m in sys.modules)
-    }
-    assert not loaded, (
-        f"the core must not load a training framework (Principle XII); loaded: {sorted(loaded)}"
+loaded = sorted(
+    framework
+    for framework in FRAMEWORKS
+    if framework in sys.modules or any(m.startswith(framework + ".") for m in sys.modules)
+)
+print(json.dumps({{"imported": len(names), "loaded": loaded}}))
+"""
+
+
+def test_importing_the_whole_core_loads_no_framework() -> None:
+    # In a **fresh interpreter**, changed by feature 002 from an in-process check. The check reads
+    # the module table, and once the suite also contains tests that legitimately use the framework
+    # (``tests/train/``), the module table in this process is no longer evidence of anything. A
+    # subprocess is also the honest shape of the claim: what matters is what a user's process
+    # loads when it imports Caravan, not what this one happens to have lying around.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            CHILD.format(frameworks=set(FRAMEWORKS), extra_only=set(EXTRA_ONLY_MODULES)),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
     )
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+
+    assert not report["loaded"], (
+        f"the core must not load a training framework (Principle XII); loaded: {report['loaded']}"
+    )
+    assert report["imported"] > 10, report
 
 
 def test_the_core_has_more_than_one_module_so_the_check_means_something() -> None:
     # A guard against the check passing because nothing was imported at all.
     names = core_module_names()
     assert len(names) > 10, names
+
+
+def test_exactly_the_declared_modules_import_a_framework_at_module_level() -> None:
+    # Feature 002. The dynamic check above cannot see a framework import inside a function, and
+    # it must not: ``caravan.stages.train`` imports Keras inside its stage function on purpose,
+    # which is how a stage uses a framework the core never loads. What must stay true is that no
+    # module *outside* the declared set imports one at module level, where the import would run
+    # the moment anything touched it. Read with the parser rather than by importing, so the test
+    # is just as meaningful in an environment where the framework is not installed at all.
+    root = Path(caravan.__file__).parent
+    offenders: dict[str, list[str]] = {}
+    found: set[str] = set()
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root).with_suffix("")
+        parts = [part for part in relative.parts if part != "__init__"]
+        name = ".".join(["caravan", *parts])
+        frameworks = sorted(module_level_imports(path) & set(FRAMEWORKS))
+        if not frameworks:
+            continue
+        found.add(name)
+        if name not in EXTRA_ONLY_MODULES:
+            offenders[name] = frameworks
+
+    assert not offenders, (
+        "these modules import a training framework at module level but are not declared "
+        f"extra-only: {offenders}"
+    )
+    assert found == set(EXTRA_ONLY_MODULES), (
+        "the declared extra-only set must match reality; declared but framework-free: "
+        f"{sorted(set(EXTRA_ONLY_MODULES) - found)}"
+    )
+
+
+def test_no_core_module_imports_an_extra_only_module_at_module_level() -> None:
+    # The other direction: a core module that imported ``caravan.data.reader`` at module level
+    # would load numpy through the back door and the check above would not see it.
+    root = Path(caravan.__file__).parent
+    extra_paths = {name.rsplit(".", 1)[-1] for name in EXTRA_ONLY_MODULES}
+    offenders: dict[str, list[str]] = {}
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root).with_suffix("")
+        name = ".".join(["caravan", *[p for p in relative.parts if p != "__init__"]])
+        if name in EXTRA_ONLY_MODULES:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        hits = []
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom) and node.module:
+                if node.module in EXTRA_ONLY_MODULES:
+                    hits.append(node.module)
+                if node.module.startswith("caravan") and any(
+                    alias.name in extra_paths for alias in node.names
+                ):
+                    hits.append(f"{node.module}.{node.names[0].name}")
+            elif isinstance(node, ast.Import):
+                hits.extend(alias.name for alias in node.names if alias.name in EXTRA_ONLY_MODULES)
+        if hits:
+            offenders[name] = hits
+    assert not offenders, f"core modules importing extra-only modules at module level: {offenders}"

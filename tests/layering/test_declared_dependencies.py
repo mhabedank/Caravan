@@ -82,7 +82,43 @@ def test_the_distribution_declares_its_identity_and_its_python_policy() -> None:
     info = metadata(DISTRIBUTION)
     assert info["Name"] == "caravan-ml"
     assert "Apache-2.0" in (info["License-Expression"] or info["License"] or "")
-    assert info["Requires-Python"] == ">=3.14"
+    # Changed by feature 002 from ">=3.14", the one assertion of feature 001 that the lowered
+    # floor makes factually wrong. The floor is 3.13 because packaging has no per-extra Python
+    # window and TensorFlow ships no stable wheel above cp313 (constitution v2.3.0, research R1).
+    # It returns to ">=3.14" when a stable TensorFlow ships cp314 against a released keras.
+    assert info["Requires-Python"] == ">=3.13"
+
+
+def test_the_training_extra_is_the_only_extra_and_every_dependency_is_marked() -> None:
+    # Feature 002, Principle XII conditions 1 to 3 as amended in v2.3.0. An extra cannot carry its
+    # own Requires-Python, so its window is expressed as a floor that admits it plus a marker on
+    # every dependency it carries. Without the markers, installing the extra on 3.14 would fail in
+    # the resolver instead of telling the user which Python to train on.
+    extras = metadata(DISTRIBUTION).get_all("Provides-Extra") or []
+    assert sorted(extras) == ["train"]
+
+    declared = requires(DISTRIBUTION) or []
+    carried = [Requirement(raw) for raw in declared if "extra ==" in str(Requirement(raw).marker)]
+    assert carried, "the train extra declares no dependency"
+    unmarked = sorted(r.name for r in carried if 'python_version < "3.14"' not in str(r.marker))
+    assert not unmarked, (
+        "every dependency of the train extra must carry the python_version marker that states "
+        f"its window (Principle XII, condition 3); unmarked: {unmarked}"
+    )
+
+
+def test_the_floor_admits_the_training_extras_window() -> None:
+    # Condition 1: the lowered floor must admit the extra's window, and every version it admits is
+    # tested in continuous integration. A floor that is claimed and not tested is a false claim.
+    from packaging.specifiers import SpecifierSet
+
+    floor = SpecifierSet(metadata(DISTRIBUTION)["Requires-Python"])
+    assert floor.contains("3.13"), (
+        "the train extra needs Python 3.13 and the published floor must admit it, or the extra "
+        "cannot be installed on any interpreter at all"
+    )
+    for supported in ("3.13", "3.14", "3.15"):
+        assert floor.contains(supported)
 
 
 def test_the_command_is_installed_under_the_name_the_constitution_fixes() -> None:

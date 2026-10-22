@@ -27,8 +27,8 @@ YAML like the zoo's.
 |---|---|---|---|
 | Manifest schema, `validate`, `render`, package skeleton | v0.1 | **delivered** (feature 001) | `picket-mlp` |
 | `mlp` template, parameter half | v0.1 | **delivered** (feature 001) | `picket-mlp` |
-| build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | next | `picket-mlp` |
-| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | planned | `picket-mlp` |
+| build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **delivered** (feature 002) | `picket-mlp` |
+| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | next | `picket-mlp` |
 | export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | planned | `picket-mlp` |
 | `conv1d` template, both halves | v0.1 | planned | **`pace-cnn`** (decided 2026-10-22) |
 
@@ -48,6 +48,14 @@ v0.1 the port makes the *recipe* reproducible — manifest, training, int8, C ar
 reproduce the *card*: the footprint and latency figures come from `analyze` (v0.2) and `bench`
 (v1.0) and stay hand-made until then. And because a published version is immutable (zoo
 Principle IX), a Caravan-built `pace-cnn` is a new version, not a replacement of 0.1.0.
+
+**The Python floor, and when it comes back up.** Feature 002 lowered the published floor from 3.14
+to 3.13, because TensorFlow publishes no stable wheel above 3.13 and Python packaging has no
+per-extra version window (constitution v2.3.0, research R1 of feature 002). All three of 3.13, 3.14
+and 3.15 are tested, so the claim in the metadata is true. The floor returns to `>=3.14` and the
+3.13 job is deleted as soon as a stable TensorFlow ships a cp314 wheel depending on a released
+`keras`; 2.22.0rc0 already ships the wheel and depends on `keras-nightly`, so the wait is for the
+final release. This is the one open obligation of v0.1 that is not a feature.
 
 ## v0.2 — footprint analysis
 

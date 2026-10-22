@@ -7,7 +7,13 @@ name = "caravan-ml"
 version = "0.1.0.dev1"
 description = "Declarative pipeline for small machine learning models on microcontrollers"
 readme = "README.md"
-requires-python = ">=3.14"
+# 3.13 rather than 3.14, and only because of the train extra: packaging has no per-extra Python
+# window, and TensorFlow publishes no stable wheel above cp313 (2.21.0, checked 2026-10-22; 2.22.0rc0
+# ships cp314 but depends on keras-nightly). Constitution v2.3.0, Principle XII, research R1 of
+# feature 002. All three of 3.13, 3.14 and 3.15 are tested — a floor that is claimed and not tested
+# is a false claim. This returns to ">=3.14" when a stable TensorFlow ships cp314 against a released
+# keras; docs/budgets.md carries the obligation.
+requires-python = ">=3.13"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{ name = "Martin Habedank" }]
@@ -16,6 +22,7 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3.15",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -27,6 +34,18 @@ classifiers = [
 dependencies = [
   "pydantic>=2.9",
   "ruamel.yaml>=0.18",
+]
+
+# One of the four extras the constitution allows (Principle XII). Every dependency carries the
+# marker, so installing the extra on 3.14 or 3.15 pulls no framework and the stage says why rather
+# than the resolver failing. The upper bound on tensorflow is the documented-incompatibility case
+# the constitution permits: 2.22's release candidate depends on keras-nightly, which a published
+# distribution may not carry. It comes off when 2.22 ships final.
+[project.optional-dependencies]
+train = [
+  "tensorflow>=2.21,<2.22; python_version < '3.14'",
+  "keras>=3.12; python_version < '3.14'",
+  "numpy>=1.26; python_version < '3.14'",
 ]
 
 [project.scripts]
@@ -46,6 +65,12 @@ packages = ["src/caravan"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers --strict-config"
+# Presence of the training framework is handled by importorskip in tests/train/conftest.py and
+# needs no marker. Only the absence direction needs one, because a test that asserts the
+# environment-incomplete path has to be skipped where the framework *is* installed.
+markers = [
+  "requires_no_train_extra: only runs where the training framework is absent",
+]
 pythonpath = ["."]
 
 [tool.ruff]

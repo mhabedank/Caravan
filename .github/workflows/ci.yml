@@ -22,14 +22,37 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The two versions the Python policy covers: the current stable minor
-        # and the previous one (Principle XII). No more, no fewer.
-        python-version: ["3.14", "3.15"]
+        # The current stable minor, the previous one, and 3.13 — which the published
+        # floor admits for the train extra's sake, and which Principle XII therefore
+        # requires to be tested rather than merely claimed (constitution v2.3.0).
+        python-version: ["3.13", "3.14", "3.15"]
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install ${{ matrix.python-version }}
+      # tests/train is deliberately not listed: every test that needs the training
+      # framework lives there, and no framework is installed in this job.
       - run: uv run --python ${{ matrix.python-version }} pytest tests/unit tests/contract tests/integration tests/layering -q
+
+  train:
+    # The only job where a training framework exists. 3.13 only, because that is the
+    # extra's window (research R1). It runs the whole suite, since the framework is here.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv python install 3.13
+      - name: install the project with the train extra
+        run: |
+          uv venv --python 3.13 /tmp/train
+          VIRTUAL_ENV=/tmp/train uv pip install -e ".[train]" pytest
+      - name: record the extra's weight
+        run: |
+          bytes=$(du -sb /tmp/train/lib | cut -f1)
+          printf 'train extra: %d MiB installed, %d packages\n' \
+            $(( bytes / 1024 / 1024 )) "$(VIRTUAL_ENV=/tmp/train uv pip list | tail -n +3 | wc -l)"
+      - name: the whole suite, with the framework present
+        run: VIRTUAL_ENV=/tmp/train /tmp/train/bin/python -m pytest tests -q
 
   clean-environment:
     # Level 3 of the layering rule: install only the default package, with no machine-learning

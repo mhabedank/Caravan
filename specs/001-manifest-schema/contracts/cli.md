@@ -60,6 +60,11 @@ Code 1 is never used for an internal failure, and code 3 is never used for a man
 broke a rule. A continuous integration job can therefore treat 3 as "file a bug" and 1 as "fix the
 manifest".
 
+**Extended by feature 002**: code 4 means the environment is incomplete — a part that has to be
+installed separately is not there. It is neither a broken rule nor a defect, which is why it is its
+own code rather than one of these four. See `specs/002-build-and-train/contracts/cli.md`, which also
+carries the enumerated verb list that Principle XII's fixed verb set refers to.
+
 ## Streams
 
 - **Standard output** carries the answer: the resolved manifest under `--stdout`, the JSON document

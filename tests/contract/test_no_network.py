@@ -37,6 +37,24 @@ def test_rejection_needs_no_network(no_network, tmp_path, capsys) -> None:
     assert main(["validate", str(manifest), "--runs-dir", str(tmp_path)]) == EXIT_RULE
 
 
+def test_the_stage_verbs_need_no_network_to_refuse(no_network, tmp_path, capsys) -> None:
+    # Feature 002. The stages themselves are exercised in ``tests/train/``, which cannot run
+    # here; what is asserted here is that the path up to and including a refusal opens no socket,
+    # on an installation where no framework exists to open one either.
+    for verb in ("build", "train"):
+        code = main(
+            [
+                verb,
+                str(INVALID / "cf-1-split-sum.yaml"),
+                "--runs-dir",
+                str(tmp_path / verb),
+                "--cache-dir",
+                str(tmp_path / "cache"),
+            ]
+        )
+        assert code == EXIT_RULE
+
+
 def test_the_listings_need_no_network(no_network, capsys) -> None:
     assert main(["templates"]) == EXIT_OK
     assert main(["boards"]) == EXIT_OK

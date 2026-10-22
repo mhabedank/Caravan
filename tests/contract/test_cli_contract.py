@@ -104,4 +104,15 @@ def test_validate_and_render_agree_on_the_same_manifest(tmp_path, capsys) -> Non
 def test_the_parser_exposes_only_the_documented_commands() -> None:
     parser = build_parser()
     actions = [a for a in parser._subparsers._group_actions if hasattr(a, "choices")]
-    assert set(actions[0].choices) == {"validate", "render", "templates", "boards"}
+    # Principle XII fixes the verb set, so this is where the set is written down and the second
+    # of only two assertions feature 002 changes. ``build`` and ``train`` need no amendment: the
+    # constitution's pipeline contract already names them as stages, and a stage must be
+    # separately invocable. A verb that is not in this set does not exist.
+    assert set(actions[0].choices) == {
+        "validate",
+        "render",
+        "build",
+        "train",
+        "templates",
+        "boards",
+    }

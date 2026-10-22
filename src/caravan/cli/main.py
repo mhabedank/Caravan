@@ -6,6 +6,11 @@ Exit codes distinguish a rule saying no from a defect in the tool (FR-004):
 * 1 — the manifest is invalid, or its declared schema version is unknown
 * 2 — usage error: unknown option, missing argument, unreadable path
 * 3 — internal failure of the tool itself, reported as one, with a trace
+* 4 — the environment is incomplete: a part that installs separately is not there
+
+Code 4 arrived with feature 002 and exists because a missing training framework is neither a
+broken rule nor a defect in the tool. A continuous integration job can act on each of the five
+differently, which it could not if a missing install arrived as code 1.
 
 There is no option that skips, forces or silences a check (FR-005, Principle V).
 """
@@ -23,6 +28,7 @@ EXIT_OK = 0
 EXIT_RULE = 1
 EXIT_USAGE = 2
 EXIT_INTERNAL = 3
+EXIT_ENVIRONMENT = 4
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -65,6 +71,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_report_options(render)
 
+    def add_stage_options(sub: argparse.ArgumentParser) -> None:
+        """What the two stage verbs share. Nothing here can skip a rule — only the cache."""
+        sub.add_argument("manifest", metavar="<manifest>")
+        sub.add_argument(
+            "--cache-dir",
+            default=".caravan/cache",
+            metavar="<path>",
+            help="where stage results are stored (default: .caravan/cache)",
+        )
+        sub.add_argument(
+            "--fresh",
+            action="store_true",
+            help="ignore any cached result and produce it again; recorded in the report",
+        )
+        add_report_options(sub)
+
+    build = subcommands.add_parser(
+        "build", help="construct the model the manifest describes, and report its shape"
+    )
+    add_stage_options(build)
+
+    train = subcommands.add_parser(
+        "train", help="train the model on the dataset the manifest names"
+    )
+    add_stage_options(train)
+
     subcommands.add_parser("templates", help="list the registered template identifiers")
     subcommands.add_parser("boards", help="list the known board identifiers")
     return parser
@@ -80,13 +112,17 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # Imported here, not at module import time, so that `caravan --version` and the usage path
     # stay as light as the package itself.
+    from caravan.cli import build as build_command
     from caravan.cli import listing
     from caravan.cli import render as render_command
+    from caravan.cli import train as train_command
     from caravan.cli import validate as validate_command
 
     handlers = {
         "validate": validate_command.run,
         "render": render_command.run,
+        "build": build_command.run,
+        "train": train_command.run,
         "templates": listing.run_templates,
         "boards": listing.run_boards,
     }

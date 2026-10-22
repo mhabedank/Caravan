@@ -12,7 +12,7 @@ import sys
 
 import pytest
 
-from caravan.cli.main import EXIT_OK, main
+from caravan.cli.main import EXIT_ENVIRONMENT, EXIT_OK, main
 from tests.layering.test_no_framework_imported import FRAMEWORKS
 from tests.support import MINIMAL, PILOT
 
@@ -61,3 +61,46 @@ def test_the_listings_work_with_every_framework_unimportable(
 ) -> None:
     assert main(["templates"]) == EXIT_OK
     assert main(["boards"]) == EXIT_OK
+
+
+def test_building_the_template_registry_reaches_no_builder(frameworks_unimportable) -> None:
+    # Feature 002. The registry's discovery walks ``caravan.templates``, and the builder half of
+    # every template lives in a subpackage of it. If that walk ever stopped skipping subpackages,
+    # a framework would be imported here — on an installation that may not have one.
+    from caravan.templates.registry import build_registry
+
+    registry = build_registry()
+    assert "mlp" in registry.identifiers
+    assert "caravan.templates.builders.mlp" not in sys.modules
+
+
+def test_the_stage_modules_import_with_every_framework_unimportable(
+    frameworks_unimportable,
+) -> None:
+    # A stage loads its framework-bearing parts by name when it runs, so importing the stage
+    # itself has to work where no framework exists — otherwise ``caravan validate`` would break
+    # the moment the command line grew a stage verb.
+    for name in ("caravan.stages.build", "caravan.stages.train", "caravan.stages.cache"):
+        monkey = importlib.import_module(name)
+        assert monkey is not None
+
+
+def test_the_stage_verbs_answer_rather_than_fail_to_import(
+    frameworks_unimportable, tmp_path, capsys
+) -> None:
+    # The whole point of exit code 4: with the framework not merely absent but *unimportable*,
+    # the user gets a sentence and a status, never an ImportError.
+    for verb in ("build", "train"):
+        code = main(
+            [
+                verb,
+                str(PILOT),
+                "--runs-dir",
+                str(tmp_path / verb),
+                "--cache-dir",
+                str(tmp_path / "cache"),
+            ]
+        )
+        assert code == EXIT_ENVIRONMENT
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
