@@ -2,8 +2,9 @@
 
 Date: 2026-10-22 · Status: research note, input to the constitution and to the first specs
 
-The design document positions Caravan against Ludwig, MCUNet/TinyNAS/TinyEngine, Once-for-All,
-Edge Impulse and TFLM+CMSIS-NN. This note records what those projects have already learned the
+The design document ([`docs/design/2026-10-22-caravan-design.md`](../design/2026-10-22-caravan-design.md),
+kept as a frozen record) positions Caravan against Ludwig, MCUNet/TinyNAS/TinyEngine,
+Once-for-All, Edge Impulse and TFLM+CMSIS-NN. This note records what those projects have already learned the
 hard way, and what each learning costs us if we ignore it now. Two findings contradict
 assumptions in the design document; they are marked **correction**.
 

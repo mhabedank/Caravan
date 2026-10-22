@@ -26,7 +26,7 @@ runs/
 
 ```json
 {
-  "caravan_version": "0.1.0",
+  "caravan_version": "0.1.0.dev1",
   "command": "render",
   "started_at": "2026-10-22T11:04:31Z",
   "manifest_path": "manifests/picket-mlp.yaml",

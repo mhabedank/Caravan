@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "caravan-ml"
-version = "0.1.0"
+version = "0.1.0.dev1"
 description = "Declarative pipeline for small machine learning models on microcontrollers"
 readme = "README.md"
 requires-python = ">=3.14"
