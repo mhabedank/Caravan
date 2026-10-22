@@ -113,6 +113,7 @@ def test_the_parser_exposes_only_the_documented_commands() -> None:
         "render",
         "build",
         "train",
+        "quantize",
         "templates",
         "boards",
     }

@@ -1,7 +1,40 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.2.0 → 2.3.0
+Version change: 2.3.1 → 2.3.2
+Bump rationale: PATCH. It corrects a measured figure and adds no rule. 2.3.1 recorded the weight
+of the read-only runtime as "116 MiB and 8 packages". Re-measured on 2026-10-22, the number is
+114 MiB and 7 packages: a default installation is 7 MiB and 7 packages, the same environment with
+the runtime extra is 121 MiB and 14, and the extra's own addition is the difference — `ai-edge-
+litert`, `backports-strenum`, `flatbuffers`, `ml-dtypes`, `numpy`, `protobuf`, `tqdm`. The old
+figure matched neither the whole environment nor the addition, and had been copied into nine other
+files before anyone subtracted one from the other. The argument it supports is untouched: 114
+against 1,971 is the same argument as 116 against 1,971.
+
+Modified sections:
+- Technical Baseline: the runtime's weight is the re-measured figure, with the base installation
+  stated so the subtraction is visible rather than taken on trust.
+
+Previous report: 2.3.0 → 2.3.1
+Bump rationale: PATCH. It resolves a question this document itself deferred and adds no rule. The
+Technical Baseline said the Keras-on-JAX alternative "reopens when the quantize stage is built",
+and it has been built (feature 003). The answer is no: there is no int8 conversion path that avoids
+the training framework today — `ai-edge-litert` 2.3.0 is a runtime, not a converter, and the
+vendor's own conversion documentation describes only the framework path (checked 2026-10-22). So
+conversion keeps the framework, and the floor lowered in 2.3.0 stays until a stable TensorFlow
+ships for the project's current Python.
+
+Asking the question did change something, though, and the baseline now records it: *reading and
+running* an exported model needs no training framework, at 114 MiB against the conversion half's
+1,971 (corrected from 116 in 2.3.2). The four stages that only read a model — footprint analysis, emulated verification, the
+benchmark, the card — are therefore not dragged along by the conversion's weight, and reach one
+Python version further (3.14; the runtime publishes no cp315 wheel either).
+
+Modified sections:
+- Technical Baseline: the deferred question is answered, with the evidence and the date; the
+  footprint-analysis bullet records that the runtime it needs is installable everywhere.
+
+Previous report: 2.2.0 → 2.3.0
 Bump rationale: MINOR. It grants something 2.2.0 assumed was already possible and is not.
 2.2.0 let an extra "declare a narrower Python window than the project". Python packaging offers
 no such thing: `requires-python` is metadata of the whole distribution, and an extra can only
@@ -581,13 +614,21 @@ These choices are architectural and apply until amended with a stated rationale:
   window closes, and the floor returns to 3.14, when a stable TensorFlow ships a cp314 wheel and
   depends on a released `keras`. The rc says that is near.
 - The alternative — Keras 3 on a JAX backend, which does install on 3.14 and 3.15 (jaxlib ships
-  cp314 and cp315, torch ships cp314, checked 2026-10-22) — was rejected for now because the path
-  from there to int8 TFLite on those Python versions is unverified, and conversion is the one link
-  in the chain that cannot be swapped without moving this baseline and the whole export story with
-  it. Training on one framework and converting on another would also mean two frameworks in a
-  project whose central rule is to have few. The question reopens when the quantize stage is
-  built: `ai-edge-litert` ships cp314 (2.3.0, checked 2026-10-22), and if a converter path exists
-  there, this baseline changes rather than being worked around.
+  cp314 and cp315, torch ships cp314, checked 2026-10-22) — was rejected because the path from
+  there to int8 TFLite on those Python versions does not exist. **Settled by building the quantize
+  stage** (feature 003, 2026-10-22): `ai-edge-litert` 2.3.0 is a *runtime* — its dependencies are
+  numpy, flatbuffers and protobuf, it has no converter, and the vendor's conversion documentation
+  describes only the framework path. Conversion therefore keeps the training framework, and
+  training on one framework while converting on another would mean two frameworks in a project
+  whose central rule is to have few. This reopens only if a framework-free converter appears.
+- Reading and running an exported model, by contrast, needs **no** training framework: 114 MiB and
+  7 packages added to a 7 MiB, 7-package default installation, against 1,971 MiB and 41 for the
+  conversion half (measured 2026-10-22; the figure was 116 and 8 before 2.3.2 re-measured it). The
+  interpreter the training framework ships is also deprecated and announced for deletion. So the
+  runtime they use is an extra of its own, with its own window: `ai-edge-litert` publishes cp310
+  through cp314 and no cp315 (checked 2026-10-22), so it reaches one version further than the
+  conversion half and still not the project's current stable. Both windows are stated under
+  Principle XII rather than rounded to "everywhere".
 - Identifiers that outlive a release — schema field values, format names, artifact names — MUST
   NOT be vendor product names. A product rename would otherwise become a schema migration.
 - Interface: a Python command line application. Manifest validation uses a schema library with
@@ -597,7 +638,8 @@ These choices are architectural and apply until amended with a stated rationale:
 - Footprint analysis reads the exported model file as data: the flatbuffer is parsed through a
   pinned schema binding, never by importing the training framework (Principle XII), and never
   rewritten, because a round-tripped flatbuffer can fail to load. The binding is pinned because
-  operator definitions change between runtime versions.
+  operator definitions change between runtime versions. The runtime that provides it installs on
+  3.13 and 3.14 (feature 003), so this stage is not tied to the conversion's single version.
 - Hyperparameter search, when introduced, treats the board budget as a constraint rather than an
   objective, and is bounded by the roadmap, not by research ambition.
 - License: Apache-2.0 for the framework, so that both framework and models stay commercially
@@ -663,4 +705,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.3.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.3.2 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22

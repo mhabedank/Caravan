@@ -48,6 +48,17 @@ train = [
   "numpy>=1.26; python_version < '3.14'",
 ]
 
+# The second of the four extras (Principle XII). It carries a Python marker like `train` does,
+# for the same reason and with a wider window: ai-edge-litert 2.3.0 publishes cp310 through cp314
+# and no cp315 (checked 2026-10-22 against the index, every recent version). So it covers the
+# floor and the previous stable but not the current one, and the marker is what turns that into a
+# sentence from caravan instead of a resolver error. The window closes when a cp315 wheel ships;
+# docs/budgets.md carries the obligation.
+#
+# What justifies it as an extra of its own is not the Python coverage but the weight: 114 MiB and
+# 7 packages against `train`'s 1,971 and 41, with no training framework in its graph.
+verify = ["ai-edge-litert>=2.3; python_version < '3.15'"]
+
 [project.scripts]
 caravan = "caravan.cli.main:main"
 
@@ -70,6 +81,7 @@ addopts = "--strict-markers --strict-config"
 # environment-incomplete path has to be skipped where the framework *is* installed.
 markers = [
   "requires_no_train_extra: only runs where the training framework is absent",
+  "requires_no_verify_extra: only runs where the model runtime is absent",
 ]
 pythonpath = ["."]
 

@@ -30,9 +30,26 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install ${{ matrix.python-version }}
-      # tests/train is deliberately not listed: every test that needs the training
-      # framework lives there, and no framework is installed in this job.
+      # No extras here: this job is the one that proves the default installation works on
+      # every supported Python. tests/verify and tests/train each need an extra and have
+      # their own jobs, on the matrix their extra can actually be installed on.
       - run: uv run --python ${{ matrix.python-version }} pytest tests/unit tests/contract tests/integration tests/layering -q
+
+  measure:
+    # Reading and running an exported model: the verify extra, which publishes wheels for
+    # cp310 through cp314 and no cp315 (checked 2026-10-22). So this matrix is 3.13 and
+    # 3.14 — the window the extra has, not the window the project has. Putting it in the
+    # `test` matrix above would fail to install on 3.15 before running anything.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv run --python ${{ matrix.python-version }} --extra verify pytest tests/verify tests/unit tests/contract -q
 
   train:
     # The only job where a training framework exists. 3.13 only, because that is the
@@ -42,16 +59,34 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install 3.13
-      - name: install the project with the train extra
+      - name: install the project with both extras
         run: |
           uv venv --python 3.13 /tmp/train
-          VIRTUAL_ENV=/tmp/train uv pip install -e ".[train]" pytest
-      - name: record the extra's weight
+          VIRTUAL_ENV=/tmp/train uv pip install -e ".[train,verify]" pytest
+      - name: record what each extra weighs
         run: |
           bytes=$(du -sb /tmp/train/lib | cut -f1)
-          printf 'train extra: %d MiB installed, %d packages\n' \
+          printf 'train+verify: %d MiB installed, %d packages\n' \
             $(( bytes / 1024 / 1024 )) "$(VIRTUAL_ENV=/tmp/train uv pip list | tail -n +3 | wc -l)"
-      - name: the whole suite, with the framework present
+          uv venv --python 3.14 /tmp/verify-only
+          VIRTUAL_ENV=/tmp/verify-only uv pip install -e ".[verify]"
+          bytes=$(du -sb /tmp/verify-only/lib | cut -f1)
+          printf 'verify alone on 3.14: %d MiB installed, %d packages\n' \
+            $(( bytes / 1024 / 1024 )) "$(VIRTUAL_ENV=/tmp/verify-only uv pip list | tail -n +3 | wc -l)"
+      - name: the verify extra does not resolve on 3.15, and says so rather than breaking
+        run: |
+          uv venv --python 3.15 /tmp/no-runtime
+          VIRTUAL_ENV=/tmp/no-runtime uv pip install -e .
+          if VIRTUAL_ENV=/tmp/no-runtime uv pip list | grep -qi ai-edge-litert; then
+            echo "the runtime resolved on 3.15; its window has widened and the marker, the"
+            echo "messages and docs/budgets.md all need updating"; exit 1
+          fi
+          VIRTUAL_ENV=/tmp/no-runtime /tmp/no-runtime/bin/caravan quantize \
+            tests/fixtures/manifests/valid/picket-mlp-fixture.yaml || code=$?
+          if [ "${code:-0}" != "4" ]; then
+            echo "expected exit 4 on a Python with no runtime, got ${code:-0}"; exit 1
+          fi
+      - name: the whole suite, with both extras present
         run: VIRTUAL_ENV=/tmp/train /tmp/train/bin/python -m pytest tests -q
 
   clean-environment:

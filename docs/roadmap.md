@@ -28,8 +28,8 @@ YAML like the zoo's.
 | Manifest schema, `validate`, `render`, package skeleton | v0.1 | **delivered** (feature 001) | `picket-mlp` |
 | `mlp` template, parameter half | v0.1 | **delivered** (feature 001) | `picket-mlp` |
 | build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **delivered** (feature 002) | `picket-mlp` |
-| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | next | `picket-mlp` |
-| export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | planned | `picket-mlp` |
+| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | **delivered** (feature 003) | `picket-mlp` |
+| export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | next | `picket-mlp` |
 | `conv1d` template, both halves | v0.1 | planned | **`pace-cnn`** (decided 2026-10-22) |
 
 Feature numbers under `specs/` and git branch names are independent; features are named here
@@ -56,6 +56,22 @@ and 3.15 are tested, so the claim in the metadata is true. The floor returns to 
 3.13 job is deleted as soon as a stable TensorFlow ships a cp314 wheel depending on a released
 `keras`; 2.22.0rc0 already ships the wheel and depends on `keras-nightly`, so the wait is for the
 final release. This is the one open obligation of v0.1 that is not a feature.
+
+**The conversion question is answered, and the floor stays.** The Technical Baseline left open
+whether an int8 conversion path exists without the training framework, to be settled when the
+quantize stage was built. It was: there is none today — the standalone runtime package is a
+runtime, not a converter, and the vendor's conversion documentation describes only the framework
+path (checked 2026-10-22). So conversion keeps the framework and the published floor stays at 3.13
+until a stable TensorFlow ships for the current Python.
+
+What *did* come out of asking is the other half: **reading and running** an exported model needs no
+training framework at all, and costs 114 MiB against 1,971. Feature 003 put that in its own extra,
+so the four stages after it — analysis, emulated verification, the benchmark and the card — inherit
+it instead of each solving it again.
+
+Its window is 3.13 and 3.14: the runtime publishes no cp315 wheel either (checked 2026-10-22).
+Wider than the conversion half's single version, and still not everywhere — which this roadmap
+said wrongly before the extra was measured against the index rather than against one tag.
 
 ## v0.2 — footprint analysis
 

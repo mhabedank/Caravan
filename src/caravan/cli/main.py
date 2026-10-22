@@ -97,6 +97,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_stage_options(train)
 
+    quantize = subcommands.add_parser(
+        "quantize", help="convert the trained model and judge what the quantization cost"
+    )
+    add_stage_options(quantize)
+
     subcommands.add_parser("templates", help="list the registered template identifiers")
     subcommands.add_parser("boards", help="list the known board identifiers")
     return parser
@@ -114,6 +119,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # stay as light as the package itself.
     from caravan.cli import build as build_command
     from caravan.cli import listing
+    from caravan.cli import quantize as quantize_command
     from caravan.cli import render as render_command
     from caravan.cli import train as train_command
     from caravan.cli import validate as validate_command
@@ -123,6 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "render": render_command.run,
         "build": build_command.run,
         "train": train_command.run,
+        "quantize": quantize_command.run,
         "templates": listing.run_templates,
         "boards": listing.run_boards,
     }

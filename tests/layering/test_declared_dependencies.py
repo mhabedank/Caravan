@@ -11,7 +11,7 @@ from importlib.metadata import metadata, requires
 
 from packaging.requirements import Requirement
 
-from tests.layering.test_no_framework_imported import FRAMEWORKS
+from tests.layering.test_no_framework_imported import FRAMEWORKS, TRAINING_FRAMEWORKS
 
 DISTRIBUTION = "caravan-ml"
 
@@ -89,21 +89,78 @@ def test_the_distribution_declares_its_identity_and_its_python_policy() -> None:
     assert info["Requires-Python"] == ">=3.13"
 
 
-def test_the_training_extra_is_the_only_extra_and_every_dependency_is_marked() -> None:
+def extra_requirements() -> dict[str, list[Requirement]]:
+    """The declared dependencies of each extra, by extra name."""
+    out: dict[str, list[Requirement]] = {}
+    for raw in requires(DISTRIBUTION) or []:
+        requirement = Requirement(raw)
+        marker = str(requirement.marker or "")
+        for extra in metadata(DISTRIBUTION).get_all("Provides-Extra") or []:
+            if f'extra == "{extra}"' in marker:
+                out.setdefault(extra, []).append(requirement)
+    return out
+
+
+def test_the_extras_are_the_two_the_plan_chose() -> None:
+    # Updated by feature 003 from "train is the only extra". Two of the four Principle XII allows,
+    # and the remaining two are the groups the constitution already names: benchmarking and
+    # publication.
+    extras = metadata(DISTRIBUTION).get_all("Provides-Extra") or []
+    assert sorted(extras) == ["train", "verify"]
+
+
+def test_every_dependency_of_the_training_extra_is_marked() -> None:
     # Feature 002, Principle XII conditions 1 to 3 as amended in v2.3.0. An extra cannot carry its
     # own Requires-Python, so its window is expressed as a floor that admits it plus a marker on
     # every dependency it carries. Without the markers, installing the extra on 3.14 would fail in
     # the resolver instead of telling the user which Python to train on.
-    extras = metadata(DISTRIBUTION).get_all("Provides-Extra") or []
-    assert sorted(extras) == ["train"]
-
-    declared = requires(DISTRIBUTION) or []
-    carried = [Requirement(raw) for raw in declared if "extra ==" in str(Requirement(raw).marker)]
+    carried = extra_requirements()["train"]
     assert carried, "the train extra declares no dependency"
     unmarked = sorted(r.name for r in carried if 'python_version < "3.14"' not in str(r.marker))
     assert not unmarked, (
         "every dependency of the train extra must carry the python_version marker that states "
         f"its window (Principle XII, condition 3); unmarked: {unmarked}"
+    )
+
+
+def test_every_dependency_of_the_verify_extra_states_its_window() -> None:
+    """The verify extra's window, which this test first had backwards.
+
+    It originally forbade a ``python_version`` marker here, on the grounds that the runtime
+    installs on every Python the project supports. It does not: ``ai-edge-litert`` publishes cp310
+    through cp314 and no cp315, in every recent version. The claim came from checking cp314 and
+    assuming the next tag followed.
+
+    So the requirement is the same one the train extra carries, with a wider window: every
+    dependency states where it installs, and Principle XII's condition 4 then turns the gap into a
+    sentence from caravan rather than a resolver error.
+    """
+    carried = extra_requirements()["verify"]
+    assert carried, "the verify extra declares no dependency"
+    unmarked = sorted(r.name for r in carried if "python_version" not in str(r.marker or ""))
+    assert not unmarked, (
+        "every dependency of the verify extra must state the Python window it installs on; "
+        f"unmarked: {unmarked}"
+    )
+
+
+def test_the_two_extras_have_different_windows_and_both_are_stated() -> None:
+    # The windows are the reason there are two extras at all, so a test holds them apart: the
+    # conversion half stops below 3.14, the runtime below 3.15.
+    windows = {
+        extra: {str(r.marker) for r in carried} for extra, carried in extra_requirements().items()
+    }
+    assert all('python_version < "3.14"' in marker for marker in windows["train"])
+    assert all('python_version < "3.15"' in marker for marker in windows["verify"])
+
+
+def test_the_verify_extra_carries_no_training_framework() -> None:
+    # The reason it is 114 MiB and not 1,971: nothing in its graph trains anything. It does carry
+    # a model *runtime*, which is the point — so this checks the narrower set, and the broader
+    # FRAMEWORKS remains what the core may not import.
+    names = {r.name.replace("-", "_").lower() for r in extra_requirements()["verify"]}
+    assert not names & TRAINING_FRAMEWORKS, (
+        f"the verify extra must not depend on a training framework: {sorted(names)}"
     )
 
 

@@ -85,6 +85,42 @@ def test_the_stage_modules_import_with_every_framework_unimportable(
         assert monkey is not None
 
 
+def test_the_quantize_stage_answers_rather_than_failing_to_import(
+    frameworks_unimportable, tmp_path, capsys
+) -> None:
+    # Feature 003. Quantizing needs two separately installed parts, so there are two ways for the
+    # environment to be incomplete and neither may arrive as an ImportError.
+    code = main(
+        [
+            "quantize",
+            str(PILOT),
+            "--runs-dir",
+            str(tmp_path / "runs"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+        ]
+    )
+    assert code == EXIT_ENVIRONMENT
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    # Which of the two messages appears depends on the interpreter the suite runs on: on a Python
+    # a part publishes for, the install command; above it, the window and the reason. Asserting
+    # only the first would make this test pass on 3.13 and fail on 3.15 for being right.
+    assert ("extra" in err) or ("no wheel for Python" in err)
+
+
+def test_the_runtime_modules_import_with_every_framework_unimportable(
+    frameworks_unimportable,
+) -> None:
+    # ``caravan.runtime.inspect`` imports its runtime inside a function, which is what lets a
+    # stage reference it without a guard. If that ever became a module-level import, importing a
+    # stage in a default installation would break — and the layering tests would say so here.
+    import importlib
+
+    for name in ("caravan.runtime.inspect", "caravan.stages.quantize"):
+        assert importlib.import_module(name) is not None
+
+
 def test_the_stage_verbs_answer_rather_than_fail_to_import(
     frameworks_unimportable, tmp_path, capsys
 ) -> None:

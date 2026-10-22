@@ -105,6 +105,28 @@ RULE_SOURCES_COVERAGE = "S-1"
 #: their own fixtures under ``tests/fixtures/boards`` and their own test.
 BOARD_RULES: frozenset[str] = frozenset({RULE_EMULATOR_STATED, RULE_SOURCES_COVERAGE})
 
+# --- Rules that reject a run at the quantization stage ------------------------------------------
+# Q-4 is the project's first *budget* refusing a run rather than a schema rule: the manifest's
+# accuracy threshold said no. It travels as a finding like any other rule, and as a Gate entry in
+# the report, because it is one event seen by a person and by a machine.
+RULE_TRAINED_MODEL_UNREADABLE = "Q-1"
+RULE_CONVERSION_FAILED = "Q-2"
+RULE_NOT_FULLY_QUANTIZED = "Q-3"
+RULE_ACCURACY_GATE = "Q-4"
+RULE_GATE_UNMEASURABLE = "Q-5"
+
+#: Quantization rules. Like the DS rules they refuse a *run*, so they have no invalid-manifest
+#: fixture and their own coverage test instead.
+QUANTIZE_RULES: frozenset[str] = frozenset(
+    {
+        RULE_TRAINED_MODEL_UNREADABLE,
+        RULE_CONVERSION_FAILED,
+        RULE_NOT_FULLY_QUANTIZED,
+        RULE_ACCURACY_GATE,
+        RULE_GATE_UNMEASURABLE,
+    }
+)
+
 # --- Identifiers that never reject anything ---------------------------------------------------
 RULE_NO_SCHEMA_VERSION = "V-2"
 RULE_DATASET_UNRESOLVED = "D-1"
@@ -114,7 +136,12 @@ RULE_DATASET_UNRESOLVED = "D-1"
 INFORMATIONAL_RULES: frozenset[str] = frozenset({RULE_NO_SCHEMA_VERSION, RULE_DATASET_UNRESOLVED})
 
 ALL_RULES: frozenset[str] = (
-    MANIFEST_REJECTION_RULES | BOARD_RULES | RUN_RULES | INFORMATIONAL_RULES | ENTAILED_RULES
+    MANIFEST_REJECTION_RULES
+    | BOARD_RULES
+    | RUN_RULES
+    | QUANTIZE_RULES
+    | INFORMATIONAL_RULES
+    | ENTAILED_RULES
 )
 
 

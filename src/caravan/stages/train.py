@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from caravan.data.reader_bridge import assemble_samples
 from caravan.data.windows import SPLIT_NAMES, plan_split, plan_windows
 from caravan.manifest.errors import (
     RULE_TRAINING_DIVERGED,
@@ -105,19 +106,6 @@ def _optimizer(name: str, learning_rate: float) -> Any:
     return builders[name](learning_rate=learning_rate)
 
 
-def _samples(records: Any, plan: Any, labels: tuple[str, ...]) -> tuple[Any, Any]:
-    """Stack the planned windows into one array, and the labels into class indices."""
-    import numpy as np
-
-    index_of = {label: position for position, label in enumerate(labels)}
-    if plan.window is None:
-        features = records.features
-    else:
-        features = np.stack([records.features[start : start + plan.window] for start in plan.kept])
-    targets = np.array([index_of[label] for label in plan.labels], dtype=np.int64)
-    return features, targets
-
-
 def _divergence_guard() -> Any:
     import keras
 
@@ -157,7 +145,7 @@ def stage(context: StageContext) -> StageFunction:
             seed=seed,
             labels=labels,
         )
-        features, targets = _samples(records, window_plan, labels)
+        features, targets = assemble_samples(records, window_plan, labels)
 
         # The build stage's artifacts are already in the run directory, whether this run
         # produced them or reused them from the cache.
