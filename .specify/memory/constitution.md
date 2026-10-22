@@ -1,7 +1,16 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.1.0 → 2.0.0
+Version change: 2.0.0 → 2.0.1
+Bump rationale: PATCH. Resolves the one deferred item and adds no rule: the distribution on the
+package index is named `caravan-ml`, decided by the owner on 2026-10-22 after a check showed the
+bare name `caravan` held by an unrelated project whose last release was in 2015 (an AWS SWF
+helper, MIT). The command line application keeps the name `caravan`.
+
+Modified sections:
+- Technical Baseline: TODO(DISTRIBUTION_NAME) replaced by the decided name.
+
+Previous report: 1.1.0 → 2.0.0
 Bump rationale: MAJOR, and the bump type is a judgement call the owner may overrule. Seven of
 the eight amendments below are additions (MINOR). The eighth redefines the central obligation of
 Principle IX: an older manifest is migrated rather than refused. An implementation built to
@@ -89,13 +98,12 @@ or overrule in review:
 - Q2 (HF token handling): answered by "Resources & Cost Discipline" and the publish gate.
   Credentials come from the environment only; a publish run that reads them from the repository
   MUST fail.
-- Q1 (PyPI distribution name): deferred. TODO(DISTRIBUTION_NAME) in "Technical Baseline".
+- Q1 (PyPI distribution name): deferred in 1.0.0, resolved in 2.0.1 as `caravan-ml`.
 - Q7 (forest template) and Q8 (Renode board coverage) are implementation questions, not
   governance; they belong in the spec of the feature that introduces them.
 
-Deferred items:
-- TODO(DISTRIBUTION_NAME): PyPI distribution name (`caravan-ml` vs `caravan-tinyml`) is unresolved
-  and MUST be fixed by a PATCH amendment before the first release to PyPI.
+Deferred items: none remain. The one deferred item of 1.0.0, TODO(DISTRIBUTION_NAME), was
+resolved in 2.0.1 as `caravan-ml`.
 -->
 
 # Caravan Constitution
@@ -469,10 +477,9 @@ These choices are architectural and apply until amended with a stated rationale:
   objective, and is bounded by the roadmap, not by research ambition.
 - License: Apache-2.0 for the framework, so that both framework and models stay commercially
   usable; model licenses follow Principle VI.
-- The command line application is named `caravan`.
-  TODO(DISTRIBUTION_NAME): the distribution name on the package index (`caravan-ml` vs
-  `caravan-tinyml`) is unresolved and MUST be fixed by a PATCH amendment before the first
-  release to a package index.
+- The command line application is named `caravan`; the distribution on the package index is
+  named `caravan-ml`. The bare name is held by an unrelated project whose last release was in
+  2015, and reclaiming it is not a dependency of any release.
 
 ## Resources & Cost Discipline
 
@@ -531,4 +538,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 2.0.1 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
