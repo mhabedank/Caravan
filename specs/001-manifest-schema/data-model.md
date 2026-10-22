@@ -46,6 +46,8 @@ Unknown fields are rejected at every level (FR-003). No `defaults` key exists at
 | `window` | integer or absent | no | absent | greater than zero when present; CF-6 |
 | `labels` | list of strings | yes | — | at least 2, unique, each non-empty |
 | `representative_samples` | integer or absent | no | absent | CF-4 |
+| `license` | string or absent | no | absent | the author's statement, never verified |
+| `permitted_use` | one of `training`, `benchmark-only`, `unknown` | no | `unknown` | CF-8 |
 
 **Split**: `train`, `val`, `test` as fractions, plus `stratified` (boolean, default true). Named
 parts, never a positional list (FR-018).
@@ -151,6 +153,11 @@ yet, and more importantly two of the three boards the pilot targets have no Reno
   `dataset.window` must be present; when it declares it does not, `dataset.window` must be absent.
   This is how a template states a dataset requirement without the core knowing anything about
   model architecture.
+- **CF-8**: `publish` present together with `dataset.permitted_use` of `benchmark-only` is
+  rejected: a model may not be published when its author states that its training data is not
+  permitted for training. This is the whole of what the framework enforces about data rights — the
+  author's own statement, held to (Principle VI). `unknown` is never blocked; it is marked
+  unverified.
 - **CF-7**: `verify.emulator` of `renode` is rejected when any named target's board description
   states that no emulator platform exists for it. Naming an emulator for a board that has none is
   the false claim Principle VII forbids, and it is cheaper to reject it here than to discover it
@@ -256,7 +263,7 @@ The machine-readable record of one invocation (FR-012).
 | `outcome` | `valid`, `invalid` or `error` |
 | `gates` | each rule group checked, with its result |
 | `findings` | for an invalid manifest: field path, what was wrong, what is accepted |
-| `unresolved` | references deliberately not resolved, with the reason (D-1) |
+| `unresolved` | references and claims deliberately not verified, with the reason — the dataset reference (D-1) and, when `permitted_use` is `unknown`, the dataset terms (FR-032) |
 | `artifacts` | paths written by this run, relative to the run directory |
 | `seed` | the effective training seed, carried for provenance even though nothing trains here |
 

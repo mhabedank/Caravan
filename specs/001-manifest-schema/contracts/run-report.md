@@ -45,7 +45,8 @@ runs/
   ],
   "findings": [],
   "unresolved": [
-    {"kind": "dataset-reference", "value": "datasets/car-hacking/", "reason": "not resolved in this stage"}
+    {"kind": "dataset-reference", "value": "datasets/car-hacking/", "reason": "not resolved in this stage"},
+    {"kind": "dataset-terms", "value": "unknown", "reason": "not stated by the author; not verified by this tool"}
   ],
   "artifacts": {"resolved_manifest": "resolved-manifest.yaml"},
   "seed": 42
@@ -66,7 +67,11 @@ Field rules:
 - `findings` is empty on success and otherwise carries the same entries as the `--json` output,
   including the `rule` identifier.
 - `unresolved` records what was deliberately not checked. A dataset reference always appears here
-  in this feature (rule D-1), so no reader can mistake a valid manifest for a resolved dataset.
+  in this feature (rule D-1), so no reader can mistake a valid manifest for a resolved dataset. The
+  dataset's terms appear whenever `permitted_use` is `unknown`, so that silence about a licence is
+  visible as silence rather than passing for a clean result (FR-032). Where the author did state a
+  permitted use, the statement is recorded and no `unresolved` entry is written for it — Caravan
+  enforces it, and still never claims to have verified it.
 - `artifacts` paths are relative to the run directory, never absolute, so a run directory can be
   moved or archived.
 - The report is written for a failed run too. A run that produced no verdict at all, because the

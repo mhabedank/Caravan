@@ -225,9 +225,16 @@ that loading the tool does not pull a training framework in.
 - **FR-018**: The dataset split MUST be expressed as named parts, not as a positional list.
 - **FR-019**: Model identity fields (name, version) MUST follow one stated form, and the tool MUST
   state that form when rejecting a value.
-- **FR-020**: A dataset reference MUST be required and checked for shape only at this stage;
-  resolving it to a dataset declaration is out of scope, and the author MUST be told that the
-  reference was not resolved.
+- **FR-020**: A dataset reference MUST be required and checked for shape only. The tool MUST NOT
+  require it to resolve against a declaration registry — responsibility for the rights to the data
+  lies with the author (Principle VI) — and the author MUST be told that the reference was not
+  resolved.
+- **FR-032**: The manifest MUST let the author state what their dataset permits: a licence and a
+  permitted use of `training`, `benchmark-only` or `unknown`, defaulting to `unknown`. The tool
+  MUST hold the author to what they stated — a manifest declaring publication together with a
+  dataset marked `benchmark-only` MUST be invalid — and MUST report an unstated term as unverified
+  rather than as a checked fact. Deriving a model's usage class from all of its inputs belongs to
+  the feature that publishes, not here.
 
 **Templates and boards as data**
 
@@ -313,7 +320,7 @@ The constitution requires every spec to name the principles it touches and state
 | III. Reproducible by Construction | FR-012 records the provenance of every run; FR-013 and SC-005 make resolution deterministic. |
 | IV. Provenance Labels | No hardware number is produced by this feature, so no label is claimed. FR-020 requires that an unresolved dataset reference be reported as unresolved rather than assumed. |
 | V. Budgets Are Gates | FR-005 forbids an option that skips checking; FR-027 makes the install budget a gate rather than a warning. |
-| VI. Compliance Enforced by the Schema | FR-015 and FR-016 make the compliance block a schema requirement and refuse publication-bound manifests before any network access. |
+| VI. Compliance Enforced by the Schema | FR-015 and FR-016 make the compliance block a schema requirement and refuse publication-bound manifests before any network access. FR-020 and FR-032 keep the responsibility for data rights with the author: the schema requires a statement, never a registry entry, enforces the statement the author made, and marks an unstated term unverified. |
 | VII. Targets and Templates Are Data | FR-021 to FR-025 make templates a registry and boards data files, including honest emulator support. |
 | VIII. No Lock-In | FR-006 requires that checking work without network access; no hosted service is involved. |
 | IX. Stable Manifest Contract | FR-007 to FR-010 implement the declared version, the migration registry, in-memory upgrade and refusal only for an unknown version. |
@@ -327,6 +334,16 @@ Deviations: none.
 
 - The pilot model's manifest is the reference fixture. The dataset it names is not needed for this
   feature, because a dataset reference is checked for shape only (FR-020).
+- The two new dataset fields are left **unset** in the pilot fixture on purpose. Setting them would
+  mean asserting a licence and a permitted use for a real third-party dataset, which is the
+  author's statement to make, not the framework's. The fixture therefore demonstrates the
+  `unknown` path and its unverified marking; a separate fixture demonstrates the enforced
+  `benchmark-only` path.
+- Deriving a model's usage class from every input — training data, base model, teacher outputs,
+  third-party models — is **owned by the publish feature**, which is the first point where a usage
+  class is claimed to anyone. Naming the owner here is deliberate: the previous draft deferred a
+  constitutional obligation without saying where it lands, which is how such an obligation gets
+  lost.
 - Board descriptions are introduced here as data with a schema, loadable and listable, so that a
   target name can be checked and a typo fails early. Interpreting board values — footprint
   analysis, requirement records, emulator invocation — is a later feature.

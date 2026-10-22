@@ -75,6 +75,19 @@ Three differences from the design document's example, each deliberate:
 
 Added: `representative_samples`, now required by CF-4 because the export declares int8.
 
+Deliberately **not** added: `dataset.license` and `dataset.permitted_use`. Both are optional, and
+filling them in means stating a licence and a permitted use for a real third-party dataset — the
+author's statement to make, not the framework's. Left unset, the pilot manifest exercises the
+`unknown` path, and its run report carries the dataset terms under `unresolved` as "not stated by
+the author; not verified by this tool". The zoo will fill both fields from its own dataset
+declarations; an outside user who states nothing is never blocked, only marked.
+
+The enforced path has its own fixture, `cf-8-benchmark-only-publish.yaml`: a manifest whose author
+marked `permitted_use: benchmark-only` while also declaring `publish`. It is rejected, because a
+model may not be published when its author states that its training data is not permitted for
+training. That is the whole of what Caravan enforces about data rights — the author's own
+statement, held to.
+
 ## The minimal manifest
 
 Everything that is not required, left out. This must validate (FR-014: a minimal manifest is
