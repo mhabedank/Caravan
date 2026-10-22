@@ -89,6 +89,22 @@ from Caravan is not only about a clean abstraction — it is what keeps a projec
 maintainer reviewable. It is also a bus-factor warning about Caravan itself: the smaller the
 surface, the longer it stays maintainable.
 
+**Added 2026-10-22, from the owner's own time as a Ludwig contributor.** The weight is not a
+side effect of the LLM work, it is the dominant cost of working on the project: a Python version
+bump stayed blocked for a long time because too many transitive dependencies did not work. The
+numbers today: 40 direct runtime dependencies, 140 including the ten extras, and a floor of
+Python 3.12. This turned into Principle XII (Small Core, Few Dependencies) in constitution
+v1.1.0, which sets a dependency and install budget, keeps the training framework out of the
+core by a tested layering rule, and admits integrations (MLflow and the like) only as optional
+extras behind an interface that can be removed without touching stage code.
+
+The layering rule is feasible, not aspirational: a `.tflite` flatbuffer can be parsed in Python
+from the FlatBuffers schema bindings plus numpy, with no TensorFlow import — either through
+generated bindings or the `tflite` PyPI package, whose version must match the model's schema
+because operator definitions change across runtime releases. Two caveats: pin the binding, and
+treat the flatbuffer as read-only, because round-tripping a model through the generated Python
+API can produce files that fail to load.
+
 ---
 
 ## B. From MCUNet / MCUNetV2 — what actually binds on an MCU
@@ -278,7 +294,9 @@ not in the constitution.
 
 ## F. Proposed constitution amendments
 
-Drafted against v1.0.0, for the owner to accept, reword or reject. None of these widens the scope
+Drafted against v1.0.0, for the owner to accept, reword or reject. (Separately, the owner's
+Ludwig experience was applied directly as Principle XII in v1.1.0; the eight below are still
+pending.) None of these widens the scope
 of the framework; each one closes a trap that the sources above show is real.
 
 1. **Principle IX (Stable Manifest Contract)** — replace rejection-only with: the framework stores

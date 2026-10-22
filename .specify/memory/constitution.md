@@ -1,11 +1,29 @@
 <!--
 Sync Impact Report
 ==================
-Version change: none → 1.0.0
-Bump rationale: MAJOR. First ratified constitution for a new repository. Establishes eleven
-principles, the scope boundary against the Mobility Model Zoo, the pipeline and artifact
-contract, the verification ladder, the technical baseline, resource discipline, quality gates
-and governance.
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR. Owner direction of 2026-10-22, from having contributed to Ludwig: the
+framework's own weight is the failure mode to prevent. A narrow feature set, executed well, is
+the product. Adds a principle with a dependency and install budget, a layering rule that keeps
+the training framework out of the core, and integrations only behind a removable boundary.
+
+Added sections:
+- XII. Small Core, Few Dependencies
+
+Modified sections:
+- Technical Baseline: footprint analysis parses the exported flatbuffer as data, without
+  importing the training framework, and never rewrites it.
+- Development Workflow & Quality Gates: a gate before adding a dependency, and the core-import
+  and install-budget checks on every merge.
+
+The numbers in Principle XII (six direct runtime dependencies, four extras) are the owner's to
+set. Changing one is a PATCH amendment with a stated reason, not a MINOR one.
+
+Previous report: none → 1.0.0 (MAJOR, 2026-10-22). First ratified constitution for a new
+repository. Establishes eleven principles, the scope boundary against the Mobility Model Zoo,
+the pipeline and artifact contract, the verification ladder, the technical baseline, resource
+discipline, quality gates and governance. The decisions it took on the design document's open
+questions are listed below and still await review.
 
 Source of this draft: the Caravan design document of 2026-10-22 (context, positioning,
 decisions, repo layout, manifest schema, pipeline stages, roadmap, open questions) and the
@@ -272,6 +290,40 @@ path: consumer apps, Claude Code, the Anthropic API, cloud platforms and reselle
 Rationale: The owner rules out any use of Claude for building or teaching other AI. A tool that
 builds models must make that ban structural, not a matter of how each user happens to use it.
 
+### XII. Small Core, Few Dependencies
+
+- The feature set is closed by the roadmap. The command line interface has one fixed set of
+  verbs, and adding a verb requires an amendment.
+- Dependency budget: the default installation MUST have at most six direct runtime dependencies,
+  and the project MUST have at most four optional extras, grouped by stage (training,
+  verification, benchmarking, publication).
+- Layering: manifest validation, the board database, footprint analysis, the requirement record,
+  card rendering and release records MUST NOT import a training framework. Training and
+  quantization live behind an optional extra. A test MUST assert that importing the core does not
+  import the training framework, and MUST fail the build when it does.
+- Install budget: a cold installation of the default package into a clean environment MUST stay
+  within a documented time and size budget, measured in continuous integration and gated like any
+  other budget (Principle V).
+- Python versions: the project MUST support the current and the previous stable Python minor
+  version. A dependency that prevents that is replaced, vendored in the small, or moved behind an
+  extra. A dependency MUST NOT set the project's Python policy.
+- The published distribution MUST NOT carry an upper version bound on a dependency unless a
+  concrete incompatibility is documented with a reference, and the bound MUST be removed once it
+  is fixed upstream.
+- Integrations (experiment trackers, pipeline orchestrators, model hubs, hyperparameter search)
+  are optional extras behind a stable internal interface. The core MUST NOT import them, and
+  removing one MUST NOT change the behaviour of any stage. An integration that cannot be removed
+  without editing stage code MUST be rejected, however useful it is.
+- Code the project could own in a few hundred readable lines MUST NOT become a dependency, and a
+  dependency used in one place MUST be isolated behind one module.
+
+Rationale: Ludwig, the framework that inspired this one, declares 40 direct dependencies, 140
+including its ten extras, and requires Python 3.12 or newer. The owner of this project
+contributed to Ludwig and found that weight to be the dominant cost of working on it: a Python
+version bump stayed blocked because too many transitive dependencies did not work. Every rule
+above is aimed at that outcome. A small, well-executed feature set is the product here; an
+integration that drags the core along with it is a defect, not a feature.
+
 ## Project Scope & Relationship to the Mobility Model Zoo
 
 - Caravan and the zoo are separate repositories with separate release cycles. The zoo depends on
@@ -328,6 +380,10 @@ These choices are architectural and apply until amended with a stated rationale:
   strict, typed models.
 - Emulation: Renode, using its own declarative platform descriptions. Caravan does not define a
   platform description language of its own.
+- Footprint analysis reads the exported model file as data: the flatbuffer is parsed through a
+  pinned schema binding, never by importing the training framework (Principle XII), and never
+  rewritten, because a round-tripped flatbuffer can fail to load. The binding is pinned because
+  operator definitions change between runtime versions.
 - Hyperparameter search, when introduced, treats the board budget as a constraint rather than an
   objective, and is bounded by the roadmap, not by research ambition.
 - License: Apache-2.0 for the framework, so that both framework and models stay commercially
@@ -358,6 +414,11 @@ These choices are architectural and apply until amended with a stated rationale:
   plan's constitution check MUST be verified before design work and again after it.
 - Gate before merging a change to a stage: unit tests for the changed behaviour pass, and the
   pilot manifest runs end to end through every implemented stage in continuous integration.
+- Gate before merging any change: the layering test passes (no training framework reachable from
+  the core) and the install budget holds (Principle XII).
+- Gate before adding a dependency or an extra: the spec names what it replaces, why the code
+  cannot be owned in a few hundred lines, which extra it belongs to, that the budget still holds,
+  and that it does not constrain the Python policy (Principle XII).
 - Gate before adding a board description: every field the implemented stages read is present, and
   the source of each value is recorded.
 - Gate before reporting a number: the number carries its provenance label (Principle IV) and
@@ -389,4 +450,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 1.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
