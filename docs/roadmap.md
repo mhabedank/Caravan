@@ -71,8 +71,10 @@ input batch to one, because a board runs one window at a time. The converted mlp
 `SHAPE`, `STRIDED_SLICE`, `PACK` and `RESHAPE` to compute a flatten shape from a dimension that
 never varies — four kernels in flash and four resolver entries for arithmetic whose answer was
 known. On the pilot fixture the quantized model went from six distinct operators in eight nodes to
-three in five, and from 15,664 bytes to 14,848. The function is unchanged to the bit (checked on an
-`mlp` and on a `conv1d` model, maximum absolute difference 0.0), and it happens inside the
+three in five, and from 15,664 bytes to 14,848. The function is unchanged within float32 round-off
+— the decisions identical, the scores inside a thousandth of a percent, checked on an `mlp` and on a
+`conv1d` model; this first claimed bit-identity and a runner disproved it, which feature 004's
+research R5 now records — and it happens inside the
 conversion so that the model the accuracy gate measures is the model that ships. Converting twice
 would have meant two models and two accuracies, with the shipped one ungated.
 

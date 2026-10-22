@@ -17,6 +17,12 @@ on 2026-10-22, with the command or the path recorded. Where something was *not* 
 | Output | 6 int8 scores in label order |
 | Measured quality | int8 macro-F1 **0.9229**, accuracy 0.9230, minimum class F1 0.810, over 2,947 test-subject items of benchmark `uci-har-v1` |
 | Measured latency | **55.0 ms** median per inference on an ESP32-D0WDQ6-V3 rev3 at 240 MHz, 100 inferences, device timer |
+
+*(A correction that landed during this feature's implementation and belongs on the record here too:
+feature 004 claimed the batch-fixing clone was bit-identical to the trained model. It is identical
+within float32 round-off, not to the bit — a runner showed one unit in the last place where the
+development container showed zero. Feature 004's research R5 carries the full correction and its
+cause.)*
 | Runtime it was built for | the zoo's own int8 engine (`picket-forest` 0.2.0), **not** the runtime this project targets |
 
 **Two consequences.** The template must express a 128×9 input with six classes — that is the shape
