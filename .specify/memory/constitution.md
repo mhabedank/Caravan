@@ -627,14 +627,14 @@ here rather than left to each runner.
 
 Rationale: The owner decided on 2026-10-23 that Caravan owes no backward compatibility before it
 deliberately reaches 1.0.0: until then the product is still finding its shape, and a migration for
-every step turns each simplification into twice the work — feature 006 spent a schema migration,
-a notice per removed field and a fixture directory on manifests nobody had to keep. Reproducibility does not
-depend on it either: Principle III records the Caravan version in every artifact's provenance, and
-the zoo pins the version it builds with, so an old manifest is rebuilt with the version that read
-it. What stays is refusal with a reason, because a manifest read wrongly is worse than one not read
-at all. From 1.0.0 the manifest becomes the public interface and the archival record it was always
-meant to be, and Ludwig's answer — a registry of per-version transforms applied on every load, on
-a copy — applies in full.
+every step turns each simplification into twice the work — feature 006 spent a schema migration, a
+notice per removed field and a fixture directory on manifests nobody had to keep. Reproducibility
+does not depend on it either: Principle III records the Caravan version in every artifact's
+provenance, and the zoo pins the version it builds with, so an old manifest is rebuilt with the
+version that read it. What stays is refusal with a reason, because a manifest read wrongly is worse
+than one not read at all. From 1.0.0 the manifest becomes the public interface and the archival
+record it was always meant to be, and Ludwig's answer — a registry of per-version transforms
+applied on every load, on a copy — applies in full.
 
 ### X. Built for Real Models
 
