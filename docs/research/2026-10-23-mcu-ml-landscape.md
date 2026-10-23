@@ -149,6 +149,9 @@ domain-agnostic index of ML-on-MCU data would be a different tool with a differe
 
 ## D. Sensors and what they output (interim)
 
+Superseded by [`2026-10-23-sensor-data-and-metadata.md`](2026-10-23-sensor-data-and-metadata.md),
+which verifies and extends this section; it is kept here as the record of the first pass.
+
 | Sensor class | Example part | What the part delivers | Rate | Host work before a model sees it |
 |---|---|---|---|---|
 | IMU | Bosch BMI270 | 3-axis accel + 3-axis gyro, 16-bit counts; scale set by full-scale range (±2…16 g, ±125…2000 dps) | accel 12.5 Hz–1.6 kHz, gyro 25 Hz–6.4 kHz | counts → physical units; on-chip step counter and gesture/activity features exist |
