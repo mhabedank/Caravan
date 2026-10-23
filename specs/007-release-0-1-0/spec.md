@@ -36,8 +36,8 @@ What stands between that and a release someone else can use, found on the same d
   it; on 2026-10-23 the newest is a release candidate (2.22.0rc0). This is a condition to wait for,
   not work, and the published metadata is true as it stands.
 
-- **The roadmap names one more condition for the release:** the port of `pace-cnn` through Caravan
-  in the zoo. The owner decided that 0.1.0 waits for it.
+- **The roadmap names one more condition for the release:** the port of the zoo's `pace-cnn`
+  through Caravan, with the zoo's data and recipe. The owner decided that 0.1.0 waits for it.
 
 There is no guide for trying Caravan by hand: what to install, which data to use, which command
 to run, and what to look at in the result.
@@ -130,7 +130,7 @@ limit is real.
 
 ---
 
-### User Story 4 - The zoo rebuilds `pace-cnn` with the candidate before 0.1.0 (Priority: P2)
+### User Story 4 - `pace-cnn` is rebuilt with the candidate before 0.1.0 (Priority: P2)
 
 A release candidate is pinned and the zoo's published IMU activity model `pace-cnn` is rebuilt
 through Caravan on its real data, with the zoo's split by subject (FR-017), as an internal test
@@ -141,15 +141,16 @@ so the first release has been used for a real model, not only for the synthetic 
 the release. A framework whose first release has only ever seen synthetic data has not met a real
 model's columns, sizes and label sets.
 
-**Independent Test**: In the zoo, with the candidate pinned, run the `pace-cnn` manifest through
-`caravan export` on the real data and compare the result with the published 0.1.0 of `pace-cnn`:
+**Independent Test**: With the candidate installed, run the port's manifest
+(`ports/pace-cnn/pace-cnn.yaml` in this repository) through `caravan export` on the zoo's dataset and compare the result with the published 0.1.0 of `pace-cnn`:
 same task, same boards, accuracy and size recorded with their provenance.
 
 **Acceptance Scenarios**:
 
-1. **Given** a tagged candidate, **When** the zoo pins it, **Then** the zoo can install exactly that
-   candidate and every run report records its version.
-2. **Given** the `pace-cnn` manifest and its data in the zoo, **When** the port runs, **Then** it
+1. **Given** a tagged candidate, **When** the port pins it, **Then** exactly that candidate is
+   installed and every run report records its version.
+2. **Given** the port's manifest and the zoo's dataset, converted outside both repositories,
+   **When** the port runs, **Then** it
    reaches an exported model, or stops at a gate with a finding that names its cause.
 3. **Given** a finding that is a defect in Caravan, **When** it is fixed, **Then** a further
    candidate is tagged and the port is repeated with it; `v0.1.0` is never tagged over a known open
@@ -206,7 +207,7 @@ same task, same boards, accuracy and size recorded with their provenance.
 
 **Console output**
 
-- **FR-008**: By default, no command MUST print the training framework's or the converter's own
+- **FR-008**: By default, commands MUST NOT print the training framework's or the converter's own
   output to the console. Caravan's summary, findings and refusals MUST be unaffected.
 - **FR-009**: When a stage fails inside the framework, the summary MUST name the stage and point to
   the place where the framework's full output was kept for that run.
@@ -236,7 +237,7 @@ same task, same boards, accuracy and size recorded with their provenance.
 
 **The port before the release**
 
-- **FR-014**: `v0.1.0` MUST NOT be tagged before the `pace-cnn` port in the zoo has run with a
+- **FR-014**: `v0.1.0` MUST NOT be tagged before the `pace-cnn` port has run with a
   candidate and either reached an exported model or stopped at a gate whose finding is the model's
   and not a Caravan defect.
 - **FR-015**: Every Caravan defect the port finds MUST be fixed in Caravan, with a test, before
@@ -270,12 +271,13 @@ same task, same boards, accuracy and size recorded with their provenance.
   lines) and contains no line from the training framework.
 - **SC-003**: Every command in the README and the guide runs as written against the released
   package, checked by a test that executes them, not by reading.
-- **SC-004**: The release note names at least three known limits, each of which a reader can
+- **SC-004**: The release note names at least four known limits (those of User Story 3,
+  scenario 3), each of which a reader can
   reproduce from the guide or the cited research.
 - **SC-005**: Installed from a tag, `caravan --version` reports that tag's version and a run report
   records it.
-- **SC-006**: `pace-cnn` has been rebuilt through a Caravan candidate in the zoo before `v0.1.0` is
-  tagged, and the release note reports the result with its numbers' provenance.
+- **SC-006**: `pace-cnn` has been rebuilt through a Caravan candidate, with the zoo's data and
+  split, before `v0.1.0` is tagged, and the release note reports the result with its numbers' provenance.
 
 ## Assumptions
 
