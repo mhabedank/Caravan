@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from caravan.cli.main import EXIT_OK, EXIT_RULE, EXIT_USAGE
-from caravan.cli.validate import json_document, print_notices, report_for, verdict_line
+from caravan.cli.validate import json_document, report_for
 from caravan.manifest._yaml import DocumentError
 from caravan.manifest.errors import render_document_error, render_finding
 from caravan.manifest.load import load_manifest
@@ -42,10 +42,7 @@ def run(args: argparse.Namespace) -> int:
 
     if args.stdout:
         # Nothing is written to disk and no run directory is created, so the command stays usable
-        # in a pipeline. The text is byte-identical to the file form; migration notices go to
-        # stderr so they never corrupt it (feature 006).
-        if not args.quiet:
-            print_notices(outcome)
+        # in a pipeline. The text is byte-identical to the file form.
         sys.stdout.write(resolved)
         return EXIT_OK
 
@@ -58,8 +55,7 @@ def run(args: argparse.Namespace) -> int:
     if args.json:
         sys.stdout.write(json_document(name, outcome))
     elif not args.quiet:
-        print(verdict_line(name, outcome), file=sys.stderr)
-        print_notices(outcome)
+        print(f"{name}: valid", file=sys.stderr)
         print(f"{name}: resolved manifest and report written to {run_dir}", file=sys.stderr)
     _ = written
     return EXIT_OK

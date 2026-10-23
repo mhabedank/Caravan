@@ -1,8 +1,9 @@
 """User story 2 of feature 006, end to end: declare the input and the output, let the data talk.
 
-A run of the new form must form exactly the samples and the split the previous form formed — the
-declarations change what the author writes, not what the model is trained on (FR-016) — and its
-resolved manifest must carry what the data said in place of the ``derived`` markers (FR-013).
+A run that leaves the labels and the columns to the data must form exactly the samples and the
+split a run that states them forms — the declarations change what the author writes, not what the
+model is trained on (FR-016) — and its resolved manifest must carry what the data said in place of
+the ``derived`` markers (FR-013).
 """
 
 from __future__ import annotations
@@ -13,11 +14,9 @@ import pytest
 
 from caravan.cli.main import EXIT_OK, main
 from caravan.manifest._yaml import read_mapping
-from tests.support import FIXTURE_LABELS, PILOT_FIXTURE, PILOT_V01_DERIVED, VALID
+from tests.support import CONV1D_FIXTURE, FIXTURE_LABELS, PILOT_FIXTURE, PILOT_FIXTURE_DERIVED
 from tests.train.conftest import latest_run
 
-CONV1D_V0 = VALID / "picket-conv1d-fixture.yaml"
-CONV1D_V01 = VALID / "picket-conv1d-v01.yaml"
 FIXTURE_COLUMNS = ["can_id", "dlc", "b0", "b1", "b2"]
 
 
@@ -38,8 +37,8 @@ def train(manifest, root) -> dict:
 @pytest.fixture(scope="module")
 def mlp_pair(tmp_path_factory):
     return (
-        train(PILOT_V01_DERIVED, tmp_path_factory.mktemp("new")),
-        train(PILOT_FIXTURE, tmp_path_factory.mktemp("old")),
+        train(PILOT_FIXTURE_DERIVED, tmp_path_factory.mktemp("derived")),
+        train(PILOT_FIXTURE, tmp_path_factory.mktemp("stated")),
     )
 
 
@@ -58,15 +57,15 @@ def test_the_resolved_manifest_of_the_run_carries_what_the_data_said(mlp_pair) -
     assert new["report"]["data"]["labels"] == list(FIXTURE_LABELS)
 
 
-def test_the_samples_and_the_split_are_the_previous_forms(mlp_pair) -> None:
+def test_the_samples_and_the_split_do_not_depend_on_what_is_derived(mlp_pair) -> None:
     new, old = mlp_pair
     keys = ("windows_kept", "windows_discarded_mixed", "records_dropped_remainder", "split")
     for key in keys:
         assert new["report"]["dataset_resolved"][key] == old["report"]["dataset_resolved"][key], key
 
 
-def test_the_conv1d_template_forms_the_same_samples_in_the_new_form(tmp_path) -> None:
-    new = train(CONV1D_V01, tmp_path / "new")
-    old = train(CONV1D_V0, tmp_path / "old")
+def test_the_conv1d_template_forms_the_same_samples(mlp_pair, tmp_path) -> None:
+    new = train(CONV1D_FIXTURE, tmp_path / "conv1d")
+    _, old = mlp_pair
     for key in ("windows_kept", "split"):
         assert new["report"]["dataset_resolved"][key] == old["report"]["dataset_resolved"][key]

@@ -177,12 +177,11 @@ RULE_FLOOR_EXCEEDS_BOARD = "F-1"
 FIT_RULES: frozenset[str] = frozenset({RULE_FLOOR_EXCEEDS_BOARD})
 
 # --- Identifiers that never reject anything ---------------------------------------------------
-RULE_NO_SCHEMA_VERSION = "V-2"
 RULE_DATASET_UNRESOLVED = "D-1"
 
-#: Informational identifiers: V-2 accepts a manifest that declares no version, D-1 records a
-#: reference that was deliberately not resolved. Neither may have an invalid fixture.
-INFORMATIONAL_RULES: frozenset[str] = frozenset({RULE_NO_SCHEMA_VERSION, RULE_DATASET_UNRESOLVED})
+#: Informational identifiers: D-1 records a reference that was deliberately not resolved. It may
+#: not have an invalid fixture.
+INFORMATIONAL_RULES: frozenset[str] = frozenset({RULE_DATASET_UNRESOLVED})
 
 ALL_RULES: frozenset[str] = (
     MANIFEST_REJECTION_RULES
@@ -200,8 +199,10 @@ ALL_RULES: frozenset[str] = (
 #: yet, and were removed in feature 006 (constitution 3.0.0, Principles I and VI). They are
 #: reserved, never reused, and appear in no group above: CF-3 personal data against risk class,
 #: CF-5 publication needs compliance, CF-7 an emulator exists for every target, CF-8 benchmark-only
-#: data not published, DS-9 training not permitted.
-RETIRED_RULES: frozenset[str] = frozenset({"CF-3", "CF-5", "CF-7", "CF-8", "DS-9"})
+#: data not published, DS-9 training not permitted. V-2, which read a manifest with no version as
+#: the oldest known one, was retired by constitution 4.0.0: an undeclared version is now refused
+#: with V-1 (Principle IX).
+RETIRED_RULES: frozenset[str] = frozenset({"CF-3", "CF-5", "CF-7", "CF-8", "DS-9", "V-2"})
 
 
 class RunRuleFailure(Exception):
@@ -339,7 +340,13 @@ def render_finding(document: str, finding: Finding) -> str:
         label = "accepted here" if finding.rule is None else "accepted"
         lines.append(f"    {label}: {', '.join(finding.accepted)}")
         subject = finding.near if finding.near is not None else finding.found
-        hint = suggest(str(subject), finding.accepted) if subject is not None else None
+        # No did-you-mean for a schema version: an older form differs in more than its version, so
+        # editing only the version would not make it valid (the problem names the change note).
+        hint = (
+            suggest(str(subject), finding.accepted)
+            if subject is not None and finding.rule != RULE_UNKNOWN_SCHEMA_VERSION
+            else None
+        )
         if hint:
             lines.append(f"    did you mean: {hint}")
     if finding.belongs_at:

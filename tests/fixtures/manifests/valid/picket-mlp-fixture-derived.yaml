@@ -4,7 +4,7 @@
 #
 # It validates, renders with `derived` markers and trains. Through quantization it fails the int8
 # gate on this fixture (0.75 trained, 0.50 quantized, measured 2026-10-23) — see
-# picket-mlp-v01.yaml for why, and for the pinned form the end-to-end tests export.
+# picket-mlp-fixture.yaml for why, and for the pinned form the end-to-end tests export.
 apiVersion: caravan/v0.1
 
 model:

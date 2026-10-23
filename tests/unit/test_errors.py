@@ -43,14 +43,14 @@ def test_misplaced_field_says_where_it_belongs() -> None:
 
 def test_cross_field_rule_names_the_fields_it_relates() -> None:
     # CF-11 relates the input's columns to the output's column, and says which column and why.
-    text = rendered("v01-label-as-input")
+    text = rendered("cf-11-label-as-input")
     assert "inputs[0].columns" in text
     assert "column label is the output's answer" in text
 
 
 def test_a_removed_field_says_it_was_removed_and_why() -> None:
     # FR-001 of feature 006: not "unknown field", so the author does not hunt for a typo.
-    text = rendered("v01-removed-compliance")
+    text = rendered("removed-compliance")
     assert "compliance — removed in caravan/v0.1" in text
     assert "Principle VI" in text
     assert "unknown field" not in text

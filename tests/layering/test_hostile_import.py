@@ -92,7 +92,7 @@ def test_the_stage_modules_import_with_every_framework_unimportable(
         "caravan.export.interface",
         "caravan.manifest.schema.io",
         "caravan.manifest.schema.removed",
-        "caravan.manifest.migrate",
+        "caravan.manifest.version",
     ):
         monkey = importlib.import_module(name)
         assert monkey is not None

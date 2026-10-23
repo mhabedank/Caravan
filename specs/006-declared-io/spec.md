@@ -6,6 +6,12 @@
 
 **Status**: Draft
 
+**Amended 2026-10-23 for constitution 4.0.0** (Principle IX: no backward compatibility before
+Caravan 1.0.0). The migration from `caravan/v0` and its notices are removed. A manifest in the
+previous form, or one that declares no version, is refused with V-1, naming `caravan/v0.1` and the
+change note `docs/manifest-changes.md`. FR-005, FR-006, FR-016, FR-029, SC-002, SC-003, User Story
+1 and the edge cases below say so; tasks T066–T074 carry it out.
+
 **Input**: User description: the go-ahead for the follow-up named after constitution 3.0.0: remove
 compliance, `topic` and `task` from the manifest; derive the labels from the data; declare inputs
 and outputs; check the fit to the boards before training; carry the interface contract in the
@@ -20,17 +26,16 @@ The owner wrote the pilot manifest from an empty folder and questioned the field
 and `task`, which no stage reads; a label list that repeats what the data's label column already
 says; a licence, a permitted use and a whole compliance block that Caravan cannot check. An
 author writes the data source, what goes in, what comes out, the template and the boards, and
-nothing else. A manifest written for the previous form still loads, and the author is told what
-was dropped.
+nothing else. A manifest written for the previous form is refused, and the author is told what to
+edit by hand.
 
 **Why this priority**: It is the first thing every user meets, and constitution 3.0.0 makes the
 current form non-compliant: Principle VI forbids the compliance layer and Principle I forbids
 fields no stage reads. Every later story writes into the manifest this story defines.
 
 **Independent Test**: Write the pilot manifest in the new form, without `topic`, `task`, labels,
-licence or compliance, and validate and train it on the synthetic fixture. Then load the
-committed pilot manifest in the old form and check that it loads, with one notice per dropped
-field.
+licence or compliance, and validate and train it on the synthetic fixture. Then validate a
+manifest in the old form and check that it is refused at `apiVersion`, naming the change note.
 
 **Acceptance Scenarios**:
 
@@ -39,12 +44,11 @@ field.
 2. **Given** a manifest that still carries any of those fields in the new form, **When** it is
    validated, **Then** it is rejected as an unknown field, with the field path and a note saying
    the field was removed and why, so the author learns it is gone rather than misspelt.
-3. **Given** a manifest in the previous form, **When** it is loaded, **Then** it migrates in
-   memory without the file being rewritten, every dropped field is named in a notice, and the run
-   report records the declared and the effective schema version.
-4. **Given** a previous-form manifest that stated `permitted_use: benchmark-only` together with a
-   `publish` section, **When** it is loaded, **Then** it migrates, and the notice says that this
-   statement is no longer enforced by Caravan (Principle VI), rather than dropping it silently.
+3. **Given** a manifest in the previous form (`caravan/v0`), **When** it is loaded, **Then** it
+   is refused with V-1 at `apiVersion`, the message names `caravan/v0.1` and the change note, the
+   file is not rewritten, and the run report records the declared schema version.
+4. **Given** a manifest that declares no schema version, **When** it is loaded, **Then** it is
+   refused in the same way, rather than read as some version.
 
 ---
 
@@ -63,7 +67,7 @@ which is the commonest way for a manifest and its data to disagree.
 **Independent Test**: Validate and train the pilot model with an input of kind `series` over the
 feature columns and a window of 64, and an output of kind `class` over the `label` column, with no
 label list. The run's resolved manifest lists the four labels in sorted order, and training
-produces the same samples as the previous form did.
+produces the same samples as the same manifest with the labels stated.
 
 **Acceptance Scenarios**:
 
@@ -164,8 +168,8 @@ name. Compare with what Caravan did.
 - A board description without a RAM or flash figure: the pre-training check cannot compare and
   fails for that board (Principle V: unknown is not within budget). Every built-in board has both.
 - A quantization of `none` or `float16`: the weight floor uses the size of the stated element type.
-- A previous-form manifest that declares no schema version: treated as the oldest version and
-  migrated, as today.
+- A manifest that declares no schema version: refused with V-1, like any version this build does
+  not implement (constitution 4.0.0).
 - An input and an output with the same name: rejected at validation, because names are what a
   runner binds by.
 - A second input or a second output: rejected at validation with the message that one of each is
@@ -191,13 +195,12 @@ name. Compare with what Caravan did.
   (DS-9) — MUST be removed, and their identifiers MUST NOT be reused.
 - **FR-004**: The resolved manifest and the run report MUST NOT contain any removed field or any
   statement that a licence, a permission or a use was checked.
-- **FR-005**: A manifest in the previous form MUST migrate in memory to the new form on load,
-  without rewriting the file. The migration MUST: drop each removed field with a notice naming it;
-  turn `dataset.window` and the feature columns into an input of kind `series`; turn the `label`
-  column and `dataset.labels` into a `class` output whose labels are pinned in the stated order;
-  and record the declared and effective schema versions in the run report.
-- **FR-006**: The migration MUST ship with a note naming every affected field and the change
-  required, as Principle IX requires of a breaking change while the schema is pre-stable.
+- **FR-005**: A manifest in the previous form, or one that declares no schema version, MUST be
+  refused with V-1 at `apiVersion`, naming the implemented version `caravan/v0.1` and the change
+  note, without rewriting the file and without migrating or reinterpreting it (constitution 4.0.0,
+  Principle IX). The run report MUST record the declared schema version.
+- **FR-006**: The change MUST ship with a change note naming every affected field and the edit an
+  author makes by hand, as Principle IX requires of a breaking change before 1.0.0.
 
 **Declared inputs and outputs**
 
@@ -226,9 +229,8 @@ name. Compare with what Caravan did.
   Windows remain non-overlapping; their stride equals their length and is recorded as such.
 - **FR-015**: A column MUST NOT be both an input column and an output column. Declaration names
   MUST be unique across inputs and outputs.
-- **FR-016**: For the pilot model, the new form and the migrated previous form MUST produce the
-  same samples and the same split, and — when the new form pins the labels in the same order — the
-  same trained model under the same seed (SC-003).
+- **FR-016**: For the pilot model, deriving the labels and the input columns from the data and
+  stating them MUST produce the same samples and the same split.
 
 **Fit check before training**
 
@@ -274,8 +276,7 @@ name. Compare with what Caravan did.
 - **FR-029**: A `class` output MUST state its maximum quality loss from quantization; there is no
   default, because Principle V requires every manifest to state its budgets. The manifest-wide
   `export.accuracy_drop_max` moves to the output, as Principle V in 3.0.0 places the budget per
-  declared output. The migration (FR-005) MUST carry a stated value over and, where the previous
-  form stated none, MUST write the previous default `0.02` explicitly with a notice saying so.
+  declared output.
 - **FR-030**: The built model's input and output MUST carry the declared names, so that the
   interface contract can map each declared name to the position the converted model uses
   (FR-023).
@@ -296,8 +297,6 @@ name. Compare with what Caravan did.
 - **Interface contract**: the model's name and version; per input and output of the converted
   model, name, position, shape, element type, scale and zero point; the transformation from raw
   data; the label order.
-- **Migration notice**: per dropped or moved field of a previous-form manifest, the field path and
-  what happened to it.
 
 ## Success Criteria *(mandatory)*
 
@@ -306,14 +305,11 @@ name. Compare with what Caravan did.
 - **SC-001**: The pilot manifest in the new form has no field that no stage reads, and is at least
   a fifth shorter, counted in non-blank, non-comment lines, than the committed previous form (43
   lines).
-- **SC-002**: Every manifest in the repository's valid fixtures that was valid before this feature
-  loads after it through migration, with one notice per dropped field and no other change in
-  behaviour.
-- **SC-003**: The pilot model trained from the migrated previous form and from a new-form manifest
-  that pins the same label order produces byte-identical trained weights under the same seed. (A
-  new-form manifest that derives its labels sorts them, `dos, fuzzy, normal, replay` against the
-  pilot's stated `normal, dos, fuzzy, replay`, so its output units are in a different order and its
-  weights differ by construction.)
+- **SC-002**: Every manifest in the repository's valid fixtures is in the new form and valid; a
+  manifest in the previous form and one with no version are refused with V-1 and the change note.
+- **SC-003**: *Withdrawn by constitution 4.0.0.* It compared the migrated previous form with the
+  new form; with no migration there is nothing to compare. A manifest that derives its labels
+  sorts them, so its output units differ from one that pins another order (research R11).
 - **SC-004**: A model too large for a target board fails before training, so a run that would have
   failed the footprint gate after training fails in the build stage instead, with no training
   time spent.

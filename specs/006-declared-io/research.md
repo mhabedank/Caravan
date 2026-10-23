@@ -10,6 +10,10 @@ tflite-micro at commit `f7ed40df396cd25a67db7896ae02cd98866021ea` (`main`).
 
 ## R1. The schema version of the new form, and the migration to it
 
+> **Superseded by constitution 4.0.0 (2026-10-23).** Before Caravan 1.0.0 nothing is migrated: a
+> manifest in another form, or with no version, is refused with V-1 and the change note
+> `docs/manifest-changes.md`. The decision below is kept as the record of what was built first.
+
 **Decision**: the new form is `apiVersion: caravan/v0.1`. The registry knows two versions,
 `caravan/v0` (oldest) and `caravan/v0.1` (newest), with one transform from the first to the second.
 A manifest that declares no version is `caravan/v0`, as today. The transform returns the migrated
@@ -240,6 +244,10 @@ projection changed. It is noted in the migration note so nobody reports it as a 
 
 ## R10. What the migration does to the pilot manifest
 
+> **Superseded by constitution 4.0.0 (2026-10-23).** Before Caravan 1.0.0 nothing is migrated: a
+> manifest in another form, or with no version, is refused with V-1 and the change note
+> `docs/manifest-changes.md`. The decision below is kept as the record of what was built first.
+
 From `tests/fixtures/manifests/valid/picket-mlp.yaml`, the transform produces:
 - an input named `input`, kind `series`, window 64, columns derived;
 - an output named `output`, kind `class`, column `label`, labels pinned `normal, dos, fuzzy,
@@ -275,9 +283,9 @@ on a 12-window test split one prediction is 0.083. The previous form passed by t
 weights, not by a margin. Proposal P5 (input scaling in the export contract) is the remedy and is
 out of scope here.
 
-**Decision**: the new-form pilot used by the end-to-end tests, `picket-mlp-v01.yaml`, pins the
+**Decision**: the new-form pilot used by the end-to-end tests, `picket-mlp-v01.yaml` (now `picket-mlp-fixture.yaml`), pins the
 previous order and so builds the migrated pilot's model, which passes. A second fixture,
-`picket-mlp-v01-derived.yaml`, is the same manifest with the labels derived. It is used wherever
+`picket-mlp-v01-derived.yaml` (now `picket-mlp-fixture-derived.yaml`), is the same manifest with the labels derived. It is used wherever
 derivation is the point: validation, render, the data stage, and training. The gate was not
 loosened and the seed was not tuned to make the derived form pass. Either would have hidden this
 finding.

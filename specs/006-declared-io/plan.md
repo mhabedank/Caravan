@@ -4,6 +4,13 @@
 
 **Input**: Feature specification from `/specs/006-declared-io/spec.md`
 
+**Amended for constitution 4.0.0 (2026-10-23).** The migration, its notices and the migration
+fixtures described below were built and then removed (tasks T066–T074): before Caravan 1.0.0 a
+manifest in another form, or with no version, is refused with V-1 and the change note
+`docs/manifest-changes.md`. `caravan/manifest/migrate.py` became `caravan/manifest/version.py`;
+the run report carries one `schema_version`; the `-v01` fixtures took the plain names. Where the
+text below says otherwise, this note wins.
+
 ## Summary
 
 The first feature under constitution 3.0.0. It changes the manifest more than any feature since
@@ -14,8 +21,8 @@ The first feature under constitution 3.0.0. It changes the manifest more than an
     go;
   - the model's input and output are declared, Ludwig-style, as lists holding exactly one each;
   - labels and input columns are derived from the data unless the author pins them.
-- **Old manifests.** Every previous-form manifest migrates in memory, with one notice per field it
-  loses or moves.
+- **Old manifests.** Refused with V-1 and the change note (constitution 4.0.0); originally migrated
+  in memory with notices.
 - **The pipeline gains two internal stages:**
   - `data` derives what the data says once, cached by dataset version;
   - `fit` compares the built model's lower bounds with every target board before any training.
@@ -183,43 +190,40 @@ src/caravan/
 │   └── skeleton.py            # binds by the named constants
 ├── cli/
 │   ├── pipeline.py            # stage sequence data → build → fit → …; resolved.yaml after data
-│   ├── validate.py, render.py # notices; render notices to stderr
+│   ├── validate.py, render.py # one `schema_version`; no notices (4.0.0)
 │   └── build.py, train.py, quantize.py, export.py   # their stage lists
-└── run/report.py              # + migration_notices, fit, interface
+└── run/report.py              # schema_version; + data, fit, interface
 
-docs/migrations/caravan-v0.1.md   # new: the migration note Principle IX requires
+docs/manifest-changes.md          # the change note Principle IX requires (was manifest-migrations.md)
 README.md                          # manifest example, stage list, the compliance paragraph removed
 
 tests/
-├── unit/test_migration_v01.py            # every transform step, every notice, file untouched
+├── unit/test_schema_version.py           # V-1 for another version or none; change note named (4.0.0)
 ├── unit/test_projection_index.py         # indexed paths; a budget change keeps data/build/train keys
 ├── unit/test_resolve_v01.py              # the new shape, `derived` markers, merge_derived
 ├── unit/test_every_field_is_read.py      # Principle I and SC-001
 ├── contract/test_no_compliance_in_outputs.py  # SC-006
-├── train/test_declared_io_end_to_end.py  # same windows and split as the migrated pilot
+├── train/test_declared_io_end_to_end.py  # same windows and split, derived or stated
 ├── train/test_interface_reordered_outputs.py  # research R4's reversal, kept as a test
 ├── unit/test_io_declarations.py          # CF-9/10/11, removed-field messages
 ├── unit/test_fit_floors.py               # the arithmetic on hand-built layer records; F-1
 ├── unit/test_interface_emit.py           # JSON and C additions; escaping; determinism
-├── unit/test_retired_rules.py            # the five identifiers appear in no rule table
+├── unit/test_retired_rules.py            # the six identifiers (with V-2) appear in no rule table
 ├── unit/test_rules_coverage_v01.py       # every new rule is reachable and covered
-├── integration/test_validate_migrated.py # every valid fixture through migration (SC-002)
-├── integration/test_render_derived.py    # `derived` markers; notices on stderr only
+├── integration/test_render_derived.py    # `derived` markers
 ├── train/test_data_stage.py              # derivation, pinning both ways, DS-11/12, no read when reused
 ├── train/test_rewire_names.py            # weights and operators unchanged; signature names (R4)
 ├── train/test_fit_stage.py               # pass record; F-1 before training; no retrain on board change
 ├── train/test_fit_floor_ordering.py      # fit floor ≤ export floor, both templates
-├── train/test_migration_same_model.py    # SC-003
 ├── verify/test_interface_positions.py    # positions from the signature, not assumed
 ├── verify/test_interface_contract_alone.py  # SC-005
-├── contract/test_cli_contract.py         # notices, exit codes, removed fields (extended)
+├── contract/test_cli_contract.py         # V-1 refusal, exit codes, removed fields (extended)
 └── layering/                             # new core modules import no framework (extended)
 
 tests/fixtures/manifests/
-├── valid/picket-mlp-v01.yaml, picket-conv1d-v01.yaml   # the new form
-├── invalid/v01-*.yaml                                   # the refusals of quickstart §3
-├── gate/too-big-for-s32k144.yaml                        # valid, fails F-1 (quickstart §6)
-└── migration/                                           # former cf-3, cf-8 fixtures, with expected notices
+├── valid/                                              # every fixture in the current form
+├── invalid/cf-9-*, cf-10-*, cf-11-*, removed-compliance, v-1-*   # quickstart §1 and §3
+└── gate/too-big-for-s32k144.yaml                        # valid, fails F-1 (quickstart §6)
 ```
 
 **Structure Decision**: the layout follows the layering rule, as in every earlier feature.

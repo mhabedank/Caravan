@@ -14,13 +14,13 @@ import pytest
 
 from caravan.cli.main import EXIT_OK, main
 from caravan.stages.fit import FIT_RECORD
-from tests.support import PILOT_V01, VALID
+from tests.support import PILOT_FIXTURE, VALID
 from tests.train.conftest import latest_run
 
 CONV1D = VALID / "picket-conv1d-fixture.yaml"
 
 
-@pytest.mark.parametrize("manifest", [PILOT_V01, CONV1D], ids=["mlp", "conv1d"])
+@pytest.mark.parametrize("manifest", [PILOT_FIXTURE, CONV1D], ids=["mlp", "conv1d"])
 def test_the_fit_floor_is_at_most_the_export_floor(manifest, tmp_path) -> None:
     code = main(
         ["export", str(manifest), "--runs-dir", str(tmp_path / "r"), "--cache-dir", str(tmp_path)]

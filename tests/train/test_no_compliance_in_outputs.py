@@ -1,9 +1,8 @@
 """SC-006 of feature 006: nothing a run writes carries a compliance field or a licence claim.
 
 Principle VI (constitution 3.0.0): Caravan carries no compliance layer and never claims to have
-checked a licence, a permission or a use. Asserted on the files a whole run leaves behind, from the
-migrated pilot — the manifest that still *says* all of it — so the test is about what survives, not
-about a manifest that never had it.
+checked a licence, a permission or a use. Asserted on the files a whole exported run leaves behind:
+no stage may add any of it on its own.
 
 Under ``tests/train`` because producing those files needs the training framework.
 """
@@ -55,9 +54,6 @@ def test_no_file_of_the_run_carries_a_compliance_key(exported) -> None:
         if not path.is_file() or path.suffix in {".tflite", ".keras"}:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
-        # The migration notices name the dropped field on purpose; that is the record that it was
-        # dropped, not the field itself.
-        text = re.sub(r'"migration_notices": \[.*?\n  \]', "", text, flags=re.DOTALL)
         offenders.extend(
             f"{path.name}: {key}"
             for key in FORBIDDEN_KEYS

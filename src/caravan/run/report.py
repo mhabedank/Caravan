@@ -128,11 +128,9 @@ class Report:
     manifest_path: str
     manifest_sha256: str
     outcome: str
-    schema_version_declared: str | None = None
-    schema_version_effective: str | None = None
-    migrations_applied: tuple[str, ...] = ()
-    #: One per field a migration dropped, moved or added (feature 006, Principle IX), as dicts.
-    migration_notices: Sequence[dict[str, Any]] = field(default_factory=tuple)
+    #: The ``apiVersion`` the manifest declares, as written. Nothing is migrated before 1.0.0
+    #: (constitution 4.0.0, Principle IX), so the declared version is the one that was read.
+    schema_version: str | None = None
     dataset: str | None = None
     template: str | None = None
     gates: Sequence[Gate] = field(default_factory=tuple)
@@ -169,10 +167,7 @@ class Report:
             "manifest_sha256": self.manifest_sha256,
             "dataset": self.dataset,
             "template": self.template,
-            "schema_version_declared": self.schema_version_declared,
-            "schema_version_effective": self.schema_version_effective,
-            "migrations_applied": list(self.migrations_applied),
-            "migration_notices": [dict(notice) for notice in self.migration_notices],
+            "schema_version": self.schema_version,
             "outcome": self.outcome,
             "gates": [gate.as_dict() for gate in self.gates],
             "findings": [finding.as_dict() for finding in self.findings],

@@ -14,7 +14,7 @@ from caravan.stages.data import SPEC as DATA
 from caravan.stages.export import SPEC as EXPORT
 from caravan.stages.quantize import SPEC as QUANTIZE
 from caravan.stages.train import SPEC as TRAIN
-from tests.support import PILOT, PILOT_V01
+from tests.support import PILOT, PILOT_FIXTURE
 from tests.unit.test_cache_key_projection import leaf_paths
 
 STAGES = (DATA, BUILD, TRAIN, QUANTIZE, EXPORT)
@@ -35,7 +35,7 @@ def non_blank_lines(path) -> int:
 
 
 def test_every_leaf_is_read_by_a_stage() -> None:
-    outcome = load_manifest(PILOT_V01)
+    outcome = load_manifest(PILOT_FIXTURE)
     assert outcome.manifest is not None
     reads = {read for spec in STAGES for read in spec.reads}
     unread = [
@@ -47,7 +47,12 @@ def test_every_leaf_is_read_by_a_stage() -> None:
     assert not unread, f"fields no stage reads (Principle I): {unread}"
 
 
+#: Non-blank, non-comment lines of the pilot in the form before feature 006 (``caravan/v0``),
+#: counted on that file at commit 64c5603. The form no longer loads, so the count is a constant.
+PREVIOUS_FORM_LINES = 43
+
+
 def test_the_new_pilot_is_a_fifth_shorter_than_the_old() -> None:
     # SC-001: at most 34 non-blank, non-comment lines against the previous form's 43.
-    assert non_blank_lines(PILOT) == 43
-    assert non_blank_lines(PILOT_V01) <= 34
+    for pilot in (PILOT, PILOT_FIXTURE):
+        assert non_blank_lines(pilot) <= 34 <= PREVIOUS_FORM_LINES * 0.8

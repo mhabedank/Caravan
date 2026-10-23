@@ -92,34 +92,23 @@ is misspelt.
 | `export.accuracy_drop_max` | moved in caravan/v0.1 to `outputs[0].accuracy_drop_max`: the budget is per output (Principle V) |
 | `verify`, `bench`, `publish` | removed in caravan/v0.1: no stage reads it yet; it returns with its stage (Principle I) |
 
-## Migration from `caravan/v0`
+## No migration from `caravan/v0`
 
-A manifest that declares `caravan/v0`, or no version, is migrated in memory on every load. The file
-is never written (Principle IX). In order:
+Constitution 4.0.0 (Principle IX): before Caravan 1.0.0 nothing is migrated. A manifest that
+declares `caravan/v0`, any other version this build does not implement, or no version at all, is
+refused with V-1 at `apiVersion`:
 
-1. Drop `compliance`, `model.topic`, `model.task`, `dataset.license`, `verify`, `bench` and
-   `publish`, with one `dropped` notice each, for the ones present.
-2. Drop `dataset.permitted_use` with a `dropped` notice. If its value was `benchmark-only` and a
-   `publish` section was present, the notice reads instead: "the manifest stated that this
-   dataset is not permitted for training and asked for publication; Caravan no longer enforces
-   that statement (Principle VI), so it is now the author's to keep".
-3. Create `inputs: [{name: input, kind: series, window: <dataset.window if present>}]`, with a
-   `moved` notice for `dataset.window`.
-4. Create `outputs: [{name: output, kind: class, column: label, labels: <dataset.labels>,
-   accuracy_drop_max: <export.accuracy_drop_max>}]`, with a `moved` notice for each of the two.
-   Where the previous form stated no `export.accuracy_drop_max`, write its old default `0.02`
-   and replace the `moved` notice for it with an `added` notice: "the previous form defaulted
-   the quantization budget to 0.02; caravan/v0.1 requires it to be stated (Principle V), so the
-   migration states it".
-5. Set `apiVersion: caravan/v0.1`.
+```text
+picket-mlp.yaml: apiVersion — schema version not implemented by this build; this build reads only
+caravan/v0.1 and does not migrate older forms before Caravan 1.0.0 — docs/manifest-changes.md says
+what to edit by hand, found 'caravan/v0'
+    accepted: caravan/v0.1
+```
 
-The names `input` and `output` are the ones the templates already give their first and last layers
-(research R10). The column `label` is the one the data contract of feature 002 fixed.
-
-After migration, the manifest is validated as a `caravan/v0.1` manifest like any other. A
-previous-form manifest that was valid stays valid (SC-002). The invalid fixtures of the retired
-rules become valid, because the fields they tested no longer exist; they move to
-`tests/fixtures/manifests/migration/`, each with its expected notices.
+The file is never written. `docs/manifest-changes.md` holds the change note: every field of the
+previous form, where it went, and the edit an author makes by hand. The invalid fixtures of the
+retired rules were deleted with the rules: the fields they tested no longer exist, and a
+previous-form manifest is refused before any of them would be read.
 
 ## The resolved manifest
 

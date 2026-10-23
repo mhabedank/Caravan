@@ -30,7 +30,7 @@ from tests.support import VALID
 
 #: The new-form pilot (feature 006), with what the data stage derives merged in — the form every
 #: stage after ``data`` actually reads.
-PILOT = VALID / "picket-mlp-v01.yaml"
+PILOT = VALID / "picket-mlp-fixture.yaml"
 FIXTURE_COLUMNS = ["can_id", "dlc", "b0", "b1", "b2"]
 
 # Feature 003 adds one entry, and the walk below then covers the new stage entirely: every leaf of

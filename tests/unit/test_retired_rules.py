@@ -1,8 +1,10 @@
 """The identifiers feature 006 retired stay retired.
 
 CF-3, CF-5, CF-7, CF-8 and DS-9 belonged to the compliance layer or to the section of a stage that
-does not exist yet. Reusing one would make an old run report mean something it never meant, so the
-identifiers are reserved: in no rule group, in no fixture's expectation, raised by no module.
+does not exist yet. V-2 read a manifest without a version as the oldest known one, which
+constitution 4.0.0 forbids. Reusing one would make an old run report mean something it never
+meant, so the identifiers are reserved: in no rule group, in no fixture's expectation, raised by no
+module.
 """
 
 from __future__ import annotations
@@ -16,8 +18,8 @@ from caravan.manifest.errors import ALL_RULES, RETIRED_RULES
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_the_five_identifiers_are_retired() -> None:
-    assert {"CF-3", "CF-5", "CF-7", "CF-8", "DS-9"} == RETIRED_RULES
+def test_the_six_identifiers_are_retired() -> None:
+    assert {"CF-3", "CF-5", "CF-7", "CF-8", "DS-9", "V-2"} == RETIRED_RULES
 
 
 def test_no_retired_identifier_is_in_a_rule_group() -> None:

@@ -184,9 +184,11 @@ author binds by: the export writes them, with each tensor's position, shape, sca
 and the label order, into `model/interface.json` and the C header.
 
 Caravan carries no compliance layer. The rights to the data, and the use of a model trained on it,
-are the author's; Caravan neither asks about them nor claims to have checked them. A manifest in
-the previous form (`caravan/v0`) still loads, and says what was dropped:
-`docs/manifest-migrations.md`.
+are the author's; Caravan neither asks about them nor claims to have checked them.
+
+Until Caravan 1.0.0 the manifest may change without migration. A manifest in another form, such as
+the previous `caravan/v0`, is refused with the version this build reads, and
+`docs/manifest-changes.md` says what to edit by hand.
 
 ## Where things are
 

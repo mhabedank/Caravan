@@ -1,8 +1,8 @@
 """Reading a manifest: the one entry point, and the one place pydantic errors become findings.
 
-The sequence is the one in ``specs/001-manifest-schema/data-model.md``: read, version check,
-migrate, schema validation, template resolution, board resolution, cross-field rules. The
-author's file is never written.
+The sequence: read, version check, schema validation, template resolution, board resolution,
+cross-field rules. The author's file is never written. Before Caravan 1.0.0 nothing is migrated: a
+version this build does not implement is refused (constitution 4.0.0, Principle IX).
 """
 
 from __future__ import annotations
@@ -25,16 +25,9 @@ from caravan.manifest.errors import (
     Unresolved,
     dotted_path,
 )
-from caravan.manifest.migrate import (
-    MigrationNotice,
-    SchemaVersionRegistry,
-    UnknownSchemaVersion,
-)
-from caravan.manifest.migrate import (
-    default_registry as default_versions,
-)
 from caravan.manifest.schema import Manifest
 from caravan.manifest.schema.removed import BY_PATH as REMOVED_FIELDS
+from caravan.manifest.version import SCHEMA_VERSION, UnknownSchemaVersion, check_version
 from caravan.targets.registry import BoardRegistry
 from caravan.targets.registry import default_registry as default_boards
 from caravan.templates.registry import TemplateRegistry
@@ -51,11 +44,8 @@ class LoadOutcome:
     findings: list[Finding] = field(default_factory=list)
     gates: list[Gate] = field(default_factory=list)
     unresolved: list[Unresolved] = field(default_factory=list)
-    declared_version: str | None = None
-    effective_version: str | None = None
-    migrations_applied: tuple[str, ...] = ()
-    #: One per field the migration dropped, moved or added (feature 006, Principle IX).
-    notices: tuple[MigrationNotice, ...] = ()
+    #: The ``apiVersion`` the manifest declares, as written; ``None`` when it declares none.
+    schema_version: str | None = None
 
     @property
     def is_valid(self) -> bool:
@@ -191,12 +181,10 @@ def findings_from_validation_error(
 def load_manifest(
     path: Path,
     *,
-    versions: SchemaVersionRegistry | None = None,
     templates: TemplateRegistry | None = None,
     boards: BoardRegistry | None = None,
 ) -> LoadOutcome:
-    """Read, migrate and validate one manifest. Raises ``DocumentError`` if it cannot be parsed."""
-    versions = versions or default_versions()
+    """Read and validate one manifest. Raises ``DocumentError`` if it cannot be parsed."""
     templates = templates or default_templates()
     boards = boards or default_boards()
 
@@ -204,39 +192,25 @@ def load_manifest(
     outcome = LoadOutcome()
 
     try:
-        migration = versions.migrate(data)
+        outcome.schema_version = check_version(data)
     except UnknownSchemaVersion as exc:
-        outcome.declared_version = exc.declared
+        outcome.schema_version = exc.declared
         outcome.findings.append(
             Finding(
                 path="apiVersion",
-                problem="unknown schema version",
+                problem=exc.problem(),
                 found=exc.declared,
-                accepted=exc.known,
+                accepted=(SCHEMA_VERSION,),
                 rule=RULE_UNKNOWN_SCHEMA_VERSION,
             )
         )
         outcome.gates.append(Gate("schema-version", "fail", exc.declared))
         return outcome
 
-    outcome.declared_version = migration.declared
-    outcome.effective_version = migration.effective
-    outcome.migrations_applied = migration.applied
-    outcome.notices = migration.notices
-    outcome.gates.append(
-        Gate(
-            "schema-version",
-            "pass",
-            f"{migration.declared} → {migration.effective}"
-            if migration.applied
-            else migration.declared,
-        )
-    )
+    outcome.gates.append(Gate("schema-version", "pass", outcome.schema_version))
 
     try:
-        manifest = Manifest.model_validate(
-            migration.data, context={"templates": templates, "boards": boards}
-        )
+        manifest = Manifest.model_validate(data, context={"templates": templates, "boards": boards})
     except PydanticValidationError as exc:
         outcome.findings.extend(findings_from_validation_error(exc))
         outcome.gates.append(Gate("schema", "fail"))

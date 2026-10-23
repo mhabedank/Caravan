@@ -24,7 +24,7 @@ from caravan.data.reader import read_records
 from caravan.data.reader_bridge import assemble_samples
 from caravan.data.windows import plan_windows
 from caravan.runtime.measure import predict
-from tests.support import PILOT_V01, SYNTHETIC_DATASET
+from tests.support import PILOT_FIXTURE, SYNTHETIC_DATASET
 from tests.train.conftest import latest_run
 
 
@@ -32,7 +32,7 @@ from tests.train.conftest import latest_run
 def exported(tmp_path_factory):
     root = tmp_path_factory.mktemp("contract")
     code = main(
-        ["export", str(PILOT_V01), "--runs-dir", str(root / "runs"), "--cache-dir", str(root)]
+        ["export", str(PILOT_FIXTURE), "--runs-dir", str(root / "runs"), "--cache-dir", str(root)]
     )
     assert code == EXIT_OK
     return latest_run(root / "runs")

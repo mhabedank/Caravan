@@ -14,30 +14,29 @@ The figures below were left blank in the plan and filled in from the first run o
 pip install -e ".[train,verify]"   # Python 3.13; the core scenarios need no extra at all
 ```
 
-## 1. The old pilot still loads, and says what changed
+## 1. The old form is refused, and says where to look
 
 ```bash
-caravan validate tests/fixtures/manifests/valid/picket-mlp.yaml
+caravan validate tests/fixtures/manifests/invalid/v-1-previous-version.yaml
+caravan validate tests/fixtures/manifests/invalid/v-1-no-version.yaml
 ```
 
-Expected:
-- exit 0;
-- `valid (migrated from caravan/v0 to caravan/v0.1)`;
-- six `dropped` notices: `model.topic`, `model.task`, `compliance`, `verify`, `bench`, `publish`;
-- three `moved` notices: `dataset.window`, `dataset.labels`, `export.accuracy_drop_max`;
-- the file is unchanged afterwards (`git diff --exit-code` on it).
+Expected (constitution 4.0.0, Principle IX):
+- exit 1, V-1 at `apiVersion`, for both;
+- the message names `caravan/v0.1` and `docs/manifest-changes.md`; no did-you-mean;
+- the files are unchanged afterwards (`git diff --exit-code` on them).
 
-No extra is needed: migration and validation are core.
+No extra is needed: validation is core.
 
 ## 2. The new pilot validates, and render shows what will be derived
 
 ```bash
-caravan validate tests/fixtures/manifests/valid/picket-mlp-v01.yaml
-caravan render   tests/fixtures/manifests/valid/picket-mlp-v01.yaml
+caravan validate tests/fixtures/manifests/valid/picket-mlp-fixture-derived.yaml
+caravan render   tests/fixtures/manifests/valid/picket-mlp-fixture-derived.yaml
 ```
 
 Expected:
-- exit 0, with no notices;
+- exit 0, one line `valid`;
 - `columns: derived` and `labels: derived` in the rendered YAML;
 - 33 non-blank, non-comment lines in the manifest (SC-001), the budget stated.
 
@@ -45,15 +44,15 @@ Expected:
 
 | Fixture under `tests/fixtures/manifests/invalid/` | Expected |
 |---|---|
-| `v01-removed-compliance.yaml` | exit 1, at `compliance`: "removed in caravan/v0.1: …" |
-| `v01-two-inputs.yaml` | exit 1, CF-10 at `inputs`, naming the research note |
-| `v01-label-as-input.yaml` | exit 1, CF-11 at `inputs[0].columns` |
-| `v01-name-with-hyphen.yaml` | exit 1, CF-9 at `inputs[0].name` |
+| `removed-compliance.yaml` | exit 1, at `compliance`: "removed in caravan/v0.1: …" |
+| `cf-10-two-inputs.yaml` | exit 1, CF-10 at `inputs`, naming the research note |
+| `cf-11-label-as-input.yaml` | exit 1, CF-11 at `inputs[0].columns` |
+| `cf-9-name-with-hyphen.yaml` | exit 1, CF-9 at `inputs[0].name` |
 
 ## 4. The whole pipeline on the new form
 
 ```bash
-caravan export tests/fixtures/manifests/valid/picket-mlp-v01.yaml
+caravan export tests/fixtures/manifests/valid/picket-mlp-fixture.yaml
 ```
 
 Expected in the run directory, in addition to feature 004's set:
@@ -106,14 +105,10 @@ Expected:
 
 The fixture asks for an mlp wide enough that its weights alone exceed 512 KiB of flash.
 
-## 7. Same weights through either form (SC-003)
+## 7. Withdrawn
 
-```bash
-pytest tests/train/test_migration_same_model.py
-```
-
-It trains the migrated pilot fixture, and a new-form copy that pins `normal, dos, fuzzy, replay`,
-under the same seed, and compares the trained weights byte for byte.
+It compared the weights of the migrated previous form with the new form (SC-003); constitution
+4.0.0 removed the migration, so there is nothing to compare.
 
 ## 8. Changing the boards does not retrain
 

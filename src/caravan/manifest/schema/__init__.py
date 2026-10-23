@@ -25,7 +25,6 @@ from caravan.manifest.errors import (
     dotted_path,
     rule_error,
 )
-from caravan.manifest.migrate import CURRENT_SCHEMA_VERSION
 from caravan.manifest.schema.dataset import MINIMUM_REPRESENTATIVE_SAMPLES, DatasetSpec, Split
 from caravan.manifest.schema.export import ExportSpec
 from caravan.manifest.schema.io import (
@@ -37,6 +36,7 @@ from caravan.manifest.schema.io import (
 )
 from caravan.manifest.schema.model import ModelSpec
 from caravan.manifest.schema.train import TrainSpec
+from caravan.manifest.version import SCHEMA_VERSION
 from caravan.targets.registry import BoardRegistry
 from caravan.targets.registry import default_registry as default_boards
 from caravan.templates.registry import TemplateRegistry
@@ -79,7 +79,7 @@ class Manifest(BaseModel):
     model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     # The wire name, deliberately not snake_case: it is what the manifest file says.
-    apiVersion: Literal["caravan/v0.1"] = CURRENT_SCHEMA_VERSION
+    apiVersion: Literal["caravan/v0.1"] = SCHEMA_VERSION
     model: ModelSpec
     inputs: list[InputDeclaration]
     outputs: list[OutputDeclaration]

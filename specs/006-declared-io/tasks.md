@@ -145,8 +145,8 @@ did before.
   CF-1, CF-2, CF-4, CF-6, T-1, T-2, V-1, unknown-field, unknown-field-misplaced) to the
   `caravan/v0.1` form, and update each `*.expected.json`; CF-6's path becomes `inputs[0].window`.
   Move the CF-3, CF-7 and CF-8 fixtures to `tests/fixtures/manifests/migration/`, each with a
-  `*.notices.json` listing the notices it must produce. Add `v01-removed-compliance.yaml`,
-  `v01-two-inputs.yaml` (CF-10), `v01-label-as-input.yaml` (CF-11) and `v01-name-with-hyphen.yaml`
+  `*.notices.json` listing the notices it must produce. Add `removed-compliance.yaml`,
+  `cf-10-two-inputs.yaml` (CF-10), `cf-11-label-as-input.yaml` (CF-11) and `cf-9-name-with-hyphen.yaml`
   (CF-9), with expected files, so `tests/unit/test_fixture_coverage.py` holds.
 
 ### The data step and the stages
@@ -490,6 +490,43 @@ contract and the header reproduces Caravan's predictions.
   measured* in `specs/006-declared-io/quickstart.md` from the actual run, never from expectation.
 - [X] T065 Run `uv run ruff check src tests`, `uv run ruff format src tests` and `uv run pytest`,
   all green, and confirm that the install budget test still holds (no dependency was added).
+
+---
+
+## Phase 8: Constitution 4.0.0 — no backward compatibility before 1.0.0
+
+**Purpose**: Constitution 4.0.0 (Principle IX) drops migration until Caravan 1.0.0. A manifest
+whose version this build does not implement, including one that declares none, is refused with V-1,
+naming the implemented version and pointing at the change note. Nothing is reinterpreted.
+
+- [X] T066 Update the feature documents to 4.0.0: `spec.md` (FR-005, FR-006, SC-002, SC-003, User
+  Story 1 scenarios 3–4, the *Migration notice* entity), `research.md` (R1, R10), `data-model.md`
+  (Migration), `contracts/manifest.md` (Migration), `contracts/cli.md`, `quickstart.md` (§1, §7).
+- [X] T067 Tests first: an invalid fixture `tests/fixtures/manifests/invalid/v-1-previous-version.yaml`
+  (`caravan/v0`) and `v-1-no-version.yaml` (no `apiVersion`), each expecting V-1 at `apiVersion`;
+  a unit test that the V-1 message names `caravan/v0.1` and the change note, and that the
+  author's file is not touched.
+- [X] T068 Replace `src/caravan/manifest/migrate.py` with `src/caravan/manifest/version.py`:
+  `SCHEMA_VERSION`, `CHANGE_NOTE`, `UnknownSchemaVersion`, `check_version()`. No registry, no
+  transform, no notice. `load.py` refuses with V-1 and drops `notices` and `migrations_applied`.
+- [X] T069 Retire V-2 (`RETIRED_RULES`), remove it from `INFORMATIONAL_RULES`, and drop the
+  migration-only constants from `manifest/schema/removed.py`; the removed-field messages of FR-001
+  stay.
+- [X] T070 Remove the notices from `cli/validate.py`, `cli/render.py` and the run report
+  (`migration_notices`, `migrations_applied`); the report carries one `schema_version`.
+- [X] T071 Fixtures: rewrite `picket-mlp.yaml`, `picket-mlp-fixture.yaml`,
+  `picket-conv1d-fixture.yaml` and `pilot-min.yaml` in the current form (labels pinned where a test
+  exports); fold in and delete the `-v01` copies; rename `picket-mlp-v01-derived.yaml` to
+  `picket-mlp-fixture-derived.yaml`; rename the `v01-*` invalid fixtures after their rule; delete
+  `v-2-no-version.yaml`, every `.notices.json` and `tests/fixtures/manifests/migration/`.
+- [X] T072 Tests: delete `test_migration.py`, `test_migration_v01.py`, `test_validate_migrated.py`
+  and `test_migration_same_model.py`; update `tests/support.py` and every test that used a
+  previous-form fixture or a notice.
+- [X] T073 Rename `docs/manifest-migrations.md` to `docs/manifest-changes.md`: the rule before
+  1.0.0, the procedure for a breaking change, and the `caravan/v0` → `caravan/v0.1` change note as
+  the edit an author makes by hand. Update the README.
+- [ ] T074 Run ruff and the full suite (also Python 3.15 without extras, 3.14 with `verify`, and
+  the clean wheel environment), all green.
 
 ---
 

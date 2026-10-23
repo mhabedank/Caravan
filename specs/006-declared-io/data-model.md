@@ -55,27 +55,17 @@ header, so a firmware author can tell which model they hold.
 | `labels` | list of ≥ 2 distinct non-empty strings | derived: distinct values of `column`, sorted as text | DS-5 both directions when stated; DS-11 when fewer than 2 are derived |
 | `accuracy_drop_max` | float in [0, 1] | **required**, no default (Principle V: every manifest states its budgets) | the accuracy gate of feature 003 (Q rules), per output; read by `quantize` only |
 
-## Migration — core
+## Schema version — core (`caravan/manifest/version.py`)
 
-```text
-Transform = (mapping) -> (mapping, tuple[MigrationNotice, ...])
-```
-
-### MigrationNotice
-
-| Field | Meaning |
+| Name | Value |
 |---|---|
-| `path` | the field path in the declared version, e.g. `compliance` or `dataset.window` |
-| `action` | `dropped`, `moved`, or `added` (only for a budget the previous form left to its default) |
-| `to` | the new path, for `moved` (e.g. `inputs[0].window`) |
-| `reason` | one sentence, from the table in `contracts/manifest.md` |
+| `SCHEMA_VERSION` | `caravan/v0.1`, the one version this build reads |
+| `CHANGE_NOTE` | `docs/manifest-changes.md` |
+| `check_version(mapping)` | returns the version, or raises `UnknownSchemaVersion` (V-1) for any other version or none |
 
-`MigrationResult` gains `notices: tuple[MigrationNotice, ...]`. `validate` prints them, `render`
-prints them to stderr so they do not corrupt the YAML on stdout, and the run report carries them
-under `migration_notices` (beside `migrations_applied`).
-
-**Transform `caravan/v0` → `caravan/v0.1`**: see `contracts/manifest.md`, *Migration*. It is a pure
-mapping transform with no I/O and no framework, so it runs in the core like the rest of loading.
+No registry, no transform, no notice: before Caravan 1.0.0 nothing is migrated (constitution
+4.0.0, Principle IX). `LoadOutcome` and the run report carry `schema_version`, the version as
+declared.
 
 ## Derived values — `data` stage, behind `train` (it parses the dataset)
 
@@ -172,7 +162,7 @@ the same failure path the accuracy gate uses (feature 003).
 
 | Identifier | Group | Status |
 |---|---|---|
-| CF-3, CF-5, CF-7, CF-8, DS-9 | — | **retired**, reserved, never reused |
+| CF-3, CF-5, CF-7, CF-8, DS-9, V-2 | — | **retired**, reserved, never reused (V-2 by constitution 4.0.0) |
 | CF-9, CF-10, CF-11 | manifest rules | new |
 | DS-11, DS-12 | dataset rules | new |
 | F-1 | fit rules | new group |

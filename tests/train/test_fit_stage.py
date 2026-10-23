@@ -15,7 +15,7 @@ from caravan.manifest.errors import RULE_FLOOR_EXCEEDS_BOARD
 from caravan.stages.cache import OUTCOME_PRODUCED, OUTCOME_REUSED
 from caravan.stages.fit import FIT_RECORD
 from caravan.stages.train import HISTORY, TRAINED_MODEL
-from tests.support import FIXTURES, GATE, PILOT_V01
+from tests.support import FIXTURES, GATE, PILOT_FIXTURE
 from tests.train.conftest import latest_run
 
 
@@ -38,7 +38,7 @@ def run(verb, manifest, root, *extra) -> tuple[int, dict]:
 @pytest.fixture(scope="module")
 def built(tmp_path_factory):
     root = tmp_path_factory.mktemp("fit")
-    code, report = run("build", PILOT_V01, root)
+    code, report = run("build", PILOT_FIXTURE, root)
     assert code == EXIT_OK
     return root, report
 
@@ -80,7 +80,7 @@ def test_a_model_too_big_for_a_board_stops_before_training(tmp_path) -> None:
 
 def test_changing_the_boards_reruns_the_check_and_never_the_training(tmp_path) -> None:
     manifest = tmp_path / "pilot.yaml"
-    text = PILOT_V01.read_text(encoding="utf-8").replace(
+    text = PILOT_FIXTURE.read_text(encoding="utf-8").replace(
         "../../datasets/synthetic", str(FIXTURES / "datasets" / "synthetic")
     )
     manifest.write_text(text, encoding="utf-8")

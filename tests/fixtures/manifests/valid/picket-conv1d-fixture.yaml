@@ -2,24 +2,34 @@
 #
 # A sibling of picket-mlp-fixture.yaml with one section changed: the model's template and its
 # parameters. Same data, same window, same labels, same training settings — so a comparison of the
-# two files is a comparison of *templates* and not of datasets or of hyperparameters.
+# two files is a comparison of *templates* and not of datasets or of hyperparameters. The labels
+# are pinned for the same reason as the mlp's (research R11 of feature 006).
 #
 # The blocks fit a 64-sample window: 64 to 30 after the first convolution (kernel 5, stride 2), 15
 # after its pooling, 13 after the second convolution. Rule CF-6 checks that arithmetic before
 # anything is built, so a window that cannot carry the configuration is refused at validation.
-apiVersion: caravan/v0
+apiVersion: caravan/v0.1
 
 model:
   name: picket-conv1d
   version: 0.1.0
-  topic: automotive-security
-  task: can-ids
   template: conv1d
   params:
     blocks:
       - {filters: 16, kernel: 5, stride: 2, normalise: true, pool: 2}
       - {filters: 32, kernel: 3, dropout: 0.1}
     head: average
+
+inputs:
+  - name: frames
+    kind: series
+    window: 64
+
+outputs:
+  - name: attack
+    kind: class
+    labels: [normal, dos, fuzzy, replay]
+    accuracy_drop_max: 0.02
 
 dataset:
   source: ../../datasets/synthetic
@@ -28,8 +38,6 @@ dataset:
     val: 0.15
     test: 0.15
     stratified: true
-  window: 64
-  labels: [normal, dos, fuzzy, replay]
   representative_samples: 500
 
 train:
@@ -42,21 +50,3 @@ export:
   quantization: int8
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
-  accuracy_drop_max: 0.02
-
-verify:
-  emulator: none
-
-bench:
-  metrics: [latency_p50, ram_peak, flash]
-
-publish:
-  hf_repo: mhabedank/picket-conv1d
-  license: apache-2.0
-
-compliance:
-  eu_ai_act_class: limited-risk
-  privacy: no-personal-data
-  intended_use: "CAN bus intrusion detection on gateway and zonal ECUs"
-  known_limits:
-    - "A fixture for caravan's own tests, trained on synthetic records; not a model for use"

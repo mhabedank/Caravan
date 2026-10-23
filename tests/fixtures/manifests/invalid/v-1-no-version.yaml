@@ -1,0 +1,22 @@
+# Invalid on purpose. No apiVersion at all. An undeclared version is refused like an unknown one,
+# never read as some version (constitution 4.0.0, Principle IX).
+# Expected: V-1 at apiVersion
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden: [8]
+inputs:
+  - name: frames
+    kind: series
+    window: 32
+outputs:
+  - name: verdict
+    kind: class
+    accuracy_drop_max: 0.02
+dataset:
+  source: datasets/example/
+  representative_samples: 100
+export:
+  targets: [stm32h743]
