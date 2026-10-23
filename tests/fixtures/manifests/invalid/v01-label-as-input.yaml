@@ -1,0 +1,28 @@
+# Invalid on purpose. The input names the output's column: the model would be trained on its own
+# answer.
+# Expected: CF-11 at inputs[0].columns
+apiVersion: caravan/v0.1
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+inputs:
+- name: frames
+  kind: series
+  window: 32
+  columns:
+  - can_id
+  - label
+outputs:
+- name: verdict
+  kind: class
+  accuracy_drop_max: 0.02
+dataset:
+  source: datasets/example/
+  representative_samples: 100
+export:
+  targets:
+  - stm32h743

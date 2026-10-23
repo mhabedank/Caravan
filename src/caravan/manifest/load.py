@@ -26,6 +26,7 @@ from caravan.manifest.errors import (
     dotted_path,
 )
 from caravan.manifest.migrate import (
+    MigrationNotice,
     SchemaVersionRegistry,
     UnknownSchemaVersion,
 )
@@ -33,13 +34,13 @@ from caravan.manifest.migrate import (
     default_registry as default_versions,
 )
 from caravan.manifest.schema import Manifest
+from caravan.manifest.schema.removed import BY_PATH as REMOVED_FIELDS
 from caravan.targets.registry import BoardRegistry
 from caravan.targets.registry import default_registry as default_boards
 from caravan.templates.registry import TemplateRegistry
 from caravan.templates.registry import default_registry as default_templates
 
 DATASET_UNRESOLVED_REASON = "not resolved in this stage"
-DATASET_TERMS_UNVERIFIED_REASON = "not stated by the author; not verified by this tool"
 
 
 @dataclass
@@ -53,6 +54,8 @@ class LoadOutcome:
     declared_version: str | None = None
     effective_version: str | None = None
     migrations_applied: tuple[str, ...] = ()
+    #: One per field the migration dropped, moved or added (feature 006, Principle IX).
+    notices: tuple[MigrationNotice, ...] = ()
 
     @property
     def is_valid(self) -> bool:
@@ -65,6 +68,10 @@ class LoadOutcome:
 def _as_model(annotation: Any) -> type[BaseModel] | None:
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         return annotation
+    if get_origin(annotation) is list:
+        # The declarations are lists of models; a field inside one is reported at its first entry.
+        (item,) = get_args(annotation) or (None,)
+        return _as_model(item)
     if get_origin(annotation) in (Union, UnionType):
         for arg in get_args(annotation):
             model = _as_model(arg)
@@ -95,7 +102,8 @@ def _find_field(root: type[BaseModel], name: str, prefix: str = "") -> str | Non
             return here
         nested = _as_model(info.annotation)
         if nested is not None and nested is not root:
-            found = _find_field(nested, name, f"{here}.")
+            step = "[0]." if get_origin(info.annotation) is list else "."
+            found = _find_field(nested, name, f"{here}{step}")
             if found is not None:
                 return found
     return None
@@ -131,6 +139,12 @@ def findings_from_validation_error(
 
         if kind == "extra_forbidden":
             name = str(location[-1])
+            removed = REMOVED_FIELDS.get(path)
+            if removed is not None:
+                # A field caravan/v0.1 removed or moved: say so, rather than "unknown field", so the
+                # author learns it is gone and does not hunt for a typo (FR-001).
+                findings.append(Finding(path=path, problem=removed.message(), near=name))
+                continue
             parent = _model_at(root, location[:-1])
             accepted = tuple(parent.model_fields) if parent is not None else ()
             findings.append(
@@ -208,6 +222,7 @@ def load_manifest(
     outcome.declared_version = migration.declared
     outcome.effective_version = migration.effective
     outcome.migrations_applied = migration.applied
+    outcome.notices = migration.notices
     outcome.gates.append(
         Gate(
             "schema-version",
@@ -246,15 +261,6 @@ def load_manifest(
             rule=RULE_DATASET_UNRESOLVED,
         )
     )
-    # Silence about a licence stays visible as silence (FR-032, Principle VI).
-    if manifest.dataset.permitted_use == "unknown":
-        outcome.unresolved.append(
-            Unresolved(
-                kind="dataset-terms",
-                value="unknown",
-                reason=DATASET_TERMS_UNVERIFIED_REASON,
-            )
-        )
     return outcome
 
 

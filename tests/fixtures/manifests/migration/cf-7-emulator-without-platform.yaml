@@ -1,5 +1,6 @@
-# Invalid on purpose. Claims the lowest risk class while processing personal data.
-# Expected: CF-3 at compliance.eu_ai_act_class
+# A previous-form manifest that rule CF-7 used to refuse: an emulator named for boards without one.
+# CF-7 was retired with the `verify` section, which returns with its stage (feature 006,
+# Principle I). Through migration it now loads; the expected notices are in .notices.json.
 apiVersion: caravan/v0
 model:
   name: pilot-min
@@ -19,10 +20,12 @@ dataset:
   representative_samples: 100
 export:
   targets:
-  - stm32h743
+  - s32k144
 compliance:
   eu_ai_act_class: minimal-risk
-  privacy: personal-data
+  privacy: no-personal-data
   intended_use: Example model used to exercise the schema end to end
   known_limits:
   - Not trained; exists to validate the manifest contract
+verify:
+  emulator: renode

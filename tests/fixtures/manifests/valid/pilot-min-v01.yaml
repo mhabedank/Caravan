@@ -1,0 +1,30 @@
+# The smallest valid manifest in the new form (caravan/v0.1). Mirrors pilot-min.yaml.
+#
+# window is present because the mlp template consumes one (CF-6), representative_samples because
+# quantization defaults to int8 (CF-4), and accuracy_drop_max because a class output must state its
+# budget (Principle V). The labels and the input columns are derived from the data at run time.
+apiVersion: caravan/v0.1
+
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden: [8]
+
+inputs:
+  - name: frames
+    kind: series
+    window: 32
+
+outputs:
+  - name: verdict
+    kind: class
+    accuracy_drop_max: 0.02
+
+dataset:
+  source: datasets/example/
+  representative_samples: 100
+
+export:
+  targets: [stm32h743]

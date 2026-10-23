@@ -23,8 +23,6 @@ class ModelSpec(BaseModel):
 
     name: str
     version: str
-    topic: str = Field(min_length=1)
-    task: str = Field(min_length=1)
     template: str = Field(min_length=1)
     params: dict[str, Any] = Field(default_factory=dict)
 

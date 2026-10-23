@@ -1,0 +1,45 @@
+# The pilot in the new form (schema version caravan/v0.1, feature 006), on the synthetic fixture.
+#
+# Mirrors picket-mlp-fixture.yaml, which is the same model in the previous form and now loads
+# through migration. Everything that is not here is either derived from the data — the labels from
+# the `label` column, the input columns from every other column — or was removed because no stage
+# read it. The budget is stated, not defaulted: Principle V requires every manifest to state it.
+apiVersion: caravan/v0.1
+
+model:
+  name: picket-mlp
+  version: 0.1.0
+  template: mlp
+  params:
+    hidden: [32, 16]
+    dropout: 0.1
+
+inputs:
+  - name: frames
+    kind: series
+    window: 64
+
+outputs:
+  - name: attack
+    kind: class
+    accuracy_drop_max: 0.02
+
+dataset:
+  source: ../../datasets/synthetic
+  split:
+    train: 0.7
+    val: 0.15
+    test: 0.15
+    stratified: true
+  representative_samples: 500
+
+train:
+  epochs: 50
+  batch: 256
+  optimizer: adam
+  early_stopping: true
+
+export:
+  quantization: int8
+  formats: [flatbuffer, c_array]
+  targets: [s32k144, stm32h743, esp32]

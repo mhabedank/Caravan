@@ -1,5 +1,6 @@
-# Invalid on purpose. The author states the dataset is not permitted for training, yet declares publication.
-# Expected: CF-8 at publish
+# A previous-form manifest that rule CF-3 used to refuse: personal data declared minimal-risk.
+# CF-3 was retired with the compliance layer (feature 006, Principle VI). Through migration it
+# now loads; the expected notices are in the sibling .notices.json.
 apiVersion: caravan/v0
 model:
   name: pilot-min
@@ -17,15 +18,12 @@ dataset:
   - normal
   - attack
   representative_samples: 100
-  permitted_use: benchmark-only
 export:
   targets:
   - stm32h743
 compliance:
   eu_ai_act_class: minimal-risk
-  privacy: no-personal-data
+  privacy: personal-data
   intended_use: Example model used to exercise the schema end to end
   known_limits:
   - Not trained; exists to validate the manifest contract
-publish:
-  hf_repo: someone/some-model

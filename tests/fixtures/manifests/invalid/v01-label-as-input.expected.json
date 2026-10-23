@@ -1,0 +1,4 @@
+{
+  "rule": "CF-11",
+  "path": "inputs[0].columns"
+}

@@ -1,4 +1,4 @@
 {
   "rule": "CF-6",
-  "path": "dataset.window"
+  "path": "inputs[0].window"
 }
