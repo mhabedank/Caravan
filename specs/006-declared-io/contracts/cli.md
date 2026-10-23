@@ -33,7 +33,7 @@ gate, 2 usage, 3 internal, 4 environment.
 - A run's `resolved.yaml` is written after the `data` stage and holds the derived values. If `data`
   fails, the run report records the failure, and `resolved.yaml` holds the markers.
 - The run report gains:
-  - `manifest.migration_notices`;
+  - `migration_notices` (beside `migrations_applied`);
   - `fit`, from `model/fit.json`, or the F-1 finding on failure;
   - `interface`, from `model/interface.json`, on export.
 

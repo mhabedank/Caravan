@@ -46,11 +46,13 @@ def test_the_first_run_produces_and_the_second_reuses(tmp_path) -> None:
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_PRODUCED,
         "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
         "train": OUTCOME_PRODUCED,
     }
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
         "train": OUTCOME_REUSED,
     }
 
@@ -65,6 +67,7 @@ def test_changing_the_budget_retrains_nothing(tmp_path) -> None:
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
         "train": OUTCOME_REUSED,
     }
 
@@ -76,6 +79,7 @@ def test_changing_a_template_parameter_rebuilds_and_retrains(tmp_path) -> None:
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
         "train": OUTCOME_PRODUCED,
     }
 
@@ -90,6 +94,7 @@ def test_changing_the_seed_rebuilds_and_retrains(tmp_path) -> None:
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
         "train": OUTCOME_PRODUCED,
     }
 
@@ -103,6 +108,7 @@ def test_changing_a_training_setting_retrains_but_does_not_rebuild(tmp_path) -> 
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
         "train": OUTCOME_PRODUCED,
     }
 
@@ -118,6 +124,7 @@ def test_changing_a_byte_of_the_dataset_rebuilds_and_retrains(tmp_path) -> None:
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_PRODUCED,
         "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
         "train": OUTCOME_PRODUCED,
     }
 
@@ -133,6 +140,7 @@ def test_moving_the_dataset_without_changing_it_retrains_nothing(tmp_path) -> No
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
         "train": OUTCOME_REUSED,
     }
 

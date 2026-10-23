@@ -47,8 +47,17 @@ def generate(
     array_name: str,
     accelerated: int,
     operators_total: int,
+    input_name: str = "input",
+    output_name: str = "output",
 ) -> str:
-    """The skeleton for one target board."""
+    """The skeleton for one target board.
+
+    The runner binds by the named positions the header declares (feature 006), never by a literal
+    index: Principle VIII says a runner binds by name, and the one runner caravan writes itself
+    must not teach the opposite.
+    """
+    input_position = f"{array_name}_input_{input_name}"
+    output_position = f"{array_name}_output_{output_name}"
     accel = board.accel or "none declared"
     arena = arena_start(graph.working_memory_floor)
     inputs = _elements(graph.input_shape)
@@ -100,8 +109,8 @@ int main() {{
     return 1;
   }}
 
-  TfLiteTensor* input = interpreter.input(0);
-  TfLiteTensor* output = interpreter.output(0);
+  TfLiteTensor* input = interpreter.input({input_position});
+  TfLiteTensor* output = interpreter.output({output_position});
   for (;;) {{
     FillInput(input->data.int8, {inputs});
     if (interpreter.Invoke() != kTfLiteOk) {{

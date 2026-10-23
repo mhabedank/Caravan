@@ -39,11 +39,7 @@ def test_fresh_retrains_and_the_report_records_the_bypass(tmp_path) -> None:
     train(manifest, tmp_path)
     report = train(manifest, tmp_path, "--fresh")
 
-    assert [stage["outcome"] for stage in report["stages"]] == [
-        OUTCOME_PRODUCED,
-        OUTCOME_PRODUCED,
-        OUTCOME_PRODUCED,
-    ]
+    assert [stage["outcome"] for stage in report["stages"]] == [OUTCOME_PRODUCED] * 4
     assert all(stage["fresh"] for stage in report["stages"])
 
 
@@ -67,6 +63,7 @@ def test_a_deleted_cached_artifact_causes_a_fresh_run_not_a_failure(tmp_path) ->
     assert outcomes == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
         "train": OUTCOME_PRODUCED,
     }
 
@@ -86,7 +83,7 @@ def test_fresh_leaves_the_cache_usable_for_the_next_run(tmp_path) -> None:
     manifest = prepare(tmp_path)
     train(manifest, tmp_path, "--fresh")
     report = train(manifest, tmp_path)
-    assert [stage["outcome"] for stage in report["stages"]] == [OUTCOME_REUSED] * 3
+    assert [stage["outcome"] for stage in report["stages"]] == [OUTCOME_REUSED] * 4
 
 
 def test_the_cache_directory_is_not_inside_the_run_directory(tmp_path) -> None:

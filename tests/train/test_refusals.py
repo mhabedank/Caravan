@@ -89,7 +89,7 @@ def test_a_refused_run_still_writes_its_report_and_resolved_manifest(tmp_path) -
     assert not (run_dir / TRAINED_MODEL).exists()
     assert not (run_dir / BEST_CHECKPOINT).exists()
     report = report_of(tmp_path)
-    assert [stage["name"] for stage in report["stages"]] == ["data", "build"]
+    assert [stage["name"] for stage in report["stages"]] == ["data", "build", "fit"]
 
 
 def test_nothing_is_cached_for_a_refused_run(tmp_path) -> None:

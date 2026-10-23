@@ -72,7 +72,7 @@ Transform = (mapping) -> (mapping, tuple[MigrationNotice, ...])
 
 `MigrationResult` gains `notices: tuple[MigrationNotice, ...]`. `validate` prints them, `render`
 prints them to stderr so they do not corrupt the YAML on stdout, and the run report carries them
-under `manifest.migration_notices`.
+under `migration_notices` (beside `migrations_applied`).
 
 **Transform `caravan/v0` → `caravan/v0.1`**: see `contracts/manifest.md`, *Migration*. It is a pure
 mapping transform with no I/O and no framework, so it runs in the core like the rest of loading.

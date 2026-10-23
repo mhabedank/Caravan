@@ -5,8 +5,8 @@
 How to see this feature work, and how to see it refuse. Everything here runs on the committed
 synthetic fixture.
 
-Figures marked *to be measured* are deliberately left blank. They are filled in when the code first
-runs, as feature 004 did.
+The figures below were left blank in the plan and filled in from the first run of the code
+(2026-10-23, TF 2.21.0, Keras 3.15.1, ai-edge-litert 2.3.0), as feature 004 did.
 
 ## Prerequisites
 
@@ -63,8 +63,13 @@ Expected in the run directory, in addition to feature 004's set:
 - `resolved.yaml` holding those values in place of `derived`;
 - `model/fit.json`:
   - `provenance: estimated`, with both floors and three `below` verdicts per resource;
-  - flash floor *to be measured*;
-  - RAM floor *to be measured*, and at most the export's floor (feature 004 measured 640 bytes);
+  - flash floor **11,024 bytes** (kernels and biases of `hidden_1`, `hidden_2`, `output`);
+  - RAM floor **352 bytes** (`hidden_1`: 320 in + 32 out), at most the export's floor of
+    **640 bytes**;
+  - the model file is **14,856 bytes**, 8 more than feature 004's 14,848: the signature now
+    carries the declared names `frames` and `attack`;
+  - the input's scale is **8.016**: one int8 step covers 8 units of raw data, so the payload
+    columns (0 to 255) keep about 32 steps. That is the cause of research R11;
 - `model/interface.json`:
   - input `frames` at position 0, output `attack` at position 0;
   - element type `int8`, with scales and zero points read from the file;

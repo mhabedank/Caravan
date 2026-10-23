@@ -40,6 +40,8 @@ def generate(identifier: str = "stm32h743") -> str:
         array_name=array_name("model_data"),
         accelerated=2,
         operators_total=3,
+        input_name="frames",
+        output_name="attack",
     )
 
 
@@ -93,3 +95,13 @@ def test_it_is_deterministic() -> None:
 
 def test_the_clock_reads_as_a_number_a_person_would_write() -> None:
     assert "480 MHz" in generate("stm32h743")
+
+
+def test_it_binds_by_the_named_positions_never_by_a_literal_index() -> None:
+    # Principle VIII in 3.0.0: a runner binds by name. The converter does not keep the declared
+    # order (feature 006, research R4), so a literal 0 would be right only by luck.
+    for identifier in ("s32k144", "stm32h743", "esp32"):
+        text = generate(identifier)
+        assert "input(0)" not in text and "output(0)" not in text
+        assert "interpreter.input(g_model_data_input_frames)" in text
+        assert "interpreter.output(g_model_data_output_attack)" in text

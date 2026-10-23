@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from caravan.export.memory import TensorLifetime, peak_live, read_write_total
+from caravan.manifest.errors import RULE_DECLARED_NAME_NOT_IN_MODEL, run_rule_error
 
 
 @dataclass(frozen=True)
@@ -220,3 +221,105 @@ def _lifetimes(model: Any, graph: Any, widths: dict[int, int]) -> tuple[TensorLi
             )
         )
     return tuple(spans)
+
+
+@dataclass(frozen=True)
+class TensorBinding:
+    """One declared input or output, as the converted model file has it (feature 006).
+
+    ``position`` is what the microcontroller runtime takes — ``MicroInterpreter::input(i)`` indexes
+    subgraph 0's input list by position and reads no signature (tflite-micro ``f7ed40d``, research
+    R5) — and it is found through the signature, never assumed from the declaration, because the
+    converter does not keep the declared order (research R4).
+    """
+
+    name: str
+    role: str
+    position: int
+    tensor_index: int
+    tensor_name: str
+    shape: tuple[int, ...]
+    element_type: str
+    scale: float | None
+    zero_point: int | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "role": self.role,
+            "position": self.position,
+            "tensor_index": self.tensor_index,
+            "tensor_name": self.tensor_name,
+            "shape": list(self.shape),
+            "element_type": self.element_type,
+            "scale": self.scale,
+            "zero_point": self.zero_point,
+        }
+
+
+def read_bindings(
+    path: Path, *, inputs: list[str] | tuple[str, ...], outputs: list[str] | tuple[str, ...]
+) -> tuple[TensorBinding, ...]:
+    """Every declared name, bound to its position in the model file — inputs first, in order.
+
+    A declared name the signature does not carry is refused with rule X-6: the contract binds by
+    that name, and guessing which tensor was meant is exactly the error it exists to prevent.
+    """
+    from ai_edge_litert import schema_py_generated as schema
+
+    data = bytearray(path.read_bytes())
+    model = schema.Model.GetRootAsModel(data, 0)
+    graph = model.Subgraphs(0)
+    type_names = {
+        value: name.lower()
+        for name, value in vars(schema.TensorType).items()
+        if isinstance(value, int) and not name.startswith("_")
+    }
+
+    signature: dict[str, dict[str, int]] = {"input": {}, "output": {}}
+    if model.SignatureDefsLength():
+        definition = model.SignatureDefs(0)
+        for index in range(definition.InputsLength()):
+            entry = definition.Inputs(index)
+            signature["input"][entry.Name().decode("utf-8")] = int(entry.TensorIndex())
+        for index in range(definition.OutputsLength()):
+            entry = definition.Outputs(index)
+            signature["output"][entry.Name().decode("utf-8")] = int(entry.TensorIndex())
+    positions = {
+        "input": [int(graph.Inputs(i)) for i in range(graph.InputsLength())],
+        "output": [int(graph.Outputs(i)) for i in range(graph.OutputsLength())],
+    }
+
+    bindings: list[TensorBinding] = []
+    for role, names in (("input", inputs), ("output", outputs)):
+        for index, name in enumerate(names):
+            tensor_index = signature[role].get(name)
+            if tensor_index is None or tensor_index not in positions[role]:
+                run_rule_error(
+                    RULE_DECLARED_NAME_NOT_IN_MODEL,
+                    f"{role}s[{index}].name",
+                    (
+                        f"the converted model's signature carries no {role} named {name!r}; the "
+                        "interface contract binds by name, so it refuses to guess which tensor "
+                        "was meant"
+                    ),
+                    found=name,
+                    accepted=tuple(sorted(signature[role])),
+                )
+            tensor = graph.Tensors(tensor_index)
+            quantization = tensor.Quantization()
+            quantized = quantization is not None and quantization.ScaleLength() > 0
+            bindings.append(
+                TensorBinding(
+                    name=name,
+                    role=role,
+                    position=positions[role].index(tensor_index),
+                    tensor_index=tensor_index,
+                    tensor_name=(tensor.Name() or b"").decode("utf-8"),
+                    shape=_shape(tensor),
+                    element_type=type_names.get(tensor.Type(), f"type_{tensor.Type()}"),
+                    scale=float(quantization.Scale(0)) if quantized else None,
+                    zero_point=int(quantization.ZeroPoint(0)) if quantized else None,
+                )
+            )
+    return tuple(bindings)

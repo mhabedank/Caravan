@@ -54,6 +54,8 @@ from caravan.stages.base import StageContext, StageSpec, run_stage
 #: writes its record straight into the run directory, so the same read serves both paths.
 METRICS_NAME = "metrics.json"
 QUANTIZATION_NAME = "quantization.json"
+#: The interface contract the export writes (feature 006).
+INTERFACE_NAME = "model/interface.json"
 
 #: Printed after a successful run: the manifest's name, the run directory and what the stages
 #: measured. The name comes first in every line Caravan prints, success or failure, so a log of
@@ -367,6 +369,9 @@ def run_pipeline(
     fit_record = _artifact(run_dir, fit_stage.FIT_RECORD)
     if fit_record:
         report.fit = fit_record
+    interface_record = _artifact(run_dir, INTERFACE_NAME)
+    if interface_record:
+        report.interface = interface_record
     report.artifacts = {
         "resolved_manifest": RESOLVED_MANIFEST_NAME,
         **{Path(artifact).stem: artifact for stage in outcomes for artifact in stage.artifacts},

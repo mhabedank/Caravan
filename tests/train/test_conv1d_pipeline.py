@@ -92,6 +92,7 @@ def test_no_stage_needed_a_special_case(exported) -> None:
     assert [stage["name"] for stage in report["stages"]] == [
         "data",
         "build",
+        "fit",
         "train",
         "quantize",
         "export",

@@ -54,18 +54,21 @@ def edit(manifest, old: str, new: str) -> None:
 ALL_REUSED = {
     "data": OUTCOME_REUSED,
     "build": OUTCOME_REUSED,
+    "fit": OUTCOME_REUSED,
     "train": OUTCOME_REUSED,
     "quantize": OUTCOME_REUSED,
 }
 ALL_PRODUCED = {
     "data": OUTCOME_PRODUCED,
     "build": OUTCOME_PRODUCED,
+    "fit": OUTCOME_PRODUCED,
     "train": OUTCOME_PRODUCED,
     "quantize": OUTCOME_PRODUCED,
 }
 ONLY_QUANTIZE = {
     "data": OUTCOME_REUSED,
     "build": OUTCOME_REUSED,
+    "fit": OUTCOME_REUSED,
     "train": OUTCOME_REUSED,
     "quantize": OUTCOME_PRODUCED,
 }
@@ -86,13 +89,14 @@ def test_renaming_the_model_re_runs_nothing_up_to_quantize(tmp_path) -> None:
     assert quantize(manifest, tmp_path) == ALL_REUSED
 
 
-def test_adding_a_target_board_re_runs_nothing(tmp_path) -> None:
+def test_adding_a_target_board_re_runs_only_the_fit_check(tmp_path) -> None:
     # The case worth having a test for: a board is not an input to the quantized model, so adding
-    # one must not re-quantize. ``export.targets`` is deliberately absent from the read set.
+    # one must not re-quantize or retrain. ``export.targets`` is in the read set of the fit check
+    # before training (feature 006) and of no stage that produces a model.
     manifest = prepare(tmp_path)
     quantize(manifest, tmp_path)
     edit(manifest, "targets: [stm32h743]", "targets: [stm32h743, esp32]")
-    assert quantize(manifest, tmp_path) == ALL_REUSED
+    assert quantize(manifest, tmp_path) == {**ALL_REUSED, "fit": OUTCOME_PRODUCED}
 
 
 def test_changing_the_accepted_drop_re_quantizes_only(tmp_path) -> None:
@@ -102,11 +106,13 @@ def test_changing_the_accepted_drop_re_quantizes_only(tmp_path) -> None:
     assert quantize(manifest, tmp_path) == ONLY_QUANTIZE
 
 
-def test_changing_the_quantization_setting_re_quantizes_only(tmp_path) -> None:
+def test_changing_the_quantization_setting_re_quantizes_and_rechecks_the_fit(tmp_path) -> None:
+    # The fit check reads the quantization too: the floors are counted at the stated element size
+    # (feature 006), so a different setting is a different floor — and still no retraining.
     manifest = prepare(tmp_path)
     quantize(manifest, tmp_path)
     edit(manifest, "quantization: int8", "quantization: none")
-    assert quantize(manifest, tmp_path) == ONLY_QUANTIZE
+    assert quantize(manifest, tmp_path) == {**ONLY_QUANTIZE, "fit": OUTCOME_PRODUCED}
 
 
 def test_changing_the_calibration_count_re_quantizes_only(tmp_path) -> None:

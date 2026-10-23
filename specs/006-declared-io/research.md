@@ -266,7 +266,9 @@ replay`). On the synthetic fixture that model then fails the accuracy gate:
 | migrated previous form, labels as stated | 0.667 | unchanged | pass |
 | new form, labels derived | 0.750 | 0.500 (3 of 12 windows) | **fail** |
 
-**Cause**: not the order itself. The inputs are unscaled: CAN identifiers in the hundreds and
+**Cause**: not the order itself. The inputs are unscaled (the converted model's input scale is
+8.016, measured on the pilot: one int8 step covers 8 units, so the payload bytes keep about 32 of
+256 levels): CAN identifiers in the hundreds and
 payload bytes share one per-tensor int8 input scale, so the small columns lose most of their
 resolution. Which weights a training happens to find decides whether that costs a prediction, and
 on a 12-window test split one prediction is 0.083. The previous form passed by the luck of its

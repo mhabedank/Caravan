@@ -226,7 +226,8 @@ did before.
   - the run report's dataset section gains `input_columns`, `labels`, `labels_source` and
     `ignored_columns`.
 
-  Update the stage lists in `src/caravan/cli/build.py`, `train.py`, `quantize.py` and `export.py`.
+  Done in the pipeline itself rather than in the four verb modules: `run_pipeline` runs `data`
+  ahead of every verb's stages and inserts `fit` after `build`, so the order is defined once.
 - [X] T025 [P] Update `tests/unit/test_cache_key_projection.py` for the new `reads` of every stage,
   including `data`. Add the re-run table of `data-model.md`, *Stages*, as cases (FR-031):
   - changing `outputs[0].accuracy_drop_max` leaves the keys of `data`, `build` and `train`
@@ -287,7 +288,7 @@ new form is refused at its path with its own message.
   `migration_notices`.
 - [X] T033 [US1] In `src/caravan/cli/render.py`, send notices to stderr and the YAML to its usual
   destination unchanged.
-- [X] T034 [US1] In `src/caravan/run/report.py`, add `manifest.migration_notices`, and fill it in
+- [X] T034 [US1] In `src/caravan/run/report.py`, add `migration_notices` (beside `migrations_applied`), and fill it in
   `src/caravan/cli/pipeline.py`, on both the success path and the failure path.
 - [X] T035 [US1] Remove what is left of the compliance layer from `src/`: references in
   `src/caravan/env.py`, `src/caravan/convert/__init__.py`, `src/caravan/manifest/_yaml.py`,
@@ -420,7 +421,7 @@ contract and the header reproduces Caravan's predictions.
 
 ### Tests for User Story 4
 
-- [ ] T052 [P] [US4] Write `tests/unit/test_interface_emit.py` first:
+- [X] T052 [P] [US4] Write `tests/unit/test_interface_emit.py` first:
   - `interface.json` has sorted keys, two-space indentation, a trailing newline, `contract_version`
     1, `model: {name, version}`, `scaling: "none"`, `stride == window`, and `null` scale and zero
     point for float tensors;
@@ -429,41 +430,41 @@ contract and the header reproduces Caravan's predictions.
   - label escaping turns `a"b\c` and `aä` into `"a\x22" "b\x5c" "c"` and `"a\xc3" "\xa4"`;
   - two emissions are byte-identical;
   - the existing `tests/unit/test_c_array_compiles.py` still compiles the header with the additions.
-- [ ] T053 [P] [US4] Write `tests/verify/test_interface_positions.py`: on the regenerated
+- [X] T053 [P] [US4] Write `tests/verify/test_interface_positions.py`: on the regenerated
   `tests/fixtures/models/example-int8.tflite`, `frames` and `attack` resolve to positions read from
   the signature, with shape, `int8`, scale and zero point equal to the tensor's in the file.
-- [ ] T054 [P] [US4] Write `tests/train/test_interface_reordered_outputs.py`: convert a functional
+- [X] T054 [P] [US4] Write `tests/train/test_interface_reordered_outputs.py`: convert a functional
   model with a dict of two outputs through `caravan.convert.tflite.convert`, and assert that the
   binding reader maps each name to the position the subgraph actually uses. This is the research R4
   reversal, kept as a test, because it is the case the whole contract exists for.
-- [ ] T055 [P] [US4] Write `tests/verify/test_interface_contract_alone.py` (SC-005). It reads only
+- [X] T055 [P] [US4] Write `tests/verify/test_interface_contract_alone.py` (SC-005). It reads only
   `model/interface.json` and `model/model_data.h` from an export of the new pilot. For every test
   window of the fixture it builds the int8 input from the raw records, using `columns`, `window`,
   `scale` and `zero_point`, runs `model/model.tflite` in the desktop runtime at the contract's
   `position`, and maps the arg-max to a label from the header. The predictions must equal those in
   Caravan's quantized evaluation.
-- [ ] T056 [P] [US4] Extend `tests/unit/test_skeleton.py`: no generated `main.cc` contains
+- [X] T056 [P] [US4] Extend `tests/unit/test_skeleton.py`: no generated `main.cc` contains
   `input(0)` or `output(0)`; each uses the named constants.
 
 ### Implementation for User Story 4
 
-- [ ] T057 [US4] In `src/caravan/runtime/flatbuffer.py` (`verify`), add `TensorBinding` and
+- [X] T057 [US4] In `src/caravan/runtime/flatbuffer.py` (`verify`), add `TensorBinding` and
   `read_bindings(path, names)`. For each declared name, take the SignatureDef tensor index, its
   position in subgraph 0's input or output list, the tensor name, the shape, the element type (from
   the schema's type table) and the scale and zero point (first quantization entry, or `None`). Raise
   X-6 for a declared name absent from the signature.
-- [ ] T058 [US4] Create `src/caravan/export/interface.py` (core):
+- [X] T058 [US4] Create `src/caravan/export/interface.py` (core):
   - `interface_document(model, bindings, inputs, outputs) -> str`, per `contracts/interface.md`,
     where `model` is the name and version;
   - `c_label_literal(label) -> str` with the escaping rule;
   - `header_additions(array_name, model, bindings, outputs) -> str` and
     `source_additions(array_name, outputs) -> str`.
-- [ ] T059 [US4] In `src/caravan/export/c_array.py`, `header()` and `source()` take optional
+- [X] T059 [US4] In `src/caravan/export/c_array.py`, `header()` and `source()` take optional
   additions text, placed before the include guard's end and after the array respectively. The
   default is empty, so feature 004's outputs and tests are unchanged without it.
-- [ ] T060 [US4] In `src/caravan/export/skeleton.py`, `input(...)` and `output(...)` use the
+- [X] T060 [US4] In `src/caravan/export/skeleton.py`, `input(...)` and `output(...)` use the
   constants from the header; the input and output names are passed in.
-- [ ] T061 [US4] In `src/caravan/stages/export.py`:
+- [X] T061 [US4] In `src/caravan/stages/export.py`:
   - read the bindings;
   - write `model/interface.json` and the C additions, and pass the names to the skeleton;
   - add `model/interface.json` to `artifacts`, listed in `export.json` with size and digest.
@@ -478,16 +479,16 @@ contract and the header reproduces Caravan's predictions.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T062 [P] Extend `tests/layering/test_no_framework_imported.py` and
+- [X] T062 [P] Extend `tests/layering/test_no_framework_imported.py` and
   `tests/layering/test_hostile_import.py` to cover the new core modules: `manifest/schema/io.py`,
   `manifest/schema/removed.py`, `manifest/migrate.py`, `targets/fit.py` and `export/interface.py`.
-- [ ] T063 [P] Update `docs/design/2026-10-23-owner-decisions.md`:
+- [X] T063 [P] Update `docs/design/2026-10-23-owner-decisions.md`:
   - the status line: constitution amended to 3.0.0; D1, D2, D4 (as the declaration form) and R1,
     R2 implemented by feature 006;
   - P5 partly implemented: the interface contract, without input scaling.
-- [ ] T064 Run every quickstart scenario §1–§8 in order. Fill in the figures marked *to be
+- [X] T064 Run every quickstart scenario §1–§8 in order. Fill in the figures marked *to be
   measured* in `specs/006-declared-io/quickstart.md` from the actual run, never from expectation.
-- [ ] T065 Run `uv run ruff check src tests`, `uv run ruff format src tests` and `uv run pytest`,
+- [X] T065 Run `uv run ruff check src tests`, `uv run ruff format src tests` and `uv run pytest`,
   all green, and confirm that the install budget test still holds (no dependency was added).
 
 ---
