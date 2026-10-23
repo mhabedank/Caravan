@@ -1,7 +1,75 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.3.2 → 2.4.0
+Version change: 2.4.0 → 3.0.0
+Bump rationale: MAJOR. Principle VI is redefined incompatibly: the compliance block it made
+mandatory is now forbidden, and the model card leaves the pipeline. Principles I, II, V, VIII and
+X gain rules, and X's test for what may be built is widened. Source: the owner's decisions of
+2026-10-23 (docs/design/2026-10-23-owner-decisions.md, D1–D6) and the two research notes of the
+same date (docs/research/2026-10-23-*.md), plus a question round on four points the decisions
+left open.
+
+The owner ran Caravan from an empty folder and reviewed the manifest. The verdict on compliance
+was "compliance komplett raus": a lean product, with compliance not part of the feature set, and
+a metadata or compliance layer as a possible paid offering on top. Caravan cannot check a licence
+statement, a sensor's units or a permitted use anyway; a field it cannot check and no stage reads
+is cost without return.
+
+Modified principles:
+- I. Declarative Manifest, One Model per File: inputs and outputs are declared with a kind, and
+  the output kind says what the model does (D4); several of each where the runtime supports them;
+  the minimal manifest no longer names compliance; a field no stage reads MUST NOT exist (R1, D2);
+  a value that follows from the data, such as the label set, MUST NOT be required (R2).
+- II. Embedded Targets Only: scope is set by the target, not the domain; images, audio, event
+  sequences such as CAN with timestamps and running windows are named in scope (D5).
+- III. Reproducible by Construction: the caching example no longer mentions compliance text or a
+  model card.
+- IV. Measured, Emulated or Estimated: "model card" replaced by reports and export documentation.
+- V. Budgets Are Gates, Not Warnings: quality budget per declared output; new fit check before
+  training against lower bounds only — it fails when a floor exceeds a board and otherwise
+  records `estimated` figures and is explicitly not the budget gate (D4; question round: "hard on
+  certain failure").
+- VI. Compliance Is Enforced by the Schema → VI. The Data Is the Author's; Caravan Asks Only What
+  It Uses. Compliance layer and model card forbidden; no information required that no stage reads;
+  the author holds the data rights and Caravan never claims to have checked one; project policy
+  sits on top. Kept from the old VI: no datasets, raw data or credentials in the repository;
+  publication as the only uploading stage (D1, D2; question round: "card ganz raus").
+- VIII. No Lock-In: the export MUST carry the interface contract — names and indices, shapes,
+  types, scale and zero point, pre-model transformations, label order — and runners bind by name
+  (research finding: the C array carries only the byte array; question round: "in VIII").
+- X. Built for Real Models: a documented application class (research notes with sources, public
+  dataset or benchmark, shown to run on the target class) is the second accepted justification
+  beside a named model; runtime support alone is not (question round: "belegte Anwendung").
+
+Modified sections:
+- Preamble: the pipeline description gains the fit check and the interface contract and loses
+  the model card; mobility is one domain, not the boundary.
+- Project Scope: the zoo's compliance regime is the zoo's, enforced by its release gate.
+- Pipeline & Artifact Contract: stage list without `card` and with `export`; the card rule is
+  replaced by "no model card; numbers reach a table only through a report".
+- Technical Baseline: model licences are the author's choice, neither assigned nor checked.
+- Resources & Cost Discipline: "model card" in the credential rule becomes "exported artifact".
+- Development Workflow: the publish gate drops compliance and usage class and gains "no dataset,
+  raw data or credential among the files to upload".
+- XII layering list: "card rendering and release records" become "run reports and the interface
+  contract".
+
+Unchanged on purpose: Principle XI (admits no deviation) and the credential and cost rules.
+
+Zoo check: the zoo constitution (v3.0.0) governs zoo releases and keeps its own compliance
+regime; it places no compliance duty on Caravan. Removing compliance here does not conflict.
+
+Follow-up (not done by this amendment):
+- Code: remove the `compliance` section, `dataset.license` and `dataset.permitted_use`, rules
+  CF-3, CF-5 and CF-8 and the compliance parts of `resolve.py`, with a v0 migration note
+  (Principle IX); remove `topic` and `task`; derive labels from data; declared inputs and
+  outputs; the fit check before training; the interface contract in the export.
+- Docs: README (compliance block, model card in the stage list), CONTRIBUTING if it mentions them,
+  and spec texts that cite the old Principle VI.
+- Templates under .specify/templates were not changed (scope of this command).
+- Open: whether the publish stage is still wanted now that there is no card to publish with it.
+
+Previous report: 2.3.2 → 2.4.0
 Bump rationale: MINOR. It narrows what a MUST requires of one stage, after feature 004 found that
 the stage cannot satisfy it and that this document already names the stage that can.
 
@@ -239,17 +307,19 @@ resolved in 2.0.1 as `caravan-ml`.
 # Caravan Constitution
 
 Caravan is an open, declarative pipeline framework for small machine learning models that run on
-microcontrollers and other constrained hardware. One YAML manifest per model describes what is
-to be built; the pipeline does the rest: architecture from a template, training, int8
-quantization, TFLite and C-array export, footprint analysis against a target board, emulated
-verification, hardware benchmark, model card and publication.
+microcontrollers and other constrained hardware. One YAML manifest per model declares the data,
+the model's inputs and outputs and the boards it must fit; the pipeline does the rest:
+architecture from a template, a fit check against the boards before training, training, int8
+quantization, TFLite and C-array export with the model's interface contract, footprint analysis,
+emulated verification, hardware benchmark and, optionally, publication.
 
-Caravan is the build tool for the embedded models of the Mobility Model Zoo
-(https://github.com/mhabedank/mobility-model-zoo) and lives in its own repository under
+Caravan was started as the build tool for the embedded models of the Mobility Model Zoo
+(https://github.com/mhabedank/mobility-model-zoo). It is not a mobility tool: mobility is one
+domain it serves, and the zoo is one of its users. It lives in its own repository under
 Apache-2.0, so that models built with it stay portable and the framework stays usable outside
 the zoo. Its goal is not a better neural architecture search than research projects achieve; its
-goal is a pipeline that is reproducible, honest about its numbers and usable by someone who owns
-one board.
+goal is a lean pipeline that is reproducible, honest about its numbers and usable by someone who
+owns one board.
 
 ## Core Principles
 
@@ -265,23 +335,43 @@ one board.
   framework, not in a per-model script.
 - Notebooks MUST NOT be part of the workflow of any pipeline stage. They MAY be used for
   exploration, and their findings enter the framework as code and tests.
+- The manifest MUST declare the model's inputs and outputs, each with a kind. The output kind
+  states what the model does; there MUST NOT be a separate field that restates it. A manifest MAY
+  declare several inputs and several outputs wherever the target runtime supports them; one input
+  and one output remain the short form.
 - Every field MUST have either a documented default or be required by the schema. A minimal
-  manifest (model, dataset, export, compliance) MUST be sufficient to run the pipeline.
+  manifest — the data, the declared inputs and outputs, the template and the target boards with
+  their budgets — MUST be sufficient to run the pipeline.
+- Every field MUST be read by at least one stage. A field that no stage reads MUST NOT exist,
+  however descriptive it is.
+- A value that follows from the data, such as the set of class labels, MUST NOT be required in the
+  manifest. It MAY be stated to pin it, and the value a run derived MUST be recorded in the
+  resolved manifest of that run.
 - There MUST NOT be a defaults section, an inheritance mechanism or any other way for one part of
   a manifest to set values for another. Defaults resolve from exactly two places: the template
   and the board description.
 
-Rationale: Hand-built models in notebooks are what the framework exists to replace. A manifest
-that can hold code would drift back into the same unreproducible state within two models. The
-ban on a defaults section comes from Ludwig, where type-global defaults overridden per feature
-produced a hierarchy whose own documentation has to warn about repeated type keys, silently
-ignored settings and a scope that covers only part of the configuration.
+Rationale: Hand-built models in notebooks are what the framework exists to replace. A manifest that
+can hold code would drift back into the same unreproducible state within two models. Declared
+inputs and outputs come from Ludwig and are kept because they make plain what a model is for; the
+owner found a manifest without them harder to read than one with them. The rule that every field is
+read by a stage, and that nothing the data already says is asked again, came from the first run
+from an empty folder: two fields no stage read, and a label list that repeated the data, were the
+first things the owner questioned. The ban on a defaults section comes from Ludwig, where
+type-global defaults overridden per feature produced a hierarchy whose own documentation has to
+warn about repeated type keys, silently ignored settings and a scope that covers only part of the
+configuration.
 
 ### II. Embedded Targets Only
 
-- In scope: models that run on microcontrollers and comparable constrained hardware — time series
-  and feature models for CAN bus intrusion detection, GNSS and V2X attack detection, motion and
-  activity recognition, machine condition monitoring, battery state of health, and the like.
+- In scope: models that run on microcontrollers and comparable constrained hardware, in any
+  domain. That includes regular sensor series and running-window models (motion and activity
+  recognition, machine condition monitoring, battery state of health), event sequences such as
+  whole CAN frames with their timestamps (intrusion detection), position and GNSS data, audio
+  (keyword spotting) and images (visual wake words and other small vision models), on the boards
+  whose memory allows them. Mobility is one domain among these, not the boundary.
+- What decides scope is the target, not the domain: a model is in scope when it is meant to run
+  on constrained hardware, and out of scope when it is not.
 - Out of scope, explicitly: cloud, desktop and LLM or text models of the zoo (the `scout` and
   `cairn` families and their successors). They are built and released without Caravan.
 - Out of scope, explicitly: becoming an inference runtime, a SoC or peripheral description
@@ -290,7 +380,10 @@ ignored settings and a scope that covers only part of the configuration.
 
 Rationale: The usable scope is the product. A framework that also tries to be an LLM pipeline
 toolkit serves neither well, and a narrow target class is what makes budgets, footprints and
-board verification meaningful at all.
+board verification meaningful at all. The narrowness belongs to the target, not to the domain:
+the applications that run on microcontrollers — keyword spotting, visual wake words, anomaly
+detection on machine sound and vibration, activity recognition — are the same kind of problem
+whether a car, a machine or a wearable carries the board (research note of 2026-10-23).
 
 ### III. Reproducible by Construction
 
@@ -303,8 +396,8 @@ board verification meaningful at all.
   identifier and version, template identifier, converter and compiler versions, and the date of
   the run.
 - Stage results MUST be cached by a key derived from the manifest fields that stage reads plus
-  the dataset version. A change that a stage does not read MUST NOT invalidate it; editing
-  compliance text or a model card MUST NOT trigger retraining.
+  the dataset version. A change that a stage does not read MUST NOT invalidate it; editing a
+  field that only a later stage reads, such as a budget threshold, MUST NOT trigger retraining.
 - Where the toolchain allows it, repeated runs MUST produce byte-identical exported model files.
   Where it does not, the deviation MUST be documented and the resulting metric variance reported.
 
@@ -319,12 +412,12 @@ pipeline fast enough to use.
   - `estimated` — derived analytically from the model graph, a cost model or a heuristic;
   - `emulated` — produced by a simulator or emulator, with the platform description named;
   - `measured` — produced on a named physical board, with firmware and clock settings recorded.
-- The label MUST appear wherever the number appears: machine-readable run reports, the model card
-  and any published table. A number without a label MUST NOT be rendered.
+- The label MUST appear wherever the number appears: machine-readable run reports, the export's
+  documentation and any published table. A number without a label MUST NOT be rendered.
 - Latency, throughput and energy MUST NOT be reported as `measured` unless they come from a
   physical board. Emulation results MUST NOT be presented as hardware results.
 - Estimates are permitted and useful. Where a measurement for the same model and board exists,
-  the card MUST report the measurement, and MAY report the estimate beside it with its error.
+  a report MUST give the measurement, and MAY give the estimate beside it with its error.
 - A claim that a model fits a board MAY rest on `estimated` or `emulated` evidence only while it
   is labeled as such.
 - A memory figure derived from the model graph is `estimated` by definition, whatever the quality
@@ -334,19 +427,27 @@ pipeline fast enough to use.
   according to where that runtime ran. The generated runner MUST obtain it from the runtime
   rather than recomputing it.
 
-Rationale: The model cards are the product of the zoo, and their value is that the numbers are
-honest. A heuristic estimate is a fine starting point; an unlabeled one is a false measurement.
-The rule for memory is not pessimism about our own analysis: the arena a TFLM model needs cannot
-be derived from the exported file, and the runtime's own report of it is documented to omit
-scratch buffers and the memory planner's working memory, so it can read lower than the smallest
-arena that works. An estimate is therefore the honest ceiling of static analysis, and the margin
-is part of the number.
+Rationale: A number about hardware is only worth as much as its provenance, and the value of
+Caravan's reports is that the numbers are honest. A heuristic estimate is a fine starting point; an
+unlabeled one is a false measurement. The rule for memory is not pessimism about our own analysis:
+the arena a TFLM model needs cannot be derived from the exported file, and the runtime's own report
+of it is documented to omit scratch buffers and the memory planner's working memory, so it can read
+lower than the smallest arena that works. An estimate is therefore the honest ceiling of static
+analysis, and the margin is part of the number.
 
 ### V. Budgets Are Gates, Not Warnings
 
 - Every manifest MUST state the quality and footprint budgets that matter for its model: the
-  maximum accuracy loss accepted from quantization, and the target boards whose memory and flash
-  it must fit.
+  maximum quality loss accepted from quantization, for each declared output, and the target boards
+  whose memory and flash it must fit.
+- Before training, the pipeline MUST check the built model against every target board, using
+  only figures that bound the need from below: the size of the weights at the stated
+  quantization, and the computed floor on working memory (Principle VIII). When a floor exceeds
+  what a board offers, the run MUST fail before training starts, because no training can make
+  that model fit. When it does not, the check records its figures as `estimated` and the run
+  continues; a passing pre-check is not a claim that the model fits, and the footprint gate after
+  quantization and emulation remains the gate. This is the one check that may pass without
+  determining whether the budget holds, and it may do so only because it is not the budget gate.
 - A violated budget MUST fail its stage with a non-zero exit code and a machine-readable reason.
   It MUST NOT be reported as a warning and MUST NOT produce exportable artifacts.
 - Budget thresholds live in the manifest. There MUST NOT be a command-line flag, environment
@@ -367,45 +468,42 @@ becomes a gate that is always silenced, and the budget is the entire reason an e
 built the way it is. Peak memory is named with its layer because it is concentrated, not spread:
 in most convolutional designs the first few blocks use an order of magnitude more memory than the
 rest, so one early tensor decides whether a model fits, and that tensor is the only thing a
-contributor can act on.
+contributor can act on. The check before training exists because Caravan knows the boards: the
+owner's point was that a model with several inputs or an image input may simply not fit, that
+this is for the author to evaluate rather than for the framework to forbid, and that the
+framework can say so before anyone spends the training time. Checking against lower bounds only
+keeps that early verdict honest — a model it stops cannot fit, and a model it passes is still
+owed the real gate.
 
-### VI. Compliance Is Enforced by the Schema
+### VI. The Data Is the Author's; Caravan Asks Only What It Uses
 
-- The compliance block is a required part of every manifest: risk class, privacy class, intended
-  use and known limits. A manifest without it is invalid, not merely incomplete.
-- A publish stage MUST refuse any model whose compliance block is missing or whose required
-  fields are empty, and MUST refuse before any network call is made.
-- Restrictions carry over from inputs to the model: the usage class of a model is the most
-  restrictive of its training data, base model, teacher outputs and third-party models. Caravan
-  MUST derive the usage class from what the manifest states about those inputs, MUST write it into
-  the model card and release record, and MUST NOT allow publication under a license less
-  restrictive than the class it derives. Where an input's terms are unstated, the usage class is
-  `unknown`, and Caravan MUST mark it `unknown` wherever it appears rather than assume the
-  author's chosen license is supported.
-- Responsibility for the rights to the data lies with whoever brings the data. Caravan MUST
-  require the author to **state** what their data permits; it MUST NOT require that the statement
-  resolve against a declaration registry, because demanding one project's compliance machinery of
-  every user is a form of lock-in (Principle VIII) and would put a framework between a user and
-  their own data.
-- What Caravan does enforce is the author's own statements, which costs a user nothing who makes
-  none: a dataset the manifest marks as not permitted for training MUST NOT be usable as training
-  data by any stage, and a model trained on it MUST NOT be publishable. An unstated term is
-  reported as unverified, in the run report and on the model card, and MUST NOT be rendered as a
-  checked fact.
-- A project MAY require more of itself — resolution against its own declarations, a licence
-  whitelist, a review step — and MUST be able to express that as its own policy on top of
-  Caravan. Caravan MUST NOT hard-code one project's policy as the framework's rule.
-- Datasets, raw source data and credentials MUST NOT be stored in the repository.
+- Caravan MUST NOT contain a compliance layer: no risk or privacy class, no intended-use or
+  known-limits fields, no licence or permitted-use fields, no usage-class derivation and no model
+  card. Caravan produces models, run reports and exports, and nothing that certifies them.
+- Caravan MUST NOT require of the author any information about the data that no stage reads —
+  units, sensor metadata, provenance records or descriptions included (Principle I). What a stage
+  needs, it asks for; what a stage can observe in the data, it measures and reports, and MUST NOT
+  turn into a requirement.
+- Responsibility for the rights to the data, and for the use of a model trained on it, lies with
+  whoever brings the data. Caravan MUST NOT claim, in a report, a log, an export or a published
+  artifact, to have checked a licence, a permission or a use.
+- A project MAY add its own policy on top of Caravan — declarations, licence rules, a review step,
+  a model card — and MUST be able to do so without editing Caravan. Caravan MUST NOT hard-code one
+  project's policy as the framework's rule.
+- Datasets, raw source data and credentials MUST NOT be stored in the repository. Small
+  synthetic test fixtures are the only data the repository carries.
 - Publication MUST be an explicit, separately invoked stage. No other stage may upload anything.
 
-Rationale: "Compliance comes first" only holds if it is mechanical. A required schema field is
-checked on every run by every contributor; a review checklist is checked when someone remembers.
-But mechanical is not the same as omniscient, and the line between them is what the framework may
-honestly claim. Caravan cannot know whether a licence statement is true, so it does not pretend to
-check one: it insists the author says something, holds them to what they said, and marks the rest
-as unverified so that nobody downstream mistakes silence for a clean bill. The zoo's stricter
-regime — declarations with origin, licence and permitted use, resolved before a dataset may be
-used — remains the zoo's, enforced by the zoo's own release gate, where it belongs.
+Rationale: The owner wants a lean product, and a tool that demands compliance work before it does
+anything useful is not used — at least not at first. Caravan also cannot know a user's data:
+whether a licence statement is true, what a sensor's units were, or who may use the result. A
+field it cannot check and no stage reads is work for the user with nothing in return, and a
+compliance block that looks checked is worse than none, because downstream readers mistake it for
+a clean bill. Compliance is therefore a layer above Caravan, not a part of it: the zoo keeps its
+own regime — declarations, usage classes, model cards — enforced by its own release gate, and a
+compliance layer for other users is a candidate for a separate offering. What stays here are the
+two rules that protect the project itself: no data and no credentials in the repository, and no
+upload except by the one stage that is asked to.
 
 ### VII. Targets and Templates Are Data, Not Forks
 
@@ -447,6 +545,13 @@ also lets a contributor find out what hardware a model needs before buying any.
   as the figure a target requires: the runtime plans that memory with its own allocator on the
   target, so the required figure is established by emulated verification (see Verification), and
   the export MUST say so beside the floor.
+- The export MUST carry the model's interface contract in a plain, documented form readable
+  without Caravan: every input and output by name with its index in the converted model, its
+  shape and element type, its quantization scale and zero point, every transformation Caravan
+  applies to raw data before the model (scaling, window length and stride, channel order) —
+  stated as none where there is none — and the order of the class labels of every class output.
+  A runner MUST bind inputs and outputs by name, never by position alone, because the converter
+  does not guarantee to keep the declared order.
 - No stage required to build, train, quantize, export, analyze or verify a model may depend on a
   hosted service. Publication to a model hub is optional and is the only stage allowed to require
   network access.
@@ -454,8 +559,12 @@ also lets a contributor find out what hardware a model needs before buying any.
   registration.
 
 Rationale: The zoo's models are meant to run on the user's own hardware; a build tool that binds
-them to a service would undo that at the source. It is also the difference between this framework
-and the commercial tools it is an alternative to.
+them to a service would undo that at the source. It is also the difference between this
+framework and the commercial tools it is an alternative to. Portability can fail without any
+service, too: a byte array whose label order and input scaling live only in Caravan's run
+directory is a model nobody else can feed correctly. The C array export of feature 004 carries
+the byte array and its length and nothing else (checked 2026-10-23), so the contract is required
+here rather than left to each runner.
 
 ### IX. Stable Manifest Contract
 
@@ -486,18 +595,29 @@ is needed.
 
 ### X. Built for Real Models
 
-- Every stage, template, board description and manifest field MUST be driven by a named model
-  that needs it, in the zoo or from a named external need. Speculative generality MUST NOT be
-  built.
+- Every stage, template, input or output kind, board description and manifest field MUST be
+  justified by one of two things, named in its spec:
+  1. a named model that needs it, in the zoo or elsewhere; or
+  2. a documented application class: a use that is shown to run on the target class of hardware,
+     with a public dataset or benchmark for it, recorded in the project's research notes with its
+     sources.
+  Speculative generality — a capability justified by neither — MUST NOT be built.
+- A capability the target runtime supports is in reach, not in scope: runtime support makes a
+  feature possible, and an application or a model makes it due.
 - `picket-mlp` is the pilot model. The first version of the framework is complete when that model
   is built, exported and documented entirely through the pipeline.
-- A shared abstraction MUST be extracted only when a second model needs it, not in advance.
+- A shared abstraction MUST be extracted only when a second model or a second application class
+  needs it, not in advance.
 - A feature whose only justification is parity with another tool MUST be rejected.
 - Scope creep is a constitution matter: a change that widens the framework beyond the stages and
   targets its roadmap names MUST be justified in its spec against Principle II.
 
 Rationale: A framework built ahead of its users fits none of them. Growing it against one real
-model at a time is also what keeps the first release reachable.
+model at a time is also what keeps the first release reachable. A tool meant for more than one
+domain cannot wait for its own author to build a model in every one, so a documented application
+is accepted as the second kind of need — documented, because "someone might want it" is what
+speculative generality always says. The applications researched on 2026-10-23 (MLPerf Tiny's
+four tasks and the uses around them) are the first entries.
 
 ### XI. No Claude in Model Learning or Extraction
 
@@ -529,7 +649,7 @@ builds models must make that ban structural, not a matter of how each user happe
   and the project MUST have at most four optional extras, grouped by stage (training,
   verification, benchmarking, publication).
 - Layering: manifest validation, the board database, footprint analysis, the requirement record,
-  card rendering and release records MUST NOT import a training framework. Training and
+  run reports and the interface contract MUST NOT import a training framework. Training and
   quantization live behind an optional extra. A test MUST assert that importing the core does not
   import the training framework, and MUST fail the build when it does.
 - Install budget: a cold installation of the default package into a clean environment MUST stay
@@ -588,14 +708,18 @@ integration that drags the core along with it is a defect, not a feature.
   governs and the stricter rule wins. Caravan's constitution MUST NOT be amended into conflict
   with it; if a conflict appears, the amendment is rejected and reported.
 - Caravan MAY be used outside the zoo. Features that only the zoo needs belong in the zoo.
+- The zoo's compliance regime — data declarations, usage classes, licences, model cards and
+  release records — belongs to the zoo and is enforced by the zoo's own release gate on what
+  Caravan produces. Caravan carries none of it (Principle VI), which is not a conflict with the
+  zoo constitution: the zoo's stricter rules still govern every zoo release.
 - The framework proceeds iteratively: each version delivers one usable step of the pipeline, and
   each step is exercised end to end by the pilot model before the next is added.
 
 ## Pipeline & Artifact Contract
 
-- The pipeline is a sequence of stages: build, train, quantize, analyze, verify, bench, card,
-  publish. Each stage MUST be separately invocable and MUST be resumable from the artifacts of the
-  stage before it.
+- The pipeline is a sequence of stages: build (with the fit check before training), train,
+  quantize, export, analyze, verify, bench, publish. Each stage MUST be separately invocable and
+  MUST be resumable from the artifacts of the stage before it.
 - A stage MUST declare the artifacts it reads and writes. Communication between stages goes
   through declared artifacts on disk, never through hidden global state.
 - Every run MUST write a machine-readable report containing its inputs, its provenance record
@@ -605,8 +729,8 @@ integration that drags the core along with it is a defect, not a feature.
   not an optional command, so that two runs can be compared field by field.
 - The command line interface is the contract for users and for continuous integration. Its exit
   codes MUST distinguish a failed gate from a crash.
-- The model card MUST be rendered from the manifest and the run reports. A card MUST NOT be
-  hand-edited into a release, and a number MUST NOT reach a card except through a report.
+- Caravan renders no model card (Principle VI). A number Caravan reports MUST reach any table it
+  publishes only through a run report, never typed in by a person.
 - A failed gate MUST leave no publishable artifact behind.
 
 ## Target Hardware & the Verification Ladder
@@ -675,8 +799,9 @@ These choices are architectural and apply until amended with a stated rationale:
   3.13 and 3.14 (feature 003), so this stage is not tied to the conversion's single version.
 - Hyperparameter search, when introduced, treats the board budget as a constraint rather than an
   objective, and is bounded by the roadmap, not by research ambition.
-- License: Apache-2.0 for the framework, so that both framework and models stay commercially
-  usable; model licenses follow Principle VI.
+- License: Apache-2.0 for the framework, so that it stays commercially usable. The licence of a
+  model built with Caravan is its author's choice; Caravan neither assigns nor checks one
+  (Principle VI).
 - The command line application is named `caravan`; the distribution on the package index is
   named `caravan-ml`. The bare name is held by an unrelated project whose last release was in
   2015, and reclaiming it is not a dependency of any release.
@@ -692,7 +817,7 @@ These choices are architectural and apply until amended with a stated rationale:
   already owned are used before new ones are acquired.
 - Credentials for publication MUST come from the environment of the run. A stage MUST fail if it
   finds credentials in the repository, in a manifest or in a board description, and MUST NOT
-  write a credential into a report, a log or a model card.
+  write a credential into a report, a log or an exported artifact.
 - Every spec that incurs cash cost MUST state a cash budget, and any key used MUST carry a hard
   spending limit at or below it.
 
@@ -714,9 +839,9 @@ These choices are architectural and apply until amended with a stated rationale:
 - Gate before a framework release: the version follows semantic versioning, the manifest schema
   compatibility statement is present, migration notes exist for every breaking schema change, and
   the pilot manifest runs green.
-- Gate before the publish stage runs: compliance complete, usage class derived and no less
-  restrictive than the chosen license, all budget gates passed, provenance labels present, and
-  credentials supplied by the environment.
+- Gate before the publish stage runs: all budget gates passed, provenance labels present, no
+  dataset, raw source data or credential among the files to upload, and credentials supplied by
+  the environment.
 - Gate before any labeling, data generation or evaluation run: no model in the run is Claude
   (Principle XI).
 - Any deviation from a principle MUST be documented in the plan with a rationale and the simpler
@@ -738,4 +863,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 2.4.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 3.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-23
