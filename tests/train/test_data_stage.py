@@ -33,6 +33,7 @@ def declared(columns=DERIVED, column="label", labels=DERIVED) -> dict:
         "outputs[0].kind": "class",
         "outputs[0].column": column,
         "outputs[0].labels": labels,
+        "dataset.split.column": None,
     }
 
 
@@ -129,6 +130,7 @@ def test_a_reused_data_stage_reads_no_records(tmp_path) -> None:
     resolved = {
         "inputs": [{"kind": "series", "columns": DERIVED}],
         "outputs": [{"kind": "class", "column": "label", "labels": DERIVED}],
+        "dataset": {"split": {"column": None}},
     }
     cache = tmp_path / "cache"
     for attempt in ("first", "second"):
