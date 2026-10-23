@@ -1,7 +1,35 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 3.0.0 → 4.0.0
+Version change: 4.0.0 → 4.1.0
+Bump rationale: MINOR. Resources & Cost Discipline gains rules on continuous-integration minutes,
+and the Development Workflow gains a gate before a pull request is opened. No principle is removed
+or redefined. Source: the owner, 2026-10-23: "nicht so häufig PRs anlegen, um meine GitHub-Minuten
+zu sparen. Das macht null Sinn für Dokumentation. Ich glaube auch, es ist billiger, erst alles zu
+bauen, dann PR zu machen."
+
+What it costs today: the CI workflow runs on every push to an open pull request and to `main`,
+nine jobs each time, one of them about five minutes of training. A feature that opened its pull
+request with the spec ran the whole matrix for every spec, plan, task and analysis commit, none of
+which touched code.
+
+Modified sections:
+- Resources & Cost Discipline: CI minutes are a cost; one pull request per feature, opened when the
+  implementation is built and validated locally; documentation-only changes run no CI; pushes to
+  an open pull request are batched.
+- Development Workflow & Quality Gates: a gate before opening a pull request.
+
+Added sections: none. Removed sections: none. Unchanged on purpose: every merge gate (the pilot end
+to end in CI, the layering test, the install budget) — CI still runs once per pull request and on
+`main`, only not for every intermediate commit.
+
+Follow-up (not done by this amendment):
+- .github/workflows/ci.yml: ignore documentation-only paths (`specs/**`, `docs/**`, `**/*.md`,
+  `.specify/**`) on both triggers.
+- Feature 007 (PR #12, opened at the spec stage under the old practice): from now on, push to it
+  only in batches of validated work.
+
+Previous report: 3.0.0 → 4.0.0
 Bump rationale: MAJOR. Principle IX is redefined incompatibly: the migration it required for every
 schema version is no longer required before Caravan 1.0.0. Source: the owner's decision of
 2026-10-23 — "wir machen erst eine backward compatibility, wenn wir bewusst auf 1.0.0 sind, vorher
@@ -863,6 +891,16 @@ These choices are architectural and apply until amended with a stated rationale:
   write a credential into a report, a log or an exported artifact.
 - Every spec that incurs cash cost MUST state a cash budget, and any key used MUST carry a hard
   spending limit at or below it.
+- Continuous-integration minutes are a cost and are spent where they verify code:
+  - one pull request per feature, opened when its implementation is built and the local validation
+    (lint, format, the whole suite in the environments of the CI matrix) has passed. Spec, plan,
+    tasks and analysis are committed and pushed to the feature branch without a pull request;
+  - a change that touches only documentation (specs, `docs/`, Markdown, the constitution) MUST NOT
+    trigger CI. It rides with the feature it belongs to, or several are merged in one pull request;
+  - pushes to an open pull request are batched: one validated push per round of fixes or review
+    answers, not one per fix;
+  - the release workflow on a tag and a fix for a red pull request are not batched away; they run
+    when they are needed.
 
 ## Development Workflow & Quality Gates
 
@@ -877,6 +915,9 @@ These choices are architectural and apply until amended with a stated rationale:
   and that it does not constrain the Python policy (Principle XII).
 - Gate before adding a board description: every field the implemented stages read is present, and
   the source of each value is recorded.
+- Gate before opening a pull request: the feature's tasks are implemented, the local validation
+  has passed, and the branch carries the feature's spec, plan and tasks with it (Resources & Cost
+  Discipline).
 - Gate before reporting a number: the number carries its provenance label (Principle IV) and
   comes from a run report, not from a person.
 - Gate before a framework release: the version follows semantic versioning, a change note exists
@@ -906,4 +947,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 4.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-23
+**Version**: 4.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-23
