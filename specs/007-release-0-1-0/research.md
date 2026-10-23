@@ -171,6 +171,94 @@ every breaking schema change; the pilot manifest green. For 0.1.0:
 
 The gate is recorded in the release note as a checklist with the workflow run that proved each item.
 
-## R8. The `pace-cnn` port
+## R8. What porting `pace-cnn` needs, and what Caravan cannot do yet
 
-*Filled in from the investigation of the zoo; see below.*
+Source: the zoo's release record and trainer for `pace-cnn` 0.1.0
+(`zoo/models/pace-cnn/`, `configs/condition-monitoring/activity/pace-cnn.yaml`,
+`src/mobility_model_zoo/condition_monitoring/activity/train.py`,
+`topics/condition-monitoring/benchmarks/uci-har-v1/manifest.json`), read 2026-10-23.
+
+**What the zoo built.**
+- **Data.** UCI HAR (UCI id 240), the dataset's own pre-cut windows of 128 samples at 50 Hz, 50 %
+  overlap, 9 channels (body acceleration, body gyroscope and total acceleration, each x, y, z).
+- **Normalisation.** Per-channel standardisation with the mean and standard deviation of the
+  training subjects.
+- **Labels.** Six classes.
+- **Split.** By subject: the official test subjects (2,947 windows); 3 of the 21 training subjects,
+  drawn with seed 2026, for validation.
+- **Model.** Three convolution blocks (16, 32, 32 filters; kernels 5, 5, 3; `same` padding; no
+  bias; batch normalisation; max pooling 2, 2, then a global average), dropout 0.3 before the dense
+  layer.
+- **Training.** 20 epochs, batch 128, Adam with a cosine-decayed learning rate from 2e-3, no early
+  stopping, seed 0.
+- **Quantisation.** int8 calibrated on the first 500 training windows.
+- **Published.** int8 macro-F1 0.9229 and accuracy 0.9230 on 2,947 test windows (host, bit-exact
+  int8 reference); model file 14,472 bytes.
+
+**Mismatches, and what each means for the port.**
+
+| # | Mismatch | Consequence | Decision for 0.1.0 |
+|---|---|---|---|
+| 1 | The split is by subject and fixed; Caravan splits windows at random | With 50 % overlapping windows a random split puts the same samples in training and test; the test score would be meaningless | **Add a fixed split** (R9) — owner decision 2026-10-23 |
+| 2 | The raw files are whitespace-separated, one window per row, no header | Caravan cannot read them | A converter writes one CSV row per time step, 128 rows per window, with a `label` and a `split` column |
+| 3 | Per-channel standardisation; Caravan scales nothing (P5) | Unscaled, the int8 input scale is shared across channels of different ranges (the cause of R11 in feature 006) | The converter writes standardised values with the training subjects' statistics, the zoo's own; the model's input contract then expects standardised input, which the port's record states |
+| 4 | Dropout after the pooling head; Caravan's dropout is per block | A different regularisation | Accepted and recorded; no template change for one port |
+| 5 | Cosine learning-rate decay; Caravan's rate is constant | A different optimisation path | Accepted and recorded; `learning_rate: 0.002` |
+| 6 | Convolutions without bias | Folded into batch normalisation either way | Accepted |
+| 7 | Calibration on the first 500 windows; Caravan draws a seeded sample | Different activation ranges | Accepted; `representative_samples: 500` |
+| 8 | Labels | Sorted as text if derived | Pinned in the dataset's order |
+
+Each accepted difference makes the port a different recipe for the same task, not a replica. That
+is its purpose: Caravan meeting a real model's data, sizes and classes. Its numbers are compared
+with the published ones, and are not expected to equal them.
+
+**Licence.** The archive's own README says "Any commercial use is prohibited", while the zoo
+registers the dataset for commercial use (its spec 021, FR-027). Owner decision (2026-10-23): the
+port runs as an internal test of Caravan only, and nothing it produces is published. The
+contradiction is the zoo's to resolve; Caravan records it and changes nothing in the zoo.
+
+**Data in a session.** The zoo's cache is empty here. A copy of the archive exists in this session's
+scratch directory, matching the archive hash in the zoo's benchmark manifest. Scratch does not
+outlive the session. The converter therefore takes the archive's path and verifies its hash, so any
+copy works and none is committed.
+
+## R9. A fixed split
+
+**Decision.** `dataset.split` takes a second form, modelled on Ludwig's fixed split:
+
+```yaml
+dataset:
+  split:
+    column: split        # each record says train, val or test
+```
+
+- **Values.** The named column holds `train`, `val` or `test` in every record.
+- **Windows.** A window takes the part its records name. A window whose records name different
+  parts is discarded and counted (`windows_discarded_mixed_split`), exactly like a window whose
+  records disagree on the label.
+- **Not an input.** The column is never an input column: it is excluded when the input columns are
+  derived, and a declaration that names it is refused.
+- **Exclusive with fractions.** With `column`, the fractions and `stratified` are not accepted: the
+  data decides, and a second source of truth would be ignored silently.
+- **No empty parts.** Every part must receive at least one window, as with fractions.
+- **Calibration** still draws from the training part only.
+
+New rules:
+- **CF-12** (manifest): fractions or `stratified` stated together with `column`.
+- **CF-13** (manifest): the split column is also an input or output column.
+- **DS-13** (run): the split column is missing from the data, or holds a value other than the
+  three names.
+
+An empty part reuses the existing empty-split rule.
+
+**Rationale.** Principle X: a named model, `pace-cnn`, needs it now, and so does every dataset that
+separates subjects, vehicles or sessions — the common case in the applications researched on
+2026-10-23. A column keeps the split with the data it belongs to and survives file reorganisation;
+a directory layout would tie the split to file paths and to the order files are concatenated.
+
+**Alternatives considered.**
+- *Directories `train/`, `val/`, `test/`.* Rejected for the reason above, and because Caravan reads
+  every file under the source recursively today.
+- *A split by group (a `subject` column, parts drawn at random by group).* Rejected for now: it is
+  the more general tool, but `pace-cnn` needs the zoo's exact subjects to be comparable, which only
+  a fixed split gives. It can come when a model needs it.

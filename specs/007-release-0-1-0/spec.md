@@ -132,8 +132,9 @@ limit is real.
 
 ### User Story 4 - The zoo rebuilds `pace-cnn` with the candidate before 0.1.0 (Priority: P2)
 
-The zoo pins the release candidate and rebuilds its published IMU activity model `pace-cnn` through
-Caravan, from its own manifest and its real data. 0.1.0 is released only when that run succeeds,
+A release candidate is pinned and the zoo's published IMU activity model `pace-cnn` is rebuilt
+through Caravan on its real data, with the zoo's split by subject (FR-017), as an internal test
+(FR-020). 0.1.0 is released only when that run succeeds,
 so the first release has been used for a real model, not only for the synthetic fixture.
 
 **Why this priority**: It is the owner's decision (2026-10-23) and the roadmap's last condition for
@@ -221,6 +222,18 @@ same task, same boards, accuracy and size recorded with their provenance.
 - **FR-013**: A release note MUST state what 0.1.0 does, on which Python versions each part runs,
   and its known limits, at least those named in User Story 3, scenario 3.
 
+**A fixed split** (owner decision 2026-10-23, after research R8)
+
+- **FR-017**: A manifest MUST be able to let the data decide the split: `dataset.split.column` names
+  a column whose value in every record is `train`, `val` or `test`. A window takes the part its
+  records name; a window whose records name different parts MUST be discarded and counted in the
+  run report, like a window whose records disagree on the label.
+- **FR-018**: With a fixed split, the fractions and `stratified` MUST NOT be stated, the split column
+  MUST NOT be an input or output column, and it MUST be left out when the input columns are
+  derived. Each violation is refused with its own rule at validation.
+- **FR-019**: A split column missing from the data, a value other than the three names, or a part
+  that receives no window MUST stop the run with a finding naming the column and the value.
+
 **The port before the release**
 
 - **FR-014**: `v0.1.0` MUST NOT be tagged before the `pace-cnn` port in the zoo has run with a
@@ -230,8 +243,13 @@ same task, same boards, accuracy and size recorded with their provenance.
   `v0.1.0`; a finding that is not a Caravan defect MUST be recorded in the release note as what the
   port showed.
 - **FR-016**: The port's data, raw source data and any credential MUST NOT enter either repository
-  (constitution). The port is done under the zoo's own rules; this feature covers Caravan's side:
-  the candidate, the fixes and the release.
+  (constitution). The converter and the manifest of the port are kept in this repository, so the
+  port can be repeated; the data is read from wherever the author keeps the archive, verified by
+  its hash.
+- **FR-020**: The port is an internal test of Caravan (owner decision 2026-10-23): nothing it
+  produces is published, and the zoo is not changed by it. The contradiction between the dataset's
+  own licence text ("Any commercial use is prohibited") and the zoo's registration of it for
+  commercial use is recorded as an open item for the zoo.
 
 ### Key Entities
 
@@ -264,8 +282,11 @@ same task, same boards, accuracy and size recorded with their provenance.
 - **Not waiting for the Python floor.** Releasing at `>=3.13` is honest because 3.13, 3.14 and 3.15
   are all tested; the floor rises in a later release when a stable training framework ships for
   3.14.
-- **Waiting for the `pace-cnn` port** (owner decision, 2026-10-23). The port itself is work in the
-  zoo, with the real data, under the zoo's rules; it pins a Caravan candidate. Its data must be
+- **Waiting for the `pace-cnn` port** (owner decision, 2026-10-23). The port pins a Caravan
+  candidate and runs on the zoo's dataset; it is an internal test, not a zoo release (FR-020).
+  It reproduces the task, not the exact recipe: the differences Caravan cannot express in 0.1.0
+  (dropout placement, a learning-rate schedule, calibration order) are accepted and recorded
+  (research R8). Its data must be
   obtainable by the zoo's author; if it is not available in a session, the port waits for the
   author, and so does `v0.1.0`, while the candidate stays usable for trying by hand.
 - **Export without the training framework is deferred** (owner decision, 2026-10-23) and is a
@@ -287,6 +308,7 @@ same task, same boards, accuracy and size recorded with their provenance.
 | Principle | How this feature complies |
 |---|---|
 | III — reproducible | the version in every provenance record is the tagged one (FR-001); the package is checked as built from the tag (FR-003) |
+| VI — the data is the author's | Caravan does not judge the dataset's licence; the owner decided the port is internal only, and the contradiction is handed to the zoo (FR-020) |
 | X — a named model drives it | the first release is exercised on the named model `pace-cnn` before it ships (FR-014) |
 | IV — provenance | every number in the guide and release note comes from a run (SC-003); limits stated (FR-013) |
 | IX — manifest contract | change note for `caravan/v0` → `caravan/v0.1` is part of the gate (FR-004); no migration before 1.0.0 |
