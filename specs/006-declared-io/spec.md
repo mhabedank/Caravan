@@ -147,46 +147,6 @@ name. Compare with what Caravan did.
 4. **Given** the same quantized model exported twice, **When** the contracts and headers are
    compared, **Then** they are byte for byte identical.
 
----
-
-### User Story 5 - Several inputs and several outputs (Priority: P2)
-
-An author declares more than one input, more than one output, or both. Each input reads its own
-columns of the same records and gets its own branch of the network, built from a template the
-author chooses for it; the branches are joined; each output gets its own head. Each output has its
-own quality budget, and the accuracy gate checks every output. The fit check, the stage cache and
-the interface contract cover the whole model with all its inputs and outputs.
-
-**Why this priority**: It is decision D4 — "if the runtime supports it, we do it; whether it fits
-the board is for the fit check to say" — and the owner chose to build it now rather than only the
-declaration form. Principle X in 3.0.0 asks for a documented application class to justify it; the
-justification is recorded in the research notes named in the Assumptions.
-
-**Independent Test**: On the synthetic fixture, declare two `series` inputs over disjoint columns
-(the CAN identifier and length in one, the payload bytes in the other) and two `class` outputs
-(the attack label, and a second label column derived deterministically from the first for the
-test). Build, train, quantize and export. The converted model has two input and two output tensors,
-the contract maps each by name to its index, the accuracy gate reports a result per output, and
-the fit check reports the whole model.
-
-**Acceptance Scenarios**:
-
-1. **Given** two inputs and two outputs, **When** the model is built, **Then** it has one branch
-   per input, one head per output, and the built model's input and output names are the declared
-   names.
-2. **Given** two outputs with different quality budgets, **When** the quantized model is gated,
-   **Then** each output is measured on the test split against its own float result and its own
-   budget, both numbers are recorded per output, and the run fails if any output exceeds its
-   budget, emitting the per-layer error table for each failing output.
-3. **Given** a converted model whose tensor order differs from the declared order, **When** the
-   contract is written, **Then** it maps each declared name to the index the converted model
-   actually uses.
-4. **Given** two outputs, **When** a window's records disagree about either output's label,
-   **Then** the window is discarded and counted, per output, as mixed windows are today.
-5. **Given** a manifest with one input and one output, **When** it is built, **Then** the model is
-   the same as a model built before this feature from the equivalent previous-form manifest
-   (FR-016).
-
 ### Edge Cases
 
 - The output column also appears in an input's column list: rejected at validation, because a
@@ -205,16 +165,11 @@ the fit check reports the whole model.
 - A quantization of `none` or `float16`: the weight floor uses the size of the stated element type.
 - A previous-form manifest that declares no schema version: treated as the oldest version and
   migrated, as today.
-- Two declarations with the same name, or two outputs reading the same column: rejected at
-  validation, because names are what a runner binds by and a column is one answer.
-- Two inputs reading the same column: rejected at validation; a column feeds one branch.
-- Several inputs that name no columns: rejected, because the remaining columns cannot be divided
-  between them; at most one input may take the remaining columns.
-- Several windowed inputs with different window lengths: rejected in this feature with the
-  lengths found, because a sample is one span of records for every input; differing spans need a
-  rule for aligning them that no named model or application asks for yet.
-- A stratified split with several class outputs: strata are the combinations of labels, so a rare
-  combination that runs out is named in the empty-split finding (DS-8).
+- An input and an output with the same name: rejected at validation, because names are what a
+  runner binds by.
+- A second input or a second output: rejected at validation with the message that one of each is
+  implemented, and why — Principle X, and the research note that found no documented
+  microcontroller application for several series inputs or class outputs.
 
 ## Requirements *(mandatory)*
 
@@ -251,8 +206,8 @@ the fit check reports the whole model.
   read as records in sequence, with an optional window length — and the output kind `class` —
   one column of the data whose values are class names, one class per sample. Every other kind
   MUST be rejected at validation with the kinds that are implemented.
-- **FR-009**: An input MAY name its columns. At most one input MAY name none; its columns MUST be
-  every column of the data not used by an output or another input, in file order.
+- **FR-009**: An input MAY name its columns. When it names none, its columns MUST be every column
+  of the data not used by the output, in file order.
 - **FR-010**: A `class` output MUST name its column; it MUST default to `label`, the column the
   data contract names today.
 - **FR-011**: A `class` output MAY state its labels to pin their order. When it states none, a run
@@ -267,10 +222,8 @@ the fit check reports the whole model.
 - **FR-014**: The window MUST belong to the `series` input. The existing rule that a windowed
   template needs a window and an unwindowed one must not have one (CF-6) MUST apply to it.
   Windows remain non-overlapping; their stride equals their length and is recorded as such.
-  Every windowed input of one manifest MUST have the same window length.
-- **FR-015**: A column MUST be read by at most one declaration: never by an input and an output,
-  never by two inputs, never by two outputs. Declaration names MUST be unique across inputs and
-  outputs.
+- **FR-015**: A column MUST NOT be both an input column and an output column. Declaration names
+  MUST be unique across inputs and outputs.
 - **FR-016**: For the pilot model, the new form and the migrated previous form MUST produce the
   same samples, the same split and the same trained model under the same seed.
 
@@ -307,40 +260,23 @@ the fit check reports the whole model.
   quantized model, and MUST be listed in the export report with size and digest like every other
   artifact.
 
-**Several inputs and outputs**
+**One of each, in a form that holds more**
 
-- **FR-028**: A manifest MAY declare several inputs and several outputs. A manifest with one input
-  and one output MUST remain expressible as briefly as in User Story 2.
-- **FR-029**: The author MUST be able to choose, for each input, the registered template and the
-  parameters of that input's branch. The branches MUST be joined by concatenation; no other way of
-  joining is part of this feature.
-- **FR-030**: Each output MUST get its own head, determined by its kind; a `class` head has one unit
-  per label.
-- **FR-031**: Training MUST optimise all outputs together, each with equal weight. Weighting
-  outputs is not part of this feature.
-- **FR-032**: Each output MAY state its maximum quality loss from quantization; when it states
-  none, the documented default MUST apply. The manifest-wide `export.accuracy_drop_max` moves to
-  the outputs, and the migration (FR-005) MUST carry a stated value to every output.
-- **FR-033**: The accuracy gate MUST measure every output on the test split against its own float
-  result and its own budget, MUST record both numbers per output, and MUST fail the run if any
-  output exceeds its budget, emitting the per-layer quantization error table for each failing
-  output. No option skips or relaxes it for one output.
-- **FR-034**: A window MUST be discarded and counted when its records disagree about the label of
-  any `class` output, with the count recorded per output.
-- **FR-035**: A stratified split with several `class` outputs MUST stratify by the combination of
-  their labels.
-- **FR-036**: Calibration for int8 MUST feed every input of the model with samples from the
-  training split only.
-- **FR-037**: The built model's inputs and outputs MUST carry the declared names, so that the
+- **FR-028**: This feature MUST accept exactly one input and one output. A second input or output
+  MUST be rejected at validation, naming what is implemented and why: several inputs or outputs
+  arrive with the first named model or documented application class that needs them (Principle
+  X; `docs/research/2026-10-23-multi-io-on-mcu.md`).
+- **FR-029**: The output MAY state its maximum quality loss from quantization; when it states none,
+  the documented default MUST apply. The manifest-wide `export.accuracy_drop_max` moves to the
+  output, as Principle V in 3.0.0 places the budget per declared output, and the migration
+  (FR-005) MUST carry a stated value over.
+- **FR-030**: The built model's input and output MUST carry the declared names, so that the
   interface contract can map each declared name to the index the converted model uses (FR-023).
-- **FR-038**: The fit check before training (FR-017) MUST cover the whole model with all its
-  branches and heads.
 
 ### Key Entities
 
 - **Input declaration**: a unique name, a kind (`series` in this feature), the columns it reads
-  (stated, or the remaining columns), for a series an optional window length, and the template
-  and parameters of its branch.
+  (stated or derived), and for a series an optional window length.
 - **Output declaration**: a unique name, a kind (`class` in this feature), the column it reads,
   the labels (pinned or derived), and its maximum quality loss from quantization.
 - **Derived values**: the input columns and the labels a run found in the data, recorded in the
@@ -372,10 +308,6 @@ the fit check reports the whole model.
   reads only those two files and reproduces Caravan's prediction on the synthetic fixture.
 - **SC-006**: No exported artifact, report, log or resolved manifest contains a compliance field,
   a licence statement or a claim that one was checked.
-- **SC-007**: A model with two inputs and two outputs builds, trains, quantizes and exports end to
-  end on the synthetic fixture; the converted model has two input and two output tensors; and a
-  test that reads only the contract and the header feeds both inputs and decodes both outputs to
-  the same predictions Caravan makes.
 
 ## Assumptions
 
@@ -391,10 +323,10 @@ the fit check reports the whole model.
 - The zoo, which carries its own compliance regime, is unaffected: it enforces its rules on what
   Caravan produces, through its own release gate.
 - Principle X: the input kind `series` and the output kind `class` are justified by the pilot
-  models `picket-mlp` and `picket-conv1d`. Several inputs and outputs are justified by the
-  application classes recorded in `docs/research/2026-10-23-multi-io-on-mcu.md`
-  [to be completed from the research round started 2026-10-23].
-- The multi-input, multi-output test uses a fixture derived from the committed synthetic one by its
-  own generator; the committed fixture and the pilot manifest stay unchanged.
-- Training several outputs with equal weight is the simplest choice that works for the test; a
-  weighting option returns when a named model or application needs it (Principle X).
+  models `picket-mlp` and `picket-conv1d`. Several inputs and outputs are not built here. The owner
+  first chose to build them now, on condition that a documented application justified them; the
+  research round of 2026-10-23 (`docs/research/2026-10-23-multi-io-on-mcu.md`) found none for
+  several series inputs or class outputs on microcontrollers — only several outputs for image
+  detection and recurrent state carried as extra inputs and outputs — and the owner then chose the
+  declaration form alone. The likely first users are object detection and stateful recurrent
+  models, each of which also needs new input or output kinds.

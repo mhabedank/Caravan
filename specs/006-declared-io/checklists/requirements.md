@@ -35,10 +35,10 @@
   artifacts they handle — the manifest, the data file's columns, the C header, the converted
   model's tensors. That is the user-facing surface of a build tool, not an implementation choice;
   no language, library or code structure is named. The same convention holds in specs 001–005.
-- The one clarification (several inputs and outputs: now or the declaration form only) was
-  answered by the owner on 2026-10-23: now, justified by a documented application class.
-- Open before `/speckit-plan`: the Principle X justification for several inputs and outputs is
-  pending the research round and must be written into
-  `docs/research/2026-10-23-multi-io-on-mcu.md` and referenced from the Assumptions.
+- The one clarification was several inputs and outputs: now, or only the declaration form. The
+  owner first chose to build them now, on condition that a documented application class justified
+  them. The research round (`docs/research/2026-10-23-multi-io-on-mcu.md`) found none for several
+  series inputs or class outputs on microcontrollers. The owner then chose the declaration form
+  only (2026-10-23): one input and one output, in a form that holds more (FR-007, FR-028).
 - SC-001 was checked against the committed pilot manifest: 43 non-blank, non-comment lines; a
   draft of the new form comes to about 32.
