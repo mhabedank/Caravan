@@ -525,7 +525,7 @@ naming the implemented version and pointing at the change note. Nothing is reint
 - [X] T073 Rename `docs/manifest-migrations.md` to `docs/manifest-changes.md`: the rule before
   1.0.0, the procedure for a breaking change, and the `caravan/v0` → `caravan/v0.1` change note as
   the edit an author makes by hand. Update the README.
-- [ ] T074 Run ruff and the full suite (also Python 3.15 without extras, 3.14 with `verify`, and
+- [X] T074 Run ruff and the full suite (also Python 3.15 without extras, 3.14 with `verify`, and
   the clean wheel environment), all green.
 
 ---
