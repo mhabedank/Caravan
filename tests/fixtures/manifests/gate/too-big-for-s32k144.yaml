@@ -1,0 +1,32 @@
+# A valid manifest that the fit check stops before any training (rule F-1, feature 006).
+#
+# The new pilot with a wider first hidden layer and the smallest board as its only target. A window
+# of 64 records of 5 columns is 320 inputs, so the first dense kernel alone is 320 x 2048 = 655,360
+# weights — 655,360 bytes at int8 — against the s32k144's 512 KiB = 524,288 bytes of flash. A floor
+# is a lower bound: no training can make this model fit that board, so none is started.
+apiVersion: caravan/v0.1
+
+model:
+  name: too-big
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden: [2048, 256]
+
+inputs:
+  - name: frames
+    kind: series
+    window: 64
+
+outputs:
+  - name: attack
+    kind: class
+    labels: [normal, dos, fuzzy, replay]
+    accuracy_drop_max: 0.02
+
+dataset:
+  source: ../../datasets/synthetic
+  representative_samples: 500
+
+export:
+  targets: [s32k144]

@@ -46,6 +46,7 @@ from caravan.run.report import (
 )
 from caravan.stages import cache as cache_module
 from caravan.stages import data as data_stage
+from caravan.stages import fit as fit_stage
 from caravan.stages.base import StageContext, StageSpec, run_stage
 
 #: The files a stage writes its measurements into, and the ones the report is built from — so a
@@ -285,7 +286,15 @@ def run_pipeline(
         (run_dir / RESOLVED_MANIFEST_NAME).write_text(dump_mapping(resolved), encoding="utf-8")
         report.data = schema
 
+        # The fit check runs right after the build, before any training (Principle V): every verb
+        # that builds also checks, and none of them can skip it.
+        sequence: list[StagePlan] = []
         for plan in stages:
+            sequence.append(plan)
+            if plan.spec.name == "build":
+                sequence.append(StagePlan(spec=fit_stage.SPEC, make=fit_stage.stage))
+
+        for plan in sequence:
             result = run_stage(
                 plan.spec,
                 plan.make(context),
@@ -355,6 +364,9 @@ def run_pipeline(
             dataset_version=matrix["dataset_version"],
         )
     _attach_quantization(report, run_dir)
+    fit_record = _artifact(run_dir, fit_stage.FIT_RECORD)
+    if fit_record:
+        report.fit = fit_record
     report.artifacts = {
         "resolved_manifest": RESOLVED_MANIFEST_NAME,
         **{Path(artifact).stem: artifact for stage in outcomes for artifact in stage.artifacts},

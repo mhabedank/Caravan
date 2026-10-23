@@ -361,7 +361,7 @@ The too-big fixture fails F-1 with no trained model. A board change reruns only 
 
 ### Tests for User Story 3
 
-- [ ] T044 [P] [US3] Write `tests/unit/test_fit_floors.py` first, on hand-built `LayerRecord`s:
+- [X] T044 [P] [US3] Write `tests/unit/test_fit_floors.py` first, on hand-built `LayerRecord`s:
   - kernel and bias byte sizes per quantization (int8 1/4, float16 2/2, none 4/4);
   - activation size per quantization (int8 1, float16 4, none 4);
   - excluded kinds (flatten, reshape, dropout, normalisation, activation) never contribute;
@@ -369,29 +369,29 @@ The too-big fixture fails F-1 with no trained model. A board change reruns only 
   - verdicts `below` / `exceeds` with the shortfall;
   - F-1 lists every failing board and resource;
   - a board without a figure fails rather than passes.
-- [ ] T045 [P] [US3] Write `tests/train/test_fit_stage.py`:
+- [X] T045 [P] [US3] Write `tests/train/test_fit_stage.py`:
   - the pilot writes `model/fit.json` with `provenance: estimated`, two floors, and `below` for
     every board and resource;
   - `tests/fixtures/manifests/gate/too-big-for-s32k144.yaml` exits 1 with F-1 naming `s32k144`
     flash, with no `model/trained.keras` and no `training-history.json` in the run;
   - removing `esp32` from the targets of a copy reuses `data`, `build` and `train`, and reruns `fit`.
-- [ ] T046 [P] [US3] Write `tests/train/test_fit_floor_ordering.py`: for `picket-mlp-v01.yaml` and
+- [X] T046 [P] [US3] Write `tests/train/test_fit_floor_ordering.py`: for `picket-mlp-v01.yaml` and
   `picket-conv1d-v01.yaml`, the RAM floor in `model/fit.json` is at most `working_memory.floor_bytes`
   in `export.json` (feature 004).
-- [ ] T047 [P] [US3] Write `tests/fixtures/manifests/gate/too-big-for-s32k144.yaml`: the new pilot
+- [X] T047 [P] [US3] Write `tests/fixtures/manifests/gate/too-big-for-s32k144.yaml`: the new pilot
   with `params.hidden: [2048, 256]` and `export.targets: [s32k144]`. The first kernel alone is
   320 × 2048 = 655,360 bytes at int8, above the board's 524,288. Add a comment with that arithmetic.
 
 ### Implementation for User Story 3
 
-- [ ] T048 [US3] Create `src/caravan/targets/fit.py` (core, no framework import):
+- [X] T048 [US3] Create `src/caravan/targets/fit.py` (core, no framework import):
   - `LayerRecord(kind, name, kernel_elements, bias_elements, input_elements, output_elements)`;
   - `COUNTED_KINDS`;
   - `floors(records, quantization) -> (FitFloor, FitFloor)`;
   - `verdicts(floors, boards) -> list[FitVerdict]`, with `board_source` taken from the board
     description's recorded source for `ram_kb` / `flash_kb`;
   - the method sentences and `NOT_A_FIT_CLAIM` from `contracts/fit-check.md`.
-- [ ] T049 [US3] Create `src/caravan/stages/fit.py`:
+- [X] T049 [US3] Create `src/caravan/stages/fit.py`:
   - `SPEC = StageSpec(name="fit", upstream="build", reads=("export.targets",
     "export.quantization"), reads_dataset=False, artifacts=("model/fit.json",))`;
   - read `model/built.keras` and map Keras layers to `LayerRecord`s: Dense, Conv1D, Conv2D,
@@ -399,10 +399,10 @@ The too-big fixture fails F-1 with no trained model. A board change reruns only 
     counted, everything else gets kind `excluded`; element counts at batch 1;
   - raise F-1 per `contracts/fit-check.md`, with the failing verdicts in `found`;
   - on a pass, write `model/fit.json`.
-- [ ] T050 [US3] In `src/caravan/cli/pipeline.py` and the four verb modules, insert `fit` after
+- [X] T050 [US3] In `src/caravan/cli/pipeline.py` and the four verb modules, insert `fit` after
   `build`; `train` keeps `upstream="build"`. Add a `fit` section to the run report from
   `model/fit.json`, and print F-1 in the form of `contracts/fit-check.md`.
-- [ ] T051 [US3] Extend `tests/contract/test_no_skip_option.py` so it covers the `fit` stage: no flag,
+- [X] T051 [US3] Extend `tests/contract/test_no_skip_option.py` so it covers the `fit` stage: no flag,
   environment variable or manifest field skips or relaxes it.
 
 **Checkpoint**: quickstart §6 and §8 pass. The pilot's numbers fill the "to be measured" fit figures

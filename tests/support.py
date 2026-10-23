@@ -20,6 +20,8 @@ MINIMAL_V0 = VALID / "pilot-min.yaml"
 PILOT_V01 = VALID / "picket-mlp-v01.yaml"
 PILOT_V01_DERIVED = VALID / "picket-mlp-v01-derived.yaml"
 MIGRATION = FIXTURES / "manifests" / "migration"
+#: Valid manifests that a gate stops at run time (feature 006: the fit check).
+GATE = FIXTURES / "manifests" / "gate"
 NO_VERSION = VALID / "v-2-no-version.yaml"
 
 # Feature 002: the pilot manifest pointed at the one committed dataset.
