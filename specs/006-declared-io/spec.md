@@ -120,30 +120,31 @@ smallest board's flash and check that the run fails before any training starts.
 ### User Story 4 - Hand a firmware author everything needed to feed the model (Priority: P2)
 
 A firmware author who does not use Caravan receives the exported model. With it comes the
-interface contract: each input and output by name and index, its shape and element type, its
-quantization scale and zero point, what Caravan did to the raw data before the model, and the
-order of the class labels. The C header carries the same label order and the indices, so the
-runner can map the output to a class name without opening another file.
+interface contract: which model it is, each input and output by name and by its position in
+the model's input or output list, its shape and element type, its quantization scale and zero
+point, what Caravan did to the raw data before the model, and the order of the class labels. The
+C header carries the same label order and the positions, so the runner can map the output to a
+class name without opening another file.
 
 **Why this priority**: It is Principle VIII in 3.0.0. Today the C header carries only the byte
 array and its length, so the label order lives only in Caravan's run directory and the model
 cannot be used correctly without Caravan.
 
 **Independent Test**: Export the pilot model, delete Caravan, and from the contract alone write
-down how to turn 64 raw CAN records into the input tensor and the output index into a label
+down how to turn 64 raw CAN records into the input tensor and the winning output unit into a label
 name. Compare with what Caravan did.
 
 **Acceptance Scenarios**:
 
 1. **Given** an exported model, **When** the contract is read, **Then** it names every input and
-   output of the converted model with the name the runner binds by, the index in the converted
-   model, shape, element type, scale and zero point, as read from the model file rather than
-   assumed from the manifest.
+   output of the converted model with the name the runner binds by, its position in the model's input or output list — the number the microcontroller runtime's `input(i)` / `output(i)` takes,
+   shape, element type, scale and zero point, as read from the model file rather than assumed
+   from the manifest, and it names the model by the manifest's name and version.
 2. **Given** an exported model, **When** the contract is read, **Then** it states every
    transformation before the model — the input columns in order, the window length and the stride
    between windows — and states input scaling as none, because this feature adds none.
 3. **Given** a `class` output, **When** the C header is read, **Then** it declares the label names
-   in output order and the number of labels, and the indices of the input and output.
+   in output order and the number of labels, and the positions of the input and output.
 4. **Given** the same quantized model exported twice, **When** the contracts and headers are
    compared, **Then** they are byte for byte identical.
 
@@ -226,7 +227,8 @@ name. Compare with what Caravan did.
 - **FR-015**: A column MUST NOT be both an input column and an output column. Declaration names
   MUST be unique across inputs and outputs.
 - **FR-016**: For the pilot model, the new form and the migrated previous form MUST produce the
-  same samples, the same split and the same trained model under the same seed.
+  same samples and the same split, and — when the new form pins the labels in the same order — the
+  same trained model under the same seed (SC-003).
 
 **Fit check before training**
 
@@ -249,14 +251,16 @@ name. Compare with what Caravan did.
 
 - **FR-022**: The export MUST write an interface contract beside the exported model, in a plain,
   documented text form readable without Caravan.
-- **FR-023**: The contract MUST name every input and output of the converted model with the name a
-  runner binds by, its index in the converted model, its shape, element type, scale and zero
-  point, read from the converted model file rather than from the manifest.
+- **FR-023**: The contract MUST name the model by the manifest's `model.name` and `model.version`,
+  and every input and output of the converted model with the name a runner binds by, its
+  position in the model's input or output list — the number the microcontroller runtime's `input(i)` / `output(i)` takes, its shape, element type, scale and zero point, read from the
+  converted model file rather than from the manifest.
 - **FR-024**: The contract MUST state the transformation from raw data to the input: the input
   columns in order, the window length and the stride, and input scaling stated explicitly as none.
 - **FR-025**: For a `class` output, the contract MUST give the label names in output order.
 - **FR-026**: The C header MUST declare, for every `class` output, the number of labels and the
-  label names in output order, and for every input and output its index in the converted model.
+  label names in output order, for every input and output its position in the model's input or
+  output list, and the model's name and version.
 - **FR-027**: The contract and the header MUST be byte-identical across two exports of the same
   quantized model, and MUST be listed in the export report with size and digest like every other
   artifact.
@@ -267,12 +271,17 @@ name. Compare with what Caravan did.
   MUST be rejected at validation, naming what is implemented and why: several inputs or outputs
   arrive with the first named model or documented application class that needs them (Principle
   X; `docs/research/2026-10-23-multi-io-on-mcu.md`).
-- **FR-029**: The output MAY state its maximum quality loss from quantization; when it states none,
-  the documented default MUST apply. The manifest-wide `export.accuracy_drop_max` moves to the
-  output, as Principle V in 3.0.0 places the budget per declared output, and the migration
-  (FR-005) MUST carry a stated value over.
+- **FR-029**: A `class` output MUST state its maximum quality loss from quantization; there is no
+  default, because Principle V requires every manifest to state its budgets. The manifest-wide
+  `export.accuracy_drop_max` moves to the output, as Principle V in 3.0.0 places the budget per
+  declared output. The migration (FR-005) MUST carry a stated value over and, where the previous
+  form stated none, MUST write the previous default `0.02` explicitly with a notice saying so.
 - **FR-030**: The built model's input and output MUST carry the declared names, so that the
-  interface contract can map each declared name to the index the converted model uses (FR-023).
+  interface contract can map each declared name to the position the converted model uses
+  (FR-023).
+- **FR-031**: Changing a field that only a later stage reads MUST NOT invalidate an earlier stage's
+  result (Principle III): in particular, changing an output's maximum quality loss MUST NOT
+  trigger rebuilding or retraining, and changing the target boards MUST NOT trigger retraining.
 
 ### Key Entities
 
@@ -284,8 +293,9 @@ name. Compare with what Caravan did.
   run's resolved manifest.
 - **Fit pre-check record**: per board and resource, the computed lower bound, the board's figure,
   the verdict, the method, and the label `estimated`.
-- **Interface contract**: per input and output of the converted model, name, index, shape, element
-  type, scale and zero point; the transformation from raw data; the label order.
+- **Interface contract**: the model's name and version; per input and output of the converted
+  model, name, position, shape, element type, scale and zero point; the transformation from raw
+  data; the label order.
 - **Migration notice**: per dropped or moved field of a previous-form manifest, the field path and
   what happened to it.
 

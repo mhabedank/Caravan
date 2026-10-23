@@ -39,7 +39,7 @@ caravan render   tests/fixtures/manifests/valid/picket-mlp-v01.yaml
 Expected:
 - exit 0, with no notices;
 - `columns: derived` and `labels: derived` in the rendered YAML;
-- 32 non-blank, non-comment lines in the manifest (SC-001).
+- 33 non-blank, non-comment lines in the manifest (SC-001), the budget stated.
 
 ## 3. Refusals at validation
 

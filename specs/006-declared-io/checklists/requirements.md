@@ -40,5 +40,5 @@
   them. The research round (`docs/research/2026-10-23-multi-io-on-mcu.md`) found none for several
   series inputs or class outputs on microcontrollers. The owner then chose the declaration form
   only (2026-10-23): one input and one output, in a form that holds more (FR-007, FR-028).
-- SC-001 was checked against the committed pilot manifest: 43 non-blank, non-comment lines; a
-  draft of the new form comes to about 32.
+- SC-001 was checked against the committed pilot manifest: 43 non-blank, non-comment lines;
+  the new form in `contracts/manifest.md` has 33, with the budget stated (Principle V).

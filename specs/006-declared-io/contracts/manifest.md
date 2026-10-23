@@ -21,6 +21,7 @@ inputs:
 outputs:
   - name: attack
     kind: class
+    accuracy_drop_max: 0.02
 
 dataset:
   source: ../../datasets/synthetic
@@ -43,9 +44,10 @@ export:
   targets: [s32k144, stm32h743, esp32]
 ```
 
-The file has 32 non-blank, non-comment lines, against 43 in the previous form (SC-001 asks for
-at most 34). Nothing in it is read by no one. The labels come from the `label` column, and the
-input columns are every other column.
+The file has 33 non-blank, non-comment lines, against 43 in the previous form (SC-001 asks for
+at most 34). Every field in it is read by some stage (`data-model.md`, *Stages*). The labels come
+from the `label` column, and the input columns are every other column. The budget is stated, not
+defaulted, as Principle V requires.
 
 ## The full form of a declaration
 
@@ -61,7 +63,7 @@ outputs:
     kind: class             # required; the only output kind in this feature
     column: label           # optional; default "label"
     labels: [normal, dos, fuzzy, replay]  # optional; pins the order; default: derived, sorted
-    accuracy_drop_max: 0.02 # optional; default 0.02; the accuracy gate's budget for this output
+    accuracy_drop_max: 0.02 # required, no default (Principle V); the accuracy gate's budget
 ```
 
 ## Validation rules this contract adds
@@ -104,8 +106,11 @@ is never written (Principle IX). In order:
 3. Create `inputs: [{name: input, kind: series, window: <dataset.window if present>}]`, with a
    `moved` notice for `dataset.window`.
 4. Create `outputs: [{name: output, kind: class, column: label, labels: <dataset.labels>,
-   accuracy_drop_max: <export.accuracy_drop_max if present>}]`, with a `moved` notice for each of
-   the two.
+   accuracy_drop_max: <export.accuracy_drop_max>}]`, with a `moved` notice for each of the two.
+   Where the previous form stated no `export.accuracy_drop_max`, write its old default `0.02`
+   and replace the `moved` notice for it with an `added` notice: "the previous form defaulted
+   the quantization budget to 0.02; caravan/v0.1 requires it to be stated (Principle V), so the
+   migration states it".
 5. Set `apiVersion: caravan/v0.1`.
 
 The names `input` and `output` are the ones the templates already give their first and last layers

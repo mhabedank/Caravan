@@ -78,11 +78,11 @@ constitution **3.0.0**.
 
 | Principle | How this feature satisfies it | Verdict |
 |---|---|---|
-| I — declarative manifest | Inputs and outputs are declared, each with a kind. The output kind replaces `task`. Every remaining field is read; derived values are not asked for. No defaults section is introduced: defaults come from the declaration types, as from any field's documented default. | pass, see the note on identity fields |
+| I — declarative manifest | Inputs and outputs are declared, each with a kind. The output kind replaces `task`. Every remaining field is read by a stage: `model.name` and `model.version` by `export`, which writes them into the interface contract (data model, *Stages*). Derived values are not asked for. No defaults section is introduced. | pass, see the note on fields |
 | II — embedded targets | Nothing widens the target class. | pass |
-| III — reproducible | The migration runs in memory on every load. Derived values enter the resolved manifest and the cache keys. `fit` sits outside `train`'s key, so a board change never retrains (R6). The cache invalidates once, as documented (R9). | pass |
+| III — reproducible | The migration runs in memory on every load. Derived values enter the resolved manifest and the cache keys. Stages read the declarations field by field, so a budget change re-runs only `quantize` and `export`, and a board change only `fit` and `export` (FR-031; data model, *Stages*). The cache invalidates once, as documented (R9). | pass |
 | IV — labelled numbers | Every fit figure is `estimated`, with its method. Interface numbers are read from the file, not reported as hardware behaviour. | pass |
-| V — gates | `fit` fails on a lower bound that exceeds a board and has no skip option. The accuracy gate becomes per output. Neither relaxes the other. | pass |
+| V — gates | Every class output states its budget; there is no default (FR-029). `fit` fails on a lower bound that exceeds a board and has no skip option. The accuracy gate becomes per output. Neither relaxes the other. | pass |
 | VI — the author's data | The compliance layer, licence fields and rules CF-3, CF-5, CF-8 and DS-9 are removed. Nothing claims a licence was checked (SC-006). Data and credentials stay out of the repository. | pass |
 | VII — boards are data | The fit check reads `flash_kb`, `ram_kb` and their recorded sources from the board descriptions; no board logic in code. | pass |
 | VIII — portable artifacts | The interface contract is plain JSON plus C constants. Names map to positions read from the file. The runner skeleton binds by name. No flatbuffer is rewritten (R4). | pass |
@@ -90,13 +90,16 @@ constitution **3.0.0**.
 | X — real models | `series` and `class` are justified by `picket-mlp` and `picket-conv1d`. Several inputs or outputs are **not** built: the research found no documented application (`docs/research/2026-10-23-multi-io-on-mcu.md`), and the owner chose the declaration form only. | pass |
 | XI — no Claude in learning | Nothing here labels, generates or evaluates data. | pass |
 | XII — small core | No new verb, no dependency and no extra. The fit arithmetic and the emitters are core; reading a Keras model and a flatbuffer stay behind their extras. A layering test covers the new modules. | pass |
-| Pipeline contract | `data` and `fit` are cache units the `build` verb runs, inside the constitution's "build (with the fit check before training)" step. They are not new pipeline stages in the constitution's sense and not new verbs. | pass, see Complexity Tracking |
+| Pipeline contract | The constitution's stages are what a user invokes: "Each stage MUST be separately invocable" names the verbs. `data` and `fit` are cache units inside the `build` verb, which is the constitution's "build (with the fit check before training)"; `caravan build` runs both and is separately invocable. They are not new pipeline stages in the constitution's sense and not new verbs. | pass, see Complexity Tracking |
 
-**Note on identity fields.** Principle I says every field must be read by at least one stage.
-`model.name` and `model.version` are read by the run report and the run directory, not by a stage
-function: they are the run's identity and provenance, which Principle III requires every artifact to
-carry. This plan reads "stage" to include the pipeline step that writes the report. A stricter
-reading would remove the model's own name, which nobody intends.
+**Note on fields.** Principle I says every field must be read by at least one stage. Two fields
+are settled by the constitution itself rather than by a stage function: `apiVersion`, which
+Principle IX requires every manifest to declare and the loader reads, and `dataset.source`, which
+names the data that `data`, `build`, `train` and `quantize` read. A first draft of this plan let
+`model.name` and `model.version` count as read because the run report records them; the analysis of
+2026-10-23 rejected that as a reinterpretation of Principle I. `export` now reads both and writes
+them into the interface contract and the header, which also tells a firmware author which model
+they hold.
 
 ### Re-check after Phase 1 design
 
@@ -113,6 +116,12 @@ Re-read after writing the data model and the four contracts.
 - **Migration contract.** The retired rules' invalid fixtures become valid after migration, so they
   move to a migration fixture directory rather than being deleted silently.
 
+- **Analysis of 2026-10-23** (`/speckit-analyze`) found three conflicts with the constitution, now
+  closed. Stages read whole declaration lists, so a budget change would have retrained (III);
+  stages now read field by field, which needs an index in the projection's paths. The pilot left
+  its budget to a default (V); the budget is now required. Identity fields were counted as read by
+  reinterpreting "stage" (I); `export` now reads them.
+
 No unjustified violation remains.
 
 ## Project Structure
@@ -122,7 +131,7 @@ No unjustified violation remains.
 ```text
 specs/006-declared-io/
 ├── plan.md              # this file
-├── spec.md              # 4 stories, 30 requirements, 6 success criteria
+├── spec.md              # 4 stories, 31 requirements, 6 success criteria
 ├── research.md          # R1–R10; R4–R6 measured or read at source, with versions and date
 ├── data-model.md        # the declarations, the derived values, the fit and interface records, stages
 ├── quickstart.md        # how to see it work and refuse
@@ -157,6 +166,7 @@ src/caravan/
 │   ├── reader.py              # label column and input columns from the declarations; no fixed "label"
 │   └── reader_bridge.py       # unchanged in rule; takes columns
 ├── stages/
+│   ├── base.py                # project(): an index in a path (`outputs[0].labels`), FR-031
 │   ├── data.py                # new, train: DataSchema, DS-5/11/12
 │   ├── fit.py                 # new, train: reads layer shapes from the built model
 │   ├── build.py               # reads inputs/outputs; rewires into a named, dict-output model (R4)
@@ -182,6 +192,12 @@ README.md                          # manifest example, stage list, the complianc
 
 tests/
 ├── unit/test_migration_v01.py            # every transform step, every notice, file untouched
+├── unit/test_projection_index.py         # indexed paths; a budget change keeps data/build/train keys
+├── unit/test_resolve_v01.py              # the new shape, `derived` markers, merge_derived
+├── unit/test_every_field_is_read.py      # Principle I and SC-001
+├── contract/test_no_compliance_in_outputs.py  # SC-006
+├── train/test_declared_io_end_to_end.py  # same windows and split as the migrated pilot
+├── train/test_interface_reordered_outputs.py  # research R4's reversal, kept as a test
 ├── unit/test_io_declarations.py          # CF-9/10/11, removed-field messages
 ├── unit/test_fit_floors.py               # the arithmetic on hand-built layer records; F-1
 ├── unit/test_interface_emit.py           # JSON and C additions; escaping; determinism

@@ -12,6 +12,7 @@ Every number about a tensor is **read from the converted model file**, never tak
 ```json
 {
   "contract_version": 1,
+  "model": {"name": "picket-mlp", "version": "0.1.0"},
   "model_file": "model/model.tflite",
   "runtime_binding": "by position in subgraph 0: interpreter.input(position) / interpreter.output(position)",
   "inputs": [
@@ -55,6 +56,8 @@ Every number about a tensor is **read from the converted model file**, never tak
 
 The numbers shown are illustrative; the fields and their meaning are the contract.
 
+- `model` is the manifest's `model.name` and `model.version`, so the contract says which model it
+  describes; the export stage reads both fields for this (Principle I).
 - `position` is what the microcontroller runtime takes: `MicroInterpreter::input(size_t)` indexes
   subgraph 0's input list by position (research R5, tflite-micro `f7ed40d`). It is found from the
   SignatureDef entry named `name`, by locating its tensor index in that list.
@@ -76,6 +79,10 @@ outside the export directory.
 /* Interface — positions for interpreter.input(i) / interpreter.output(i), read from the model
  * file's signature, not from the manifest. Bind by these names, never by a literal index: the
  * converter does not guarantee to keep the declared order. */
+/* Which model this is: the manifest's model.name and model.version. */
+constexpr char g_model_data_model_name[] = "picket-mlp";
+constexpr char g_model_data_model_version[] = "0.1.0";
+
 constexpr unsigned int g_model_data_input_frames = 0;
 constexpr unsigned int g_model_data_output_attack = 0;
 
@@ -95,7 +102,8 @@ const char* const g_model_data_output_attack_labels[] = {
 };
 ```
 
-The identifiers are `<array name>_input_<name>`, `<array name>_output_<name>`,
+The identifiers are `<array name>_model_name`, `<array name>_model_version`,
+`<array name>_input_<name>`, `<array name>_output_<name>`,
 `<array name>_output_<name>_label_count` and `<array name>_output_<name>_labels`. The array name
 comes from feature 004, and the declared name's pattern makes every identifier valid C (research R2).
 

@@ -34,8 +34,9 @@ breaking changes in.
 **Decision**: two top-level lists, `inputs` and `outputs`, as Ludwig has `input_features` and
 `output_features`. Each entry carries a `name` and a `kind`. For an input of kind `series`, there
 are optional `columns` and an optional `window`. For an output of kind `class`, there are `column`
-(default `label`), optional `labels` and optional `accuracy_drop_max` (default `0.02`, today's
-default). A name is required and must match `[a-z][a-z0-9_]{0,31}`.
+(default `label`), optional `labels` and a **required** `accuracy_drop_max`. It has no default:
+Principle V requires every manifest to state its budgets, and the analysis of 2026-10-23 found that
+a default let the new pilot omit one. A name is required and must match `[a-z][a-z0-9_]{0,31}`.
 
 **Rationale**:
 - Lists make a second input or output an additive change later (FR-007).

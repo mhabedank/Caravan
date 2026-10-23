@@ -12,13 +12,13 @@ level.
 | Field | Type | Default | Read by |
 |---|---|---|---|
 | `apiVersion` | `"caravan/v0.1"` | `"caravan/v0.1"` | loader |
-| `model.name` | name pattern of feature 001 | required | run report, run directory |
-| `model.version` | `X.Y.Z` | required | run report (provenance) |
+| `model.name` | name pattern of feature 001 | required | `export` (into the interface contract and the header) |
+| `model.version` | `X.Y.Z` | required | `export` (likewise) |
 | `model.template` | registered identifier | required | `build` |
 | `model.params` | mapping, validated by the template | `{}` | `build` |
-| `inputs` | list of `InputDeclaration`, exactly 1 (CF-10) | required | `data`, `build`, `train`, `quantize`, `export` |
-| `outputs` | list of `OutputDeclaration`, exactly 1 (CF-10) | required | `data`, `build`, `train`, `quantize`, `export` |
-| `dataset.source` | path | required | dataset resolution |
+| `inputs` | list of `InputDeclaration`, exactly 1 (CF-10) | required | field by field, see *Stages* |
+| `outputs` | list of `OutputDeclaration`, exactly 1 (CF-10) | required | field by field, see *Stages* |
+| `dataset.source` | path | required | dataset resolution, which hands its content to every stage with `reads_dataset` |
 | `dataset.split` | `Split` (unchanged) | 0.7 / 0.15 / 0.15, stratified | `train`, `quantize` |
 | `dataset.representative_samples` | int > 0 | none; ≥ 100 required at int8 (CF-4) | `quantize` |
 | `train.*` | unchanged | unchanged | `train`, `build` (seed) |
@@ -30,9 +30,11 @@ level.
 `dataset.license`, `dataset.permitted_use`, `dataset.labels`, `dataset.window`,
 `export.accuracy_drop_max`, `verify`, `bench`, `publish`. The last three return with their stages.
 
-`model.name` and `model.version` are read by the run report and the run directory, not by a stage
-function. They are the run's identity and provenance, which Principle III requires. That is the
-reading of Principle I's "read by at least one stage" this plan uses (see plan, Constitution Check).
+Every field is read by a stage (Principle I), with two fields whose reading the constitution itself
+settles: `apiVersion` is required by Principle IX and read by the loader, and `dataset.source`
+names the data that `data`, `build`, `train` and `quantize` read. `model.name` and
+`model.version` are read by `export`, which writes them into the interface contract and the
+header, so a firmware author can tell which model they hold.
 
 ### InputDeclaration — core
 
@@ -51,7 +53,7 @@ reading of Principle I's "read by at least one stage" this plan uses (see plan, 
 | `kind` | `"class"` | required | CF-10 |
 | `column` | non-empty string | `"label"` | CF-11 if an input also names it |
 | `labels` | list of ≥ 2 distinct non-empty strings | derived: distinct values of `column`, sorted as text | DS-5 both directions when stated; DS-11 when fewer than 2 are derived |
-| `accuracy_drop_max` | float in [0, 1] | `0.02` | the accuracy gate of feature 003 (Q rules), per output |
+| `accuracy_drop_max` | float in [0, 1] | **required**, no default (Principle V: every manifest states its budgets) | the accuracy gate of feature 003 (Q rules), per output; read by `quantize` only |
 
 ## Migration — core
 
@@ -64,7 +66,7 @@ Transform = (mapping) -> (mapping, tuple[MigrationNotice, ...])
 | Field | Meaning |
 |---|---|
 | `path` | the field path in the declared version, e.g. `compliance` or `dataset.window` |
-| `action` | `dropped` or `moved` |
+| `action` | `dropped`, `moved`, or `added` (only for a budget the previous form left to its default) |
 | `to` | the new path, for `moved` (e.g. `inputs[0].window`) |
 | `reason` | one sentence, from the table in `contracts/manifest.md` |
 
@@ -128,6 +130,13 @@ the same failure path the accuracy gate uses (feature 003).
 
 ## Interface contract — written by `export`; the reading is **verify**, the writing is **core**
 
+### ModelIdentity
+
+| Field | Source |
+|---|---|
+| `name` | `model.name` |
+| `version` | `model.version` |
+
 ### TensorBinding, one per declared input and output
 
 | Field | Source |
@@ -173,15 +182,29 @@ the same failure path the accuracy gate uses (feature 003).
 
 ## Stages after this feature
 
+A stage reads the declaration **field by field**, never the whole list (Principle III, FR-031). The
+projection supports an index in a path, `outputs[0].labels`, for this purpose. That keeps a
+budget change, which only `quantize` reads, from changing the keys of `data`, `build` and
+`train`.
+
 | Stage | Upstream | Reads (projection) | Writes | Needs |
 |---|---|---|---|---|
-| `data` | — | `inputs`, `outputs` (as declared) + dataset | `data/schema.json` | train |
-| `build` | — | `model.template`, `model.params`, `inputs`, `outputs`, `train.seed` + dataset | `model/built.keras`, `model/built.json` | train |
+| `data` | — | `inputs[0].columns`, `outputs[0].column`, `outputs[0].labels` (as declared) + dataset | `data/schema.json` | train |
+| `build` | — | `model.template`, `model.params`, `train.seed`, `inputs[0].name`, `inputs[0].columns`, `inputs[0].window`, `outputs[0].name`, `outputs[0].labels` + dataset | `model/built.keras`, `model/built.json` | train |
 | `fit` | `build` | `export.targets`, `export.quantization` | `model/fit.json` | train |
-| `train` | `build` | `train.*`, `dataset.split`, `inputs`, `outputs` + dataset | as feature 002 | train |
-| `quantize` | `train` | `export.quantization`, `dataset.representative_samples`, `dataset.split`, `inputs`, `outputs`, `train.seed` + dataset | as feature 003 | train, verify |
-| `export` | `quantize` | `export.formats`, `export.targets`, `export.quantization`, `inputs`, `outputs` | as feature 004 + `model/interface.json` | verify |
+| `train` | `build` | `train.*`, `dataset.split`, `inputs[0].columns`, `inputs[0].window`, `outputs[0].name`, `outputs[0].labels` + dataset | as feature 002 | train |
+| `quantize` | `train` | `export.quantization`, `dataset.representative_samples`, `dataset.split`, `train.seed`, `inputs[0].columns`, `inputs[0].window`, `outputs[0].name`, `outputs[0].labels`, **`outputs[0].accuracy_drop_max`** + dataset | as feature 003 | train, verify |
+| `export` | `quantize` | `model.name`, `model.version`, `export.formats`, `export.targets`, `export.quantization`, `inputs[0].name`, `inputs[0].columns`, `inputs[0].window`, `outputs[0].name`, `outputs[0].labels` | as feature 004 + `model/interface.json` | verify |
 
-`build`, `train`, `quantize` and `export` read `inputs` and `outputs` **after** the merge, so the
-derived columns and labels are part of their keys. `data` reads them **before** the merge, as the
-author wrote them, so its key does not depend on its own output.
+Every stage but `data` reads `inputs[0].columns` and `outputs[0].labels` **after** the merge, so the
+derived values are part of its key. `data` reads them **before** the merge, as the author wrote
+them (a list or the marker `derived`), so its key does not depend on its own output.
+
+What each change re-runs, as a consequence:
+
+| Change | Re-runs |
+|---|---|
+| `outputs[0].accuracy_drop_max` | `quantize`, `export` |
+| `export.targets` | `fit`, `export` |
+| `model.name` or `model.version` | `export` |
+| a label pinned or reordered | every stage from `data` |
