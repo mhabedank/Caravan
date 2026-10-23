@@ -221,7 +221,8 @@ This is a synthesis of the sections above, not an independently verified result.
 
 ## 7. Minimum metadata for a recording to be usable for ML
 
-The list below follows from the verified findings. It names where each item can come from.
+The list below follows from the verified findings. It names where each item can come from. It is
+knowledge about data quality, **not a requirement Caravan places on its users** (see Section 8).
 
 | Item | Why | Where it comes from |
 |---|---|---|
@@ -231,22 +232,32 @@ The list below follows from the verified findings. It names where each item can 
 | Placement and orientation | placement changes the signal | the deployment record; IIO `mount_matrix`, SSN Platform/Deployment |
 | Timestamp source and clock tolerance | host time is often reconstructed | the stack (IIO names the clock; Zephyr uses uptime) |
 | Gaps, overruns, integrity | windows across gaps are not samples | the part (skip frames, overrun flags, counters, CRC) |
-| Per-sample status | contact, accuracy level, fix quality | the part; Android and ROS can carry it, Zephyr and SenML cannot |
+| Per-sample status | con## 8. What this means for Caravan
 
-## 8. What this means for Caravan
+**Decided by the owner on 2026-10-23.** Caravan requires neither units nor a metadata record. It
+cannot know a user's data situation, and a tool that demands this kind of bookkeeping up front is
+not adopted. A metadata and compliance layer is a candidate for a separate, paid offering on top of
+Caravan, not part of its feature set.
 
-These are proposals, recorded so that the spec work starts from them.
+Units were also the wrong lever. A model trained on counts works on the same counts; what breaks
+it is a different representation on the device, for example the same IMU at ±8 g instead of the
+±4 g it was trained at. Units in the manifest would not catch that. What remains are proposals
+that cost the user nothing:
 
-- **The dataset contract should state units.** Either the data arrive in physical units, or the
-  manifest names the scale and offset per channel. Counts without a scale are not a dataset.
-- **A recording needs a metadata record next to it.** It holds the items of Section 7. The
-  resolved manifest and the run report should carry it forward.
-- **Gaps are like mixed labels.** A window that crosses a gap, an overrun or a reconfiguration is
-  not a sample, and should be discarded and counted, as mixed windows are today.
-- **Status fields can filter or feed the model.** For example: drop windows whose accuracy level
-  is below a threshold, or give fix quality to the model as an input.
-- **Splits by device and placement**, not only by time, are how device differences become
-  measurable before deployment.
+- **Caravan computes the input scaling from the training data and exports it.** Today there is no
+  input normalisation at all. The export states what the model expects — channel order, window,
+  the scaling applied — so firmware can feed the representation the model was trained on. Units
+  stay optional documentation.
+- **Caravan reports what it can see in the data itself**: the measured sample rate and gaps where
+  a time column exists, the range of each channel, values pinned at a limit (clipping), constant
+  channels. Report only.
+- **A window that crosses a detected gap is discarded and counted**, as mixed windows are today.
+- **Splits by device or placement** are possible where the data has such a column; never
+  required.
+- The zoo's resource index may still take the fields of Section 7 for the datasets it lists; that
+  is the zoo's decision, not Caravan's.
+
+ment.
 - **The zoo's `content.sensor` block** proposed in the landscape note should take these fields.
 
 ## Not verified
