@@ -38,8 +38,12 @@ def array_name(stem: str) -> str:
     return f"g_{cleaned}"
 
 
-def header(stem: str, length: int) -> str:
-    """The declaration and the length, for whatever includes the array."""
+def header(stem: str, length: int, additions: str = "") -> str:
+    """The declaration and the length, for whatever includes the array.
+
+    ``additions`` is the interface of feature 006 — which model, the named positions, the label
+    array — placed inside the include guard. Empty, the header is exactly feature 004's.
+    """
     name = array_name(stem)
     guard = f"{name.upper()}_H_"
     return (
@@ -52,12 +56,13 @@ def header(stem: str, length: int) -> str:
         "#include <cstdint>\n\n"
         f"constexpr unsigned int {name}_size = {length};\n"
         f"extern const unsigned char {name}[];\n\n"
-        f"#endif  /* {guard} */\n"
+        + (f"{additions}\n" if additions else "")
+        + f"#endif  /* {guard} */\n"
     )
 
 
-def source(stem: str, blob: bytes) -> str:
-    """The array itself, aligned as the runtime requires."""
+def source(stem: str, blob: bytes, additions: str = "") -> str:
+    """The array itself, aligned as the runtime requires, and then ``additions`` (feature 006)."""
     name = array_name(stem)
     lines = []
     for start in range(0, len(blob), BYTES_PER_LINE):
@@ -74,7 +79,7 @@ def source(stem: str, blob: bytes) -> str:
         "#include <cstdint>\n\n"
         f"alignas({ALIGNMENT}) const unsigned char {name}[] = {{\n"
         f"{body}\n"
-        "};\n"
+        "};\n" + (f"\n{additions}" if additions else "")
     )
 
 
@@ -84,7 +89,9 @@ def read_back(generated: str) -> bytes:
     Here rather than in a test because the round-trip is a promise of this module, and a promise
     checked by code that lives beside it cannot drift from the code that makes it.
     """
-    body = generated[generated.index("= {") + 3 : generated.rindex("}")]
+    start = generated.index("= {") + 3
+    # Up to the array's own closing brace: since feature 006 the label array follows it.
+    body = generated[start : generated.index("};", start)]
     return bytes(
         int(token, 16) for token in body.replace("\n", "").replace(" ", "").split(",") if token
     )

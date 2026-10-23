@@ -2,9 +2,12 @@
 
 A declarative pipeline for small machine learning models that run on microcontrollers.
 
-One YAML manifest per model describes *what* to build. The pipeline does the rest: architecture
-from a template, training, int8 quantization, export, footprint analysis against a target board,
-emulated verification, hardware benchmark, model card, publication.
+One YAML manifest per model declares the data, what goes into the model and what comes out, and the
+boards it must fit. The pipeline does the rest: architecture from a template, a fit check against
+the boards before training, training, int8 quantization, export with the model's interface
+contract, footprint analysis, emulated verification, hardware benchmark and, optionally,
+publication. The manifest asks only for what a stage uses: no compliance block, no description
+fields, nothing the data already says.
 
 Caravan is the build tool for the embedded models of the
 [Mobility Model Zoo](https://github.com/mhabedank/mobility-model-zoo) and lives in its own
@@ -95,7 +98,7 @@ two runs can be compared field by field.
 `train` writes the trained model, both checkpoints and the quality metrics into a run directory,
 and every number in its report says which split and which dataset version it was measured
 against. A stage result is reused when the fields that stage reads and the dataset are unchanged,
-so fixing a typo in the compliance text costs nothing:
+so tightening the quantization budget re-runs the quantization and never the training:
 
 ```text
 picket-mlp.yaml: trained — 26 of 50 epochs, stopped early at 26 (best: 21)
@@ -103,9 +106,12 @@ picket-mlp.yaml: trained — 26 of 50 epochs, stopped early at 26 (best: 21)
     build: reused the result of run 20261022T182748Z-b271d5b3
 ```
 
-A dataset is raw, record-level delimited text with a `label` column; Caravan does the windowing,
-and a window whose records disagree about the label is discarded and counted rather than labelled.
-`specs/002-build-and-train/contracts/dataset.md` is the whole contract.
+A dataset is raw, record-level delimited text. The output names the column holding the class
+(`label` unless it says otherwise), and the class names are read from it, sorted, unless the
+manifest pins their order; the input reads every other column unless it names its own. Caravan does
+the windowing, and a window whose records disagree about the label is discarded and counted rather
+than labelled. `specs/002-build-and-train/contracts/dataset.md` and
+`specs/006-declared-io/contracts/manifest.md` are the whole contract.
 
 `quantize` converts the trained model and then **judges** it: three accuracies on the test split —
 trained, converted, quantized — and the gate is the difference between the last two, because that
@@ -149,35 +155,40 @@ export` records which, per board, with the source and the date of that claim.
 ## A manifest
 
 ```yaml
-apiVersion: caravan/v0
+apiVersion: caravan/v0.1
 model:
   name: picket-mlp
   version: 0.1.0
-  topic: automotive-security
-  task: can-ids
   template: mlp
   params:
     hidden: [32, 16]
     dropout: 0.1
+inputs:
+  - name: frames
+    kind: series
+    window: 64
+outputs:
+  - name: attack
+    kind: class
+    accuracy_drop_max: 0.02
 dataset:
   source: datasets/car-hacking/
-  window: 64
-  labels: [normal, dos, fuzzy, replay]
   representative_samples: 500
 export:
   targets: [s32k144, stm32h743, esp32]
-compliance:
-  eu_ai_act_class: limited-risk
-  privacy: no-personal-data
-  intended_use: "CAN bus intrusion detection on gateway and zonal ECUs"
-  known_limits:
-    - "Trained on the HCRL Car-Hacking dataset; behaviour on zero-day attacks is untested"
 ```
 
-The compliance block is required by the schema, not by a review checklist. Responsibility for the
-rights to the data stays with whoever brings the data: the manifest may state a licence and a
-permitted use, Caravan holds the author to what they state, and reports what they did not state as
-unverified rather than as a checked fact.
+The output's kind says what the model does; its budget is stated, not defaulted, because a budget
+nobody wrote down is a budget nobody chose. The names `frames` and `attack` are what a firmware
+author binds by: the export writes them, with each tensor's position, shape, scale and zero point
+and the label order, into `model/interface.json` and the C header.
+
+Caravan carries no compliance layer. The rights to the data, and the use of a model trained on it,
+are the author's; Caravan neither asks about them nor claims to have checked them.
+
+Until Caravan 1.0.0 the manifest may change without migration. A manifest in another form, such as
+the previous `caravan/v0`, is refused with the version this build reads, and
+`docs/manifest-changes.md` says what to edit by hand.
 
 ## Where things are
 

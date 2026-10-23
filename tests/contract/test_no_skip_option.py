@@ -78,3 +78,21 @@ def test_the_options_that_do_exist_only_change_where_output_goes() -> None:
     options = all_option_strings(build_parser())
     assert "--no-report" in options
     assert "--stdout" in options
+
+
+def test_the_fit_check_has_no_switch_of_its_own() -> None:
+    # Feature 006: the check before training runs in every verb that builds. No flag (above), no
+    # manifest field and no environment variable reaches it: it reads the targets and the
+    # quantization, and nothing that could turn it off.
+    import inspect
+
+    from caravan.cli import pipeline
+    from caravan.stages import fit
+    from caravan.targets import fit as arithmetic
+
+    assert fit.SPEC.reads == ("export.targets", "export.quantization")
+    for module in (fit, arithmetic):
+        source = inspect.getsource(module)
+        assert "environ" not in source and "getenv" not in source, module.__name__
+    # The pipeline inserts it after every build, unconditionally.
+    assert 'if plan.spec.name == "build":' in inspect.getsource(pipeline.run_pipeline)

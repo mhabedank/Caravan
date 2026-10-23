@@ -1,20 +1,16 @@
-"""The dataset section.
+"""The dataset section: where the data comes from and how it is split.
 
-Two fields here are statements by the author, never verified by this tool: ``license`` and
-``permitted_use``. Caravan holds the author to what they state (rule CF-8) and reports what they
-did not state as unverified (FR-032). Responsibility for the rights to the data stays with
-whoever brings the data — Principle VI, as amended in constitution v2.1.0.
+What the data *means* — which columns go in, which one holds the answer, what the classes are — is
+declared by the input and the output (``schema/io.py``), and what follows from the data is derived
+from it rather than asked for (constitution 3.0.0, Principle I). Rights to the data are the
+author's; Caravan neither asks about them nor claims to check them (Principle VI).
 """
 
 from __future__ import annotations
 
-from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from caravan.manifest.errors import RULE_SPLIT_SUM, rule_error
-
-PermittedUse = Literal["training", "benchmark-only", "unknown"]
 
 #: The documented floor for int8 calibration. Calibration data determines the quantized
 #: activation ranges; too few or unrepresentative samples are a known cause of accuracy collapse,
@@ -57,22 +53,10 @@ class Split(BaseModel):
 
 
 class DatasetSpec(BaseModel):
-    """Where the data comes from, how it is split, and what the author says it permits."""
+    """Where the data comes from and how it is split."""
 
     model_config = ConfigDict(extra="forbid")
 
     source: str = Field(min_length=1)
     split: Split = Field(default_factory=Split)
-    window: int | None = Field(default=None, gt=0)
-    labels: list[str] = Field(min_length=2)
     representative_samples: int | None = Field(default=None, gt=0)
-    license: str | None = None
-    permitted_use: PermittedUse = "unknown"
-
-    @model_validator(mode="after")
-    def _labels_are_distinct_and_named(self) -> DatasetSpec:
-        if any(not label.strip() for label in self.labels):
-            raise ValueError("every label must be a non-empty name")
-        if len(set(self.labels)) != len(self.labels):
-            raise ValueError("labels must be distinct")
-        return self

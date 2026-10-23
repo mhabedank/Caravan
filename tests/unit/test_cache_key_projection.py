@@ -12,56 +12,88 @@ hold by construction rather than by review.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pytest
 
 from caravan.manifest.load import load_manifest
-from caravan.manifest.resolve import resolve
+from caravan.manifest.resolve import merge_derived, resolve
 from caravan.stages.base import StageSpec, project
 from caravan.stages.build import SPEC as BUILD
 from caravan.stages.cache import cache_key
+from caravan.stages.data import SPEC as DATA
+from caravan.stages.export import SPEC as EXPORT
 from caravan.stages.quantize import SPEC as QUANTIZE
 from caravan.stages.train import SPEC as TRAIN
-from tests.support import PILOT
+from tests.support import VALID
+
+#: The new-form pilot (feature 006), with what the data stage derives merged in — the form every
+#: stage after ``data`` actually reads.
+PILOT = VALID / "picket-mlp-fixture.yaml"
+FIXTURE_COLUMNS = ["can_id", "dlc", "b0", "b1", "b2"]
 
 # Feature 003 adds one entry, and the walk below then covers the new stage entirely: every leaf of
 # the pilot manifest is changed in turn and the key must move if and only if that leaf is in the
 # stage's declared read set. A schema field added later cannot quietly enter or leave what
 # re-quantizes.
-STAGES = (BUILD, TRAIN, QUANTIZE)
+STAGES = (DATA, BUILD, TRAIN, QUANTIZE, EXPORT)
 DATASET_VERSION = "sha256:aaaa"
 
 
 def resolved_pilot() -> dict[str, Any]:
     outcome = load_manifest(PILOT)
     assert outcome.manifest is not None
-    return resolve(outcome.manifest)
+    resolved = resolve(outcome.manifest)
+    return merge_derived(
+        resolved,
+        input_columns=FIXTURE_COLUMNS,
+        labels=resolved["outputs"][0]["labels"],
+    )
 
 
 def leaf_paths(value: Any, prefix: str = "") -> list[str]:
-    """Every dotted path to a non-mapping value in the resolved manifest."""
+    """Every path to a leaf in the resolved manifest: ``export.targets``, ``outputs[0].labels``.
+
+    A list of mappings — the declarations — is walked into, entry by entry; a list of scalars is
+    one leaf.
+    """
     if isinstance(value, dict):
         out: list[str] = []
         for key, child in value.items():
             out.extend(leaf_paths(child, f"{prefix}.{key}" if prefix else str(key)))
         return out
+    if isinstance(value, list) and value and all(isinstance(item, dict) for item in value):
+        out = []
+        for index, child in enumerate(value):
+            out.extend(leaf_paths(child, f"{prefix}[{index}]"))
+        return out
     return [prefix]
 
 
-def set_at(document: dict[str, Any], path: str, value: Any) -> None:
+_PART = re.compile(r"^(?P<key>[^\[]+)(?:\[(?P<index>\d+)\])?$")
+
+
+def _parent_and_key(document: dict[str, Any], path: str) -> tuple[Any, str]:
     parts = path.split(".")
     current: Any = document
     for part in parts[:-1]:
-        current = current[part]
-    current[parts[-1]] = value
+        match = _PART.match(part)
+        assert match is not None
+        current = current[match["key"]]
+        if match["index"] is not None:
+            current = current[int(match["index"])]
+    return current, parts[-1]
+
+
+def set_at(document: dict[str, Any], path: str, value: Any) -> None:
+    parent, key = _parent_and_key(document, path)
+    parent[key] = value
 
 
 def get_at(document: dict[str, Any], path: str) -> Any:
-    current: Any = document
-    for part in path.split("."):
-        current = current[part]
-    return current
+    parent, key = _parent_and_key(document, path)
+    return parent[key]
 
 
 def perturb(value: Any) -> Any:
@@ -122,7 +154,8 @@ def test_the_walk_actually_covers_the_manifest() -> None:
     # A guard against the test above passing because it examined nothing.
     leaves = leaf_paths(resolved_pilot())
     assert len(leaves) > 25, leaves
-    assert "compliance.intended_use" in leaves
+    assert "outputs[0].accuracy_drop_max" in leaves
+    assert "inputs[0].columns" in leaves
     assert "model.params.hidden" in leaves
 
 
@@ -133,16 +166,37 @@ def test_every_declared_read_exists_in_the_resolved_manifest(spec: StageSpec) ->
     project(resolved_pilot(), spec)
 
 
-def test_editing_compliance_text_changes_no_stage_key() -> None:
-    # FR-015 stated as the thing a person actually does: fixing a typo in the intended-use text
-    # must never retrain. The walk above covers it; this names it, so the reason the test exists
-    # survives a refactor.
+#: Whose *own* projection a change moves (feature 006, FR-031; data model, *Stages*). A stage
+#: downstream of one of these re-runs as well, through its upstream key — the budget re-runs
+#: ``export`` that way — but no stage *upstream* of the reader does. The walk above proves the
+#: general property; this names the cases a person actually meets, so the reason survives a
+#: refactor. Principle III: a change only a later stage reads must not invalidate an earlier one.
+RERUNS = {
+    "outputs[0].accuracy_drop_max": {"quantize"},
+    "export.targets": {"export"},
+    "model.name": {"export"},
+    "model.version": {"export"},
+    "outputs[0].labels": {"data", "build", "train", "quantize", "export"},
+}
+
+
+@pytest.mark.parametrize("leaf", sorted(RERUNS))
+def test_a_change_reruns_exactly_the_stages_that_read_it(leaf: str) -> None:
     base = resolved_pilot()
     edited = resolved_pilot()
-    set_at(edited, "compliance.intended_use", "a clearer sentence about the same thing")
-    set_at(edited, "publish.hf_repo", "someone-else/picket-mlp")
-    for spec in STAGES:
-        assert key_for(spec, base) == key_for(spec, edited)
+    set_at(edited, leaf, perturb(get_at(edited, leaf)))
+    moved = {spec.name for spec in STAGES if key_for(spec, base) != key_for(spec, edited)}
+    assert moved == RERUNS[leaf]
+
+
+def test_a_budget_change_never_retrains() -> None:
+    # The case analysis C1 of 2026-10-23 found: the budget sits inside outputs[0], and a stage
+    # that read the declaration whole would rebuild and retrain when it changed.
+    base = resolved_pilot()
+    edited = resolved_pilot()
+    set_at(edited, "outputs[0].accuracy_drop_max", 0.05)
+    for spec in (DATA, BUILD, TRAIN):
+        assert key_for(spec, base) == key_for(spec, edited), spec.name
 
 
 def test_the_dataset_version_and_the_upstream_key_are_part_of_the_identity() -> None:

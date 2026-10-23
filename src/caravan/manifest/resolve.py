@@ -7,12 +7,19 @@ machine-specific value appears anywhere in it — so two runs of the same input 
 
 from __future__ import annotations
 
+import copy
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from caravan.manifest._yaml import dump_mapping
 from caravan.manifest.schema import Manifest
 from caravan.templates.registry import TemplateRegistry
 from caravan.templates.registry import default_registry as default_templates
+
+#: What the resolved manifest says where the value comes from the data and no run has read it yet
+#: (``caravan render``). A run's resolved manifest replaces it with what the ``data`` stage found
+#: (FR-013, contracts/manifest.md).
+DERIVED = "derived"
 
 
 def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) -> dict[str, Any]:
@@ -30,11 +37,28 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
         "model": {
             "name": manifest.model.name,
             "version": manifest.model.version,
-            "topic": manifest.model.topic,
-            "task": manifest.model.task,
             "template": manifest.model.template,
             "params": params,
         },
+        "inputs": [
+            {
+                "name": declared.name,
+                "kind": declared.kind,
+                "columns": DERIVED if declared.columns is None else list(declared.columns),
+                "window": declared.window,
+            }
+            for declared in manifest.inputs
+        ],
+        "outputs": [
+            {
+                "name": declared.name,
+                "kind": declared.kind,
+                "column": declared.column,
+                "labels": DERIVED if declared.labels is None else list(declared.labels),
+                "accuracy_drop_max": declared.accuracy_drop_max,
+            }
+            for declared in manifest.outputs
+        ],
         "dataset": {
             "source": manifest.dataset.source,
             "split": {
@@ -43,11 +67,7 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
                 "test": manifest.dataset.split.test,
                 "stratified": manifest.dataset.split.stratified,
             },
-            "window": manifest.dataset.window,
-            "labels": list(manifest.dataset.labels),
             "representative_samples": manifest.dataset.representative_samples,
-            "license": manifest.dataset.license,
-            "permitted_use": manifest.dataset.permitted_use,
         },
         "train": {
             "epochs": manifest.train.epochs,
@@ -62,27 +82,22 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
             "quantization": manifest.export.quantization,
             "formats": list(manifest.export.formats),
             "targets": list(manifest.export.targets),
-            "accuracy_drop_max": manifest.export.accuracy_drop_max,
-        },
-        "verify": {"emulator": manifest.verify.emulator},
-        "bench": {"metrics": list(manifest.bench.metrics)},
-        # Explicitly null rather than absent: "this model is not published" is a concrete value,
-        # and SC-007 asks for no implicit ones.
-        "publish": (
-            None
-            if manifest.publish is None
-            else {
-                "hf_repo": manifest.publish.hf_repo,
-                "license": manifest.publish.license,
-            }
-        ),
-        "compliance": {
-            "eu_ai_act_class": manifest.compliance.eu_ai_act_class,
-            "privacy": manifest.compliance.privacy,
-            "intended_use": manifest.compliance.intended_use,
-            "known_limits": list(manifest.compliance.known_limits),
         },
     }
+
+
+def merge_derived(
+    resolved: Mapping[str, Any], *, input_columns: Sequence[str], labels: Sequence[str]
+) -> dict[str, Any]:
+    """The resolved manifest with what the data said in place of the ``derived`` markers.
+
+    A copy: the declared form stays what the ``data`` stage's own key is computed from, so that key
+    never depends on the stage's own output (data model, *Stages*).
+    """
+    merged = copy.deepcopy(dict(resolved))
+    merged["inputs"][0]["columns"] = list(input_columns)
+    merged["outputs"][0]["labels"] = list(labels)
+    return merged
 
 
 def render(manifest: Manifest, *, templates: TemplateRegistry | None = None) -> str:

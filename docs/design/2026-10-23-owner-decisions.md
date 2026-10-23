@@ -1,8 +1,20 @@
 # Owner decisions after the first from-zero run — 2026-10-23
 
-Status: record of decisions and open proposals from a working session. Nothing here is
-implemented yet. The decisions bind the next specs; the constitution has not been amended yet,
-and where a decision contradicts it, the amendment is listed as work to do.
+Status: record of decisions and open proposals from a working session, kept as written; what
+happened to them since is listed here rather than edited into them.
+
+- The constitution was amended to **3.0.0** (2026-10-23) to carry D1, D2, D4 and D5.
+- Feature 006 (`specs/006-declared-io/`) implements:
+  - **D1**: compliance out — schema, rules CF-3, CF-5, CF-8 and DS-9 retired;
+  - **D2**: nothing asked that no stage reads;
+  - **D4**: declared input and output, with the fit check before training. Several inputs and
+    outputs are in the declaration form only, because no documented application was found
+    (`docs/research/2026-10-23-multi-io-on-mcu.md`);
+  - **R1**: `topic` and `task` removed;
+  - **R2**: labels derived from the data;
+  - **P5** in part: the interface contract in the export, without input scaling.
+- Still open: D3, D6, R3, P1–P4, P6, P7, and the input-scaling half of P5. Feature 006 measured
+  why that half matters (research R11).
 
 The owner tried Caravan from an empty folder and reviewed the manifest, the CLI and the run
 directories. His words are quoted in the original German, followed by a translation. Everything

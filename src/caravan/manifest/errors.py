@@ -22,11 +22,16 @@ RULE_TEMPLATE_PARAMETERS = "T-2"
 RULE_UNKNOWN_BOARD = "B-1"
 RULE_SPLIT_SUM = "CF-1"
 RULE_DUPLICATE_TARGETS = "CF-2"
-RULE_PERSONAL_DATA_RISK_CLASS = "CF-3"
 RULE_CALIBRATION_SAMPLES = "CF-4"
 RULE_WINDOW_MATCHES_TEMPLATE = "CF-6"
-RULE_EMULATOR_EXISTS = "CF-7"
-RULE_PUBLISH_BENCHMARK_ONLY = "CF-8"
+#: A declaration name breaks the form ``[a-z][a-z0-9_]{0,31}``, or two declarations share one: the
+#: name is what a runner binds by, in C as much as in the model's signature (feature 006).
+RULE_DECLARATION_NAME = "CF-9"
+#: More than one input or output, or a kind this build does not implement. Several inputs and
+#: outputs wait for the first named model or documented application that needs them (Principle X).
+RULE_DECLARATIONS_IMPLEMENTED = "CF-10"
+#: A column named by the input is the output's column: a model would be trained on its own answer.
+RULE_COLUMN_BOTH_WAYS = "CF-11"
 
 #: Rules that can refuse a manifest. Every one of these must have an invalid manifest fixture,
 #: and ``tests/unit/test_fixture_coverage.py`` fails when one does not.
@@ -38,11 +43,11 @@ MANIFEST_REJECTION_RULES: frozenset[str] = frozenset(
         RULE_UNKNOWN_BOARD,
         RULE_SPLIT_SUM,
         RULE_DUPLICATE_TARGETS,
-        RULE_PERSONAL_DATA_RISK_CLASS,
         RULE_CALIBRATION_SAMPLES,
         RULE_WINDOW_MATCHES_TEMPLATE,
-        RULE_EMULATOR_EXISTS,
-        RULE_PUBLISH_BENCHMARK_ONLY,
+        RULE_DECLARATION_NAME,
+        RULE_DECLARATIONS_IMPLEMENTED,
+        RULE_COLUMN_BOTH_WAYS,
     }
 )
 
@@ -58,8 +63,11 @@ RULE_DATASET_LABELS = "DS-5"
 RULE_DATASET_NO_SAMPLES = "DS-6"
 RULE_DATASET_FEATURE_WIDTH = "DS-7"
 RULE_SPLIT_EMPTY = "DS-8"
-RULE_TRAINING_NOT_PERMITTED = "DS-9"
 RULE_TRAINING_DIVERGED = "DS-10"
+#: The output column holds fewer than two distinct values: there is nothing to classify.
+RULE_TOO_FEW_CLASSES = "DS-11"
+#: The input names a column the data does not have.
+RULE_UNKNOWN_INPUT_COLUMN = "DS-12"
 
 #: Run rules. Every one of these must have a test that provokes it, and
 #: ``tests/unit/test_run_rules_coverage.py`` fails when one does not. DS-7 is deliberately absent:
@@ -73,20 +81,13 @@ RUN_RULES: frozenset[str] = frozenset(
         RULE_DATASET_LABELS,
         RULE_DATASET_NO_SAMPLES,
         RULE_SPLIT_EMPTY,
-        RULE_TRAINING_NOT_PERMITTED,
         RULE_TRAINING_DIVERGED,
+        RULE_TOO_FEW_CLASSES,
+        RULE_UNKNOWN_INPUT_COLUMN,
     }
 )
 
 # --- Rules that are entailed by the schema itself, and can therefore never fire ---------------
-RULE_PUBLISH_NEEDS_COMPLIANCE = "CF-5"
-
-#: CF-5 ("publication requires a complete compliance block") turned out to be *entailed* once the
-#: schema was written: ``compliance`` is required for every manifest, whether or not ``publish`` is
-#: present, and each of its fields already rejects an empty value. There is no state in which a
-#: manifest passes the compliance section and still fails CF-5, so it is not a runtime rule and
-#: can have no fixture. FR-016 is satisfied structurally, by FR-015 plus the field constraints —
-#: which is a stronger guarantee than a cross-field check, not a weaker one.
 #: DS-7 ("the feature width disagrees with what the manifest's window implies") was withdrawn
 #: during the analysis pass of feature 002, for the same reason as CF-5: it is unreachable. The
 #: manifest declares no feature width — the width comes from the data (FR-004) — so there is
@@ -106,7 +107,7 @@ RULE_KERNEL_COVERAGE_UNKNOWN = "X-5"
 #: continuous integration rather than in somebody's run. The identifier stays reserved rather than
 #: renumbering the rules that are reachable.
 ENTAILED_RULES: frozenset[str] = frozenset(
-    {RULE_PUBLISH_NEEDS_COMPLIANCE, RULE_DATASET_FEATURE_WIDTH, RULE_KERNEL_COVERAGE_UNKNOWN}
+    {RULE_DATASET_FEATURE_WIDTH, RULE_KERNEL_COVERAGE_UNKNOWN}
 )
 
 # --- Rules that reject a board description, never a manifest ----------------------------------
@@ -149,6 +150,10 @@ RULE_NOTHING_TO_EXPORT = "X-2"
 RULE_MULTIPLE_SUBGRAPHS = "X-3"
 RULE_OPERATOR_UNRESOLVABLE = "X-4"
 # X-5 is defined above, with the other identifiers that reject nothing.
+#: A declared input or output name is missing from the converted model's signature. A defect
+#: between the build's rewiring and the conversion, refused by name rather than guessed at, because
+#: the interface contract binds by that name (feature 006).
+RULE_DECLARED_NAME_NOT_IN_MODEL = "X-6"
 
 #: Export rules. Like the DS and Q rules they refuse a *run*, so none of them has an
 #: invalid-manifest fixture and all of them are covered by their own coverage test instead. X-5 is
@@ -159,16 +164,24 @@ EXPORT_RULES: frozenset[str] = frozenset(
         RULE_NOTHING_TO_EXPORT,
         RULE_MULTIPLE_SUBGRAPHS,
         RULE_OPERATOR_UNRESOLVABLE,
+        RULE_DECLARED_NAME_NOT_IN_MODEL,
     }
 )
 
+# --- Rules that reject a run at the fit check before training -----------------------------------
+#: F-1: a computed lower bound on flash or working memory exceeds what a target board offers. A
+#: floor is a lower bound, so no training can make that model fit that board (Principle V).
+RULE_FLOOR_EXCEEDS_BOARD = "F-1"
+
+#: Fit rules. They refuse a run, before any training, and are covered by their own coverage test.
+FIT_RULES: frozenset[str] = frozenset({RULE_FLOOR_EXCEEDS_BOARD})
+
 # --- Identifiers that never reject anything ---------------------------------------------------
-RULE_NO_SCHEMA_VERSION = "V-2"
 RULE_DATASET_UNRESOLVED = "D-1"
 
-#: Informational identifiers: V-2 accepts a manifest that declares no version, D-1 records a
-#: reference that was deliberately not resolved. Neither may have an invalid fixture.
-INFORMATIONAL_RULES: frozenset[str] = frozenset({RULE_NO_SCHEMA_VERSION, RULE_DATASET_UNRESOLVED})
+#: Informational identifiers: D-1 records a reference that was deliberately not resolved. It may
+#: not have an invalid fixture.
+INFORMATIONAL_RULES: frozenset[str] = frozenset({RULE_DATASET_UNRESOLVED})
 
 ALL_RULES: frozenset[str] = (
     MANIFEST_REJECTION_RULES
@@ -176,9 +189,20 @@ ALL_RULES: frozenset[str] = (
     | RUN_RULES
     | QUANTIZE_RULES
     | EXPORT_RULES
+    | FIT_RULES
     | INFORMATIONAL_RULES
     | ENTAILED_RULES
 )
+
+
+#: Identifiers that belonged to the compliance layer or to a section of a stage that does not exist
+#: yet, and were removed in feature 006 (constitution 3.0.0, Principles I and VI). They are
+#: reserved, never reused, and appear in no group above: CF-3 personal data against risk class,
+#: CF-5 publication needs compliance, CF-7 an emulator exists for every target, CF-8 benchmark-only
+#: data not published, DS-9 training not permitted. V-2, which read a manifest with no version as
+#: the oldest known one, was retired by constitution 4.0.0: an undeclared version is now refused
+#: with V-1 (Principle IX).
+RETIRED_RULES: frozenset[str] = frozenset({"CF-3", "CF-5", "CF-7", "CF-8", "DS-9", "V-2"})
 
 
 class RunRuleFailure(Exception):
@@ -316,7 +340,13 @@ def render_finding(document: str, finding: Finding) -> str:
         label = "accepted here" if finding.rule is None else "accepted"
         lines.append(f"    {label}: {', '.join(finding.accepted)}")
         subject = finding.near if finding.near is not None else finding.found
-        hint = suggest(str(subject), finding.accepted) if subject is not None else None
+        # No did-you-mean for a schema version: an older form differs in more than its version, so
+        # editing only the version would not make it valid (the problem names the change note).
+        hint = (
+            suggest(str(subject), finding.accepted)
+            if subject is not None and finding.rule != RULE_UNKNOWN_SCHEMA_VERSION
+            else None
+        )
         if hint:
             lines.append(f"    did you mean: {hint}")
     if finding.belongs_at:

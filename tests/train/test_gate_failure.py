@@ -60,7 +60,7 @@ def test_the_run_fails_with_the_rule_that_names_the_threshold(
     rules = {finding.get("rule") for finding in report["findings"]}
     assert RULE_ACCURACY_GATE in rules
     finding = next(f for f in report["findings"] if f.get("rule") == RULE_ACCURACY_GATE)
-    assert finding["path"] == "export.accuracy_drop_max"
+    assert finding["path"] == "outputs[0].accuracy_drop_max"
 
 
 def test_no_quantized_model_survives_a_failed_gate(

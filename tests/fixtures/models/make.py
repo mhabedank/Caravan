@@ -22,11 +22,19 @@ SEED = 20261022
 CALIBRATION_SAMPLES = 64
 
 
+#: The declared names the models carry, as a model built by caravan does since feature 006: the
+#: interface contract binds by them, so the verify tests that read these files need them.
+INPUT_NAME = "frames"
+OUTPUT_NAME = "attack"
+
+
 def _model():
     import keras
 
+    from caravan.stages.build import rewire
+
     keras.utils.set_random_seed(SEED)
-    return keras.Sequential(
+    sequential = keras.Sequential(
         [
             keras.layers.Input(shape=INPUT_SHAPE, name="input"),
             keras.layers.Flatten(name="flatten"),
@@ -35,6 +43,7 @@ def _model():
         ],
         name="example",
     )
+    return rewire(sequential, INPUT_NAME, OUTPUT_NAME)
 
 
 def _calibration():

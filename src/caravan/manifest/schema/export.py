@@ -23,7 +23,6 @@ class ExportSpec(BaseModel):
     quantization: Quantization = "int8"
     formats: list[Format] = Field(default_factory=lambda: ["flatbuffer", "c_array"])
     targets: list[str] = Field(min_length=1)
-    accuracy_drop_max: float = Field(default=0.02, ge=0.0, le=1.0)
 
     @model_validator(mode="after")
     def _targets_and_formats_are_distinct(self) -> ExportSpec:

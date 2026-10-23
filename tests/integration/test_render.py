@@ -26,13 +26,12 @@ def test_the_resolved_manifest_has_no_implicit_values(tmp_path, capsys) -> None:
     }
     assert data["export"]["formats"] == ["flatbuffer", "c_array"]
     assert data["export"]["quantization"] == "int8"
-    assert data["verify"]["emulator"] == "none"
-    assert data["bench"]["metrics"] == ["latency_p50", "ram_peak", "flash"]
     # The template's own default is expanded too, not left to the training stage to guess.
     assert data["model"]["params"] == {"hidden": [8], "dropout": 0.0}
-    # Not published is a concrete value, not an absence.
-    assert data["publish"] is None
-    assert data["dataset"]["permitted_use"] == "unknown"
+    # What the data will say is marked, not left empty (feature 006, FR-013).
+    assert data["inputs"][0]["columns"] == "derived"
+    assert data["outputs"][0]["labels"] == "derived"
+    assert data["outputs"][0]["column"] == "label"
 
 
 def test_resolving_twice_is_byte_identical(capsys) -> None:

@@ -43,24 +43,45 @@ def edit(manifest, old: str, new: str) -> None:
 
 def test_the_first_run_produces_and_the_second_reuses(tmp_path) -> None:
     manifest = dataset_and_manifest(tmp_path)
-    assert train(manifest, tmp_path) == {"build": OUTCOME_PRODUCED, "train": OUTCOME_PRODUCED}
-    assert train(manifest, tmp_path) == {"build": OUTCOME_REUSED, "train": OUTCOME_REUSED}
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_PRODUCED,
+        "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
+        "train": OUTCOME_PRODUCED,
+    }
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_REUSED,
+        "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
+        "train": OUTCOME_REUSED,
+    }
 
 
-def test_editing_compliance_text_retrains_nothing(tmp_path) -> None:
-    # SC-004, and the reason the cache exists at all: keeping compliance text current must never
-    # cost a training run, or the honest habit becomes a reason to avoid touching the manifest.
+def test_changing_the_budget_retrains_nothing(tmp_path) -> None:
+    # Principle III and feature 006 FR-031, the case analysis C1 found: the budget sits inside the
+    # output's declaration, and only quantize reads it — so tightening it must never cost a
+    # training run, or the honest habit becomes a reason to avoid touching the manifest.
     manifest = dataset_and_manifest(tmp_path)
     train(manifest, tmp_path)
-    edit(manifest, "Exercises one run rule end to end", "Exercises one run rule, end to end")
-    assert train(manifest, tmp_path) == {"build": OUTCOME_REUSED, "train": OUTCOME_REUSED}
+    edit(manifest, "accuracy_drop_max: 0.02", "accuracy_drop_max: 0.05")
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_REUSED,
+        "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
+        "train": OUTCOME_REUSED,
+    }
 
 
 def test_changing_a_template_parameter_rebuilds_and_retrains(tmp_path) -> None:
     manifest = dataset_and_manifest(tmp_path)
     train(manifest, tmp_path)
     edit(manifest, "hidden: [4]", "hidden: [8]")
-    assert train(manifest, tmp_path) == {"build": OUTCOME_PRODUCED, "train": OUTCOME_PRODUCED}
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_REUSED,
+        "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
+        "train": OUTCOME_PRODUCED,
+    }
 
 
 def test_changing_the_seed_rebuilds_and_retrains(tmp_path) -> None:
@@ -70,7 +91,12 @@ def test_changing_the_seed_rebuilds_and_retrains(tmp_path) -> None:
     manifest = dataset_and_manifest(tmp_path)
     train(manifest, tmp_path)
     edit(manifest, "epochs: 1", "epochs: 1\n  seed: 7")
-    assert train(manifest, tmp_path) == {"build": OUTCOME_PRODUCED, "train": OUTCOME_PRODUCED}
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_REUSED,
+        "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
+        "train": OUTCOME_PRODUCED,
+    }
 
 
 def test_changing_a_training_setting_retrains_but_does_not_rebuild(tmp_path) -> None:
@@ -79,7 +105,12 @@ def test_changing_a_training_setting_retrains_but_does_not_rebuild(tmp_path) -> 
     manifest = dataset_and_manifest(tmp_path)
     train(manifest, tmp_path)
     edit(manifest, "learning_rate: 0.001", "learning_rate: 0.002")
-    assert train(manifest, tmp_path) == {"build": OUTCOME_REUSED, "train": OUTCOME_PRODUCED}
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_REUSED,
+        "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
+        "train": OUTCOME_PRODUCED,
+    }
 
 
 def test_changing_a_byte_of_the_dataset_rebuilds_and_retrains(tmp_path) -> None:
@@ -90,7 +121,12 @@ def test_changing_a_byte_of_the_dataset_rebuilds_and_retrains(tmp_path) -> None:
         records.read_text(encoding="utf-8").replace("normal,0,0", "normal,1,0", 1),
         encoding="utf-8",
     )
-    assert train(manifest, tmp_path) == {"build": OUTCOME_PRODUCED, "train": OUTCOME_PRODUCED}
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_PRODUCED,
+        "build": OUTCOME_PRODUCED,
+        "fit": OUTCOME_PRODUCED,
+        "train": OUTCOME_PRODUCED,
+    }
 
 
 def test_moving_the_dataset_without_changing_it_retrains_nothing(tmp_path) -> None:
@@ -101,7 +137,12 @@ def test_moving_the_dataset_without_changing_it_retrains_nothing(tmp_path) -> No
 
     (tmp_path / "data").rename(tmp_path / "elsewhere")
     edit(manifest, "source: data", "source: elsewhere")
-    assert train(manifest, tmp_path) == {"build": OUTCOME_REUSED, "train": OUTCOME_REUSED}
+    assert train(manifest, tmp_path) == {
+        "data": OUTCOME_REUSED,
+        "build": OUTCOME_REUSED,
+        "fit": OUTCOME_REUSED,
+        "train": OUTCOME_REUSED,
+    }
 
 
 def test_a_reused_run_reports_the_same_numbers_as_the_run_that_produced_them(tmp_path) -> None:

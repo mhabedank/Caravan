@@ -24,7 +24,7 @@ from typing import Any
 from caravan.cli.main import EXIT_ENVIRONMENT, EXIT_OK, EXIT_RULE, EXIT_USAGE
 from caravan.cli.validate import json_document, report_for
 from caravan.env import EnvironmentIncomplete, missing_extra_message, training_framework_available
-from caravan.manifest._yaml import DocumentError
+from caravan.manifest._yaml import DocumentError, dump_mapping
 from caravan.manifest.errors import (
     Finding,
     Gate,
@@ -33,8 +33,8 @@ from caravan.manifest.errors import (
     render_finding,
 )
 from caravan.manifest.load import load_manifest
+from caravan.manifest.resolve import merge_derived, resolve
 from caravan.manifest.resolve import render as render_manifest
-from caravan.manifest.resolve import resolve
 from caravan.run.paths import RESOLVED_MANIFEST_NAME, create_run_directory, file_digest
 from caravan.run.report import (
     OUTCOME_ERROR,
@@ -45,6 +45,8 @@ from caravan.run.report import (
     write_report,
 )
 from caravan.stages import cache as cache_module
+from caravan.stages import data as data_stage
+from caravan.stages import fit as fit_stage
 from caravan.stages.base import StageContext, StageSpec, run_stage
 
 #: The files a stage writes its measurements into, and the ones the report is built from — so a
@@ -52,6 +54,8 @@ from caravan.stages.base import StageContext, StageSpec, run_stage
 #: writes its record straight into the run directory, so the same read serves both paths.
 METRICS_NAME = "metrics.json"
 QUANTIZATION_NAME = "quantization.json"
+#: The interface contract the export writes (feature 006).
+INTERFACE_NAME = "model/interface.json"
 
 #: Printed after a successful run: the manifest's name, the run directory and what the stages
 #: measured. The name comes first in every line Caravan prints, success or failure, so a log of
@@ -182,6 +186,16 @@ def _attach_quantization(report: Report, run_dir: Path) -> None:
         )
 
 
+def data_line(schema: dict[str, Any]) -> str:
+    """What the data said, in one line: the label order matters to anyone reading an output unit."""
+    labels = ", ".join(schema["labels"])
+    columns = len(schema["input_columns"])
+    return (
+        f"data: labels {labels} ({schema['labels_source']}); "
+        f"{columns} input column{'s' if columns != 1 else ''} ({schema['columns_source']})"
+    )
+
+
 def run_pipeline(
     args: argparse.Namespace,
     command: str,
@@ -224,6 +238,9 @@ def run_pipeline(
     resolved = resolve(manifest)
 
     run_dir = create_run_directory(Path(args.runs_dir), file_digest(path))
+    # Written once the data stage has said what the data holds, so a run's resolved manifest carries
+    # the derived labels and columns rather than the marker (feature 006, FR-013). Until then the
+    # declared form stands in, which is also what remains if the data stage fails.
     (run_dir / RESOLVED_MANIFEST_NAME).write_text(render_manifest(manifest), encoding="utf-8")
     cache_dir = Path(args.cache_dir)
     report = report_for(
@@ -240,15 +257,46 @@ def run_pipeline(
         from caravan.data.fingerprint import resolve_dataset
 
         dataset = resolve_dataset(manifest.dataset.source, path.parent)
+        declared_columns = manifest.inputs[0].columns
         context = StageContext(
             dataset=dataset,
-            labels=tuple(manifest.dataset.labels),
             run_dir=run_dir,
             run_id=run_dir.name,
+            input_columns=None if declared_columns is None else tuple(declared_columns),
+            output_column=manifest.outputs[0].column,
         )
 
+        # The data stage reads the declarations as written; every later stage reads them with what
+        # the data said merged in, so the derived values are part of their keys (research R3).
         keys: dict[str, str] = {}
+        result = run_stage(
+            data_stage.SPEC,
+            data_stage.stage(context),
+            resolved=resolved,
+            run_dir=run_dir,
+            cache_dir=cache_dir,
+            dataset_version=dataset.version,
+            fresh=args.fresh,
+            run_id=run_dir.name,
+        )
+        keys[data_stage.SPEC.name] = result.key
+        outcomes.append(result)
+        schema = data_stage.load_schema(run_dir)
+        resolved = merge_derived(
+            resolved, input_columns=schema["input_columns"], labels=schema["labels"]
+        )
+        (run_dir / RESOLVED_MANIFEST_NAME).write_text(dump_mapping(resolved), encoding="utf-8")
+        report.data = schema
+
+        # The fit check runs right after the build, before any training (Principle V): every verb
+        # that builds also checks, and none of them can skip it.
+        sequence: list[StagePlan] = []
         for plan in stages:
+            sequence.append(plan)
+            if plan.spec.name == "build":
+                sequence.append(StagePlan(spec=fit_stage.SPEC, make=fit_stage.stage))
+
+        for plan in sequence:
             result = run_stage(
                 plan.spec,
                 plan.make(context),
@@ -318,6 +366,12 @@ def run_pipeline(
             dataset_version=matrix["dataset_version"],
         )
     _attach_quantization(report, run_dir)
+    fit_record = _artifact(run_dir, fit_stage.FIT_RECORD)
+    if fit_record:
+        report.fit = fit_record
+    interface_record = _artifact(run_dir, INTERFACE_NAME)
+    if interface_record:
+        report.interface = interface_record
     report.artifacts = {
         "resolved_manifest": RESOLVED_MANIFEST_NAME,
         **{Path(artifact).stem: artifact for stage in outcomes for artifact in stage.artifacts},
@@ -332,6 +386,7 @@ def run_pipeline(
                     "outcome": "valid",
                     "run": str(run_dir),
                     "stages": [stage.as_dict() for stage in outcomes],
+                    "data": report.data,
                     "metrics": [metric.as_dict() for metric in report.metrics],
                 },
                 indent=2,
@@ -341,6 +396,8 @@ def run_pipeline(
         )
     elif not args.quiet:
         summary(name, run_dir, measured)
+        if report.data is not None:
+            print(f"    {data_line(report.data)}", file=sys.stderr)
         for stage in outcomes:
             if stage.outcome == cache_module.OUTCOME_REUSED:
                 print(

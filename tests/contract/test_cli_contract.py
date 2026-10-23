@@ -7,7 +7,7 @@ import json
 import pytest
 
 from caravan.cli.main import EXIT_INTERNAL, EXIT_OK, EXIT_RULE, EXIT_USAGE, build_parser, main
-from tests.support import INVALID, PILOT
+from tests.support import INVALID, PILOT, PILOT_FIXTURE
 
 
 def test_a_valid_manifest_exits_zero(tmp_path, capsys) -> None:
@@ -50,7 +50,9 @@ def test_a_defect_in_the_tool_exits_three(monkeypatch, capsys) -> None:
 
 
 def test_the_answer_goes_to_stdout_and_messages_to_stderr(tmp_path, capsys) -> None:
-    main(["render", str(PILOT), "--stdout"])
+    # A current-form manifest, so there is nothing to say: a migrated one says what changed, on
+    # stderr (feature 006, test below).
+    main(["render", str(PILOT_FIXTURE), "--stdout"])
     captured = capsys.readouterr()
     assert captured.out.startswith("apiVersion:")
     assert captured.err == ""
@@ -98,7 +100,7 @@ def test_validate_and_render_agree_on_the_same_manifest(tmp_path, capsys) -> Non
     from_render = json.loads(capsys.readouterr().out)
     assert from_validate["findings"] == from_render["findings"]
     assert from_validate["unresolved"] == from_render["unresolved"]
-    assert from_validate["schema_version_effective"] == from_render["schema_version_effective"]
+    assert from_validate["schema_version"] == from_render["schema_version"]
 
 
 def test_the_parser_exposes_only_the_documented_commands() -> None:
@@ -118,3 +120,45 @@ def test_the_parser_exposes_only_the_documented_commands() -> None:
         "templates",
         "boards",
     }
+
+
+# --- feature 006, constitution 4.0.0: no migration before 1.0.0, removed fields ------------------
+
+
+def test_the_previous_form_is_refused_with_the_change_note(capsys) -> None:
+    code = main(["validate", str(INVALID / "v-1-previous-version.yaml"), "--no-report"])
+    assert code == EXIT_RULE
+    err = capsys.readouterr().err
+    assert "apiVersion" in err
+    assert "caravan/v0.1" in err
+    assert "docs/manifest-changes.md" in err
+
+
+def test_a_manifest_without_a_version_is_refused_not_read_as_some_version(capsys) -> None:
+    code = main(["validate", str(INVALID / "v-1-no-version.yaml"), "--json", "--no-report"])
+    assert code == EXIT_RULE
+    document = json.loads(capsys.readouterr().out)
+    assert document["schema_version"] is None
+    (finding,) = document["findings"]
+    assert finding["rule"] == "V-1"
+    assert finding["path"] == "apiVersion"
+    assert "no schema version declared" in finding["problem"]
+
+
+def test_a_valid_manifest_prints_one_line(capsys) -> None:
+    assert main(["validate", str(PILOT_FIXTURE), "--no-report"]) == EXIT_OK
+    assert capsys.readouterr().err.splitlines() == ["picket-mlp-fixture.yaml: valid"]
+
+
+def test_a_removed_field_in_the_new_form_is_refused_at_its_path(capsys) -> None:
+    code = main(["validate", str(INVALID / "removed-compliance.yaml"), "--no-report"])
+    assert code == EXIT_RULE
+    err = capsys.readouterr().err
+    assert "compliance — removed in caravan/v0.1: Caravan carries no compliance layer" in err
+
+
+def test_render_to_stdout_writes_only_the_document(capsys) -> None:
+    assert main(["render", str(PILOT), "--stdout"]) == EXIT_OK
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert captured.out.startswith("apiVersion: caravan/v0.1\n")

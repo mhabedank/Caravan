@@ -1,8 +1,8 @@
 """Reading a manifest: the one entry point, and the one place pydantic errors become findings.
 
-The sequence is the one in ``specs/001-manifest-schema/data-model.md``: read, version check,
-migrate, schema validation, template resolution, board resolution, cross-field rules. The
-author's file is never written.
+The sequence: read, version check, schema validation, template resolution, board resolution,
+cross-field rules. The author's file is never written. Before Caravan 1.0.0 nothing is migrated: a
+version this build does not implement is refused (constitution 4.0.0, Principle IX).
 """
 
 from __future__ import annotations
@@ -25,21 +25,15 @@ from caravan.manifest.errors import (
     Unresolved,
     dotted_path,
 )
-from caravan.manifest.migrate import (
-    SchemaVersionRegistry,
-    UnknownSchemaVersion,
-)
-from caravan.manifest.migrate import (
-    default_registry as default_versions,
-)
 from caravan.manifest.schema import Manifest
+from caravan.manifest.schema.removed import BY_PATH as REMOVED_FIELDS
+from caravan.manifest.version import SCHEMA_VERSION, UnknownSchemaVersion, check_version
 from caravan.targets.registry import BoardRegistry
 from caravan.targets.registry import default_registry as default_boards
 from caravan.templates.registry import TemplateRegistry
 from caravan.templates.registry import default_registry as default_templates
 
 DATASET_UNRESOLVED_REASON = "not resolved in this stage"
-DATASET_TERMS_UNVERIFIED_REASON = "not stated by the author; not verified by this tool"
 
 
 @dataclass
@@ -50,9 +44,8 @@ class LoadOutcome:
     findings: list[Finding] = field(default_factory=list)
     gates: list[Gate] = field(default_factory=list)
     unresolved: list[Unresolved] = field(default_factory=list)
-    declared_version: str | None = None
-    effective_version: str | None = None
-    migrations_applied: tuple[str, ...] = ()
+    #: The ``apiVersion`` the manifest declares, as written; ``None`` when it declares none.
+    schema_version: str | None = None
 
     @property
     def is_valid(self) -> bool:
@@ -65,6 +58,10 @@ class LoadOutcome:
 def _as_model(annotation: Any) -> type[BaseModel] | None:
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         return annotation
+    if get_origin(annotation) is list:
+        # The declarations are lists of models; a field inside one is reported at its first entry.
+        (item,) = get_args(annotation) or (None,)
+        return _as_model(item)
     if get_origin(annotation) in (Union, UnionType):
         for arg in get_args(annotation):
             model = _as_model(arg)
@@ -95,7 +92,8 @@ def _find_field(root: type[BaseModel], name: str, prefix: str = "") -> str | Non
             return here
         nested = _as_model(info.annotation)
         if nested is not None and nested is not root:
-            found = _find_field(nested, name, f"{here}.")
+            step = "[0]." if get_origin(info.annotation) is list else "."
+            found = _find_field(nested, name, f"{here}{step}")
             if found is not None:
                 return found
     return None
@@ -131,6 +129,12 @@ def findings_from_validation_error(
 
         if kind == "extra_forbidden":
             name = str(location[-1])
+            removed = REMOVED_FIELDS.get(path)
+            if removed is not None:
+                # A field caravan/v0.1 removed or moved: say so, rather than "unknown field", so the
+                # author learns it is gone and does not hunt for a typo (FR-001).
+                findings.append(Finding(path=path, problem=removed.message(), near=name))
+                continue
             parent = _model_at(root, location[:-1])
             accepted = tuple(parent.model_fields) if parent is not None else ()
             findings.append(
@@ -177,12 +181,10 @@ def findings_from_validation_error(
 def load_manifest(
     path: Path,
     *,
-    versions: SchemaVersionRegistry | None = None,
     templates: TemplateRegistry | None = None,
     boards: BoardRegistry | None = None,
 ) -> LoadOutcome:
-    """Read, migrate and validate one manifest. Raises ``DocumentError`` if it cannot be parsed."""
-    versions = versions or default_versions()
+    """Read and validate one manifest. Raises ``DocumentError`` if it cannot be parsed."""
     templates = templates or default_templates()
     boards = boards or default_boards()
 
@@ -190,38 +192,25 @@ def load_manifest(
     outcome = LoadOutcome()
 
     try:
-        migration = versions.migrate(data)
+        outcome.schema_version = check_version(data)
     except UnknownSchemaVersion as exc:
-        outcome.declared_version = exc.declared
+        outcome.schema_version = exc.declared
         outcome.findings.append(
             Finding(
                 path="apiVersion",
-                problem="unknown schema version",
+                problem=exc.problem(),
                 found=exc.declared,
-                accepted=exc.known,
+                accepted=(SCHEMA_VERSION,),
                 rule=RULE_UNKNOWN_SCHEMA_VERSION,
             )
         )
         outcome.gates.append(Gate("schema-version", "fail", exc.declared))
         return outcome
 
-    outcome.declared_version = migration.declared
-    outcome.effective_version = migration.effective
-    outcome.migrations_applied = migration.applied
-    outcome.gates.append(
-        Gate(
-            "schema-version",
-            "pass",
-            f"{migration.declared} → {migration.effective}"
-            if migration.applied
-            else migration.declared,
-        )
-    )
+    outcome.gates.append(Gate("schema-version", "pass", outcome.schema_version))
 
     try:
-        manifest = Manifest.model_validate(
-            migration.data, context={"templates": templates, "boards": boards}
-        )
+        manifest = Manifest.model_validate(data, context={"templates": templates, "boards": boards})
     except PydanticValidationError as exc:
         outcome.findings.extend(findings_from_validation_error(exc))
         outcome.gates.append(Gate("schema", "fail"))
@@ -246,15 +235,6 @@ def load_manifest(
             rule=RULE_DATASET_UNRESOLVED,
         )
     )
-    # Silence about a licence stays visible as silence (FR-032, Principle VI).
-    if manifest.dataset.permitted_use == "unknown":
-        outcome.unresolved.append(
-            Unresolved(
-                kind="dataset-terms",
-                value="unknown",
-                reason=DATASET_TERMS_UNVERIFIED_REASON,
-            )
-        )
     return outcome
 
 

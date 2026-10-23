@@ -1,25 +1,38 @@
 # The pilot manifest, with one field changed: dataset.source points at the committed synthetic
 # fixture instead of the author's copy of the HCRL Car-Hacking data.
 #
-# It exists because the acceptance criterion of feature 002 is that *the pilot manifest* builds and
-# trains end to end, and the pilot manifest's own source is a path on the author's machine. Nothing
-# else is changed — not the template, not the window, not a training setting — so a run of this
-# file exercises what a run of the real one would, on 5,184 synthetic records instead of millions
-# of real ones.
+# It exists because the acceptance criterion is that *the pilot manifest* runs end to end, and the
+# pilot's own source is a path on the author's machine. Nothing else is changed, so a run of this
+# file exercises what a run of the real one would, on 5,184 synthetic records. Keep it in step with
+# picket-mlp.yaml.
 #
-# Keep this in step with picket-mlp.yaml. If the two drift apart, the acceptance test stops
-# testing the thing it claims to test.
-apiVersion: caravan/v0
+# The input columns are derived from the data (every column but `label`). The labels are pinned,
+# and that is a measured decision rather than a habit. Derived, they sort to dos, fuzzy, normal,
+# replay; the model trains to different weights, and on this fixture the int8 gate then fails —
+# 0.75 trained, 0.50 quantized, 3 of 12 test windows (measured 2026-10-23). The cause is not the
+# order but unscaled inputs: CAN identifiers in the hundreds and payload bytes share one int8 input
+# scale (input scaling is proposal P5). picket-mlp-fixture-derived.yaml is the same manifest with
+# the labels derived.
+apiVersion: caravan/v0.1
 
 model:
   name: picket-mlp
   version: 0.1.0
-  topic: automotive-security
-  task: can-ids
   template: mlp
   params:
     hidden: [32, 16]
     dropout: 0.1
+
+inputs:
+  - name: frames
+    kind: series
+    window: 64
+
+outputs:
+  - name: attack
+    kind: class
+    labels: [normal, dos, fuzzy, replay]
+    accuracy_drop_max: 0.02
 
 dataset:
   source: ../../datasets/synthetic
@@ -28,8 +41,6 @@ dataset:
     val: 0.15
     test: 0.15
     stratified: true
-  window: 64
-  labels: [normal, dos, fuzzy, replay]
   representative_samples: 500
 
 train:
@@ -42,21 +53,3 @@ export:
   quantization: int8
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
-  accuracy_drop_max: 0.02
-
-verify:
-  emulator: none
-
-bench:
-  metrics: [latency_p50, ram_peak, flash]
-
-publish:
-  hf_repo: mhabedank/picket-mlp
-  license: apache-2.0
-
-compliance:
-  eu_ai_act_class: limited-risk
-  privacy: no-personal-data
-  intended_use: "CAN bus intrusion detection on gateway and zonal ECUs"
-  known_limits:
-    - "Trained on the HCRL Car-Hacking dataset; behaviour on zero-day attacks is untested"

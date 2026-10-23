@@ -15,9 +15,9 @@ from pydantic import ValidationError as PydanticValidationError
 
 from caravan.manifest.errors import (
     RULE_CALIBRATION_SAMPLES,
-    RULE_EMULATOR_EXISTS,
-    RULE_PERSONAL_DATA_RISK_CLASS,
-    RULE_PUBLISH_BENCHMARK_ONLY,
+    RULE_COLUMN_BOTH_WAYS,
+    RULE_DECLARATION_NAME,
+    RULE_DECLARATIONS_IMPLEMENTED,
     RULE_TEMPLATE_PARAMETERS,
     RULE_UNKNOWN_BOARD,
     RULE_UNKNOWN_TEMPLATE,
@@ -25,30 +25,40 @@ from caravan.manifest.errors import (
     dotted_path,
     rule_error,
 )
-from caravan.manifest.migrate import CURRENT_SCHEMA_VERSION
-from caravan.manifest.schema.compliance import ComplianceSpec
 from caravan.manifest.schema.dataset import MINIMUM_REPRESENTATIVE_SAMPLES, DatasetSpec, Split
 from caravan.manifest.schema.export import ExportSpec
-from caravan.manifest.schema.misc import BenchSpec, PublishSpec, VerifySpec
+from caravan.manifest.schema.io import (
+    INPUT_KINDS,
+    OUTPUT_KINDS,
+    InputDeclaration,
+    OutputDeclaration,
+    name_problem,
+)
 from caravan.manifest.schema.model import ModelSpec
 from caravan.manifest.schema.train import TrainSpec
+from caravan.manifest.version import SCHEMA_VERSION
 from caravan.targets.registry import BoardRegistry
 from caravan.targets.registry import default_registry as default_boards
 from caravan.templates.registry import TemplateRegistry
 from caravan.templates.registry import default_registry as default_templates
 
 __all__ = [
-    "BenchSpec",
-    "ComplianceSpec",
     "DatasetSpec",
     "ExportSpec",
+    "InputDeclaration",
     "Manifest",
     "ModelSpec",
-    "PublishSpec",
+    "OutputDeclaration",
     "Split",
     "TrainSpec",
-    "VerifySpec",
 ]
+
+#: Why a second input or output is refused, in the words the finding uses (rule CF-10).
+SEVERAL_NOT_IMPLEMENTED = (
+    "one input and one output are implemented; several arrive with the first named model or "
+    "documented application that needs them (Principle X, "
+    "docs/research/2026-10-23-multi-io-on-mcu.md)"
+)
 
 
 def _templates(info: ValidationInfo) -> TemplateRegistry:
@@ -69,15 +79,78 @@ class Manifest(BaseModel):
     model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     # The wire name, deliberately not snake_case: it is what the manifest file says.
-    apiVersion: Literal["caravan/v0"] = CURRENT_SCHEMA_VERSION
+    apiVersion: Literal["caravan/v0.1"] = SCHEMA_VERSION
     model: ModelSpec
+    inputs: list[InputDeclaration]
+    outputs: list[OutputDeclaration]
     dataset: DatasetSpec
     train: TrainSpec = TrainSpec()
     export: ExportSpec
-    verify: VerifySpec = VerifySpec()
-    bench: BenchSpec = BenchSpec()
-    publish: PublishSpec | None = None
-    compliance: ComplianceSpec
+
+    # --- the declarations: CF-10, then CF-9, then CF-11 ---------------------------------------
+
+    @model_validator(mode="after")
+    def _one_of_each_and_kinds_implemented(self) -> Manifest:
+        for section, declared in (("inputs", self.inputs), ("outputs", self.outputs)):
+            if len(declared) != 1:
+                rule_error(
+                    RULE_DECLARATIONS_IMPLEMENTED,
+                    section,
+                    f"exactly one entry is accepted, found {len(declared)}: "
+                    + SEVERAL_NOT_IMPLEMENTED,
+                    found=len(declared),
+                )
+        for section, declared, kinds in (
+            ("inputs", self.inputs, INPUT_KINDS),
+            ("outputs", self.outputs, OUTPUT_KINDS),
+        ):
+            for index, declaration in enumerate(declared):
+                if declaration.kind not in kinds:
+                    rule_error(
+                        RULE_DECLARATIONS_IMPLEMENTED,
+                        f"{section}[{index}].kind",
+                        f"this build implements the {section[:-1]} kind(s) {', '.join(kinds)}; "
+                        "another kind arrives with the first named model or documented "
+                        "application that needs it (Principle X)",
+                        found=declaration.kind,
+                        accepted=kinds,
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def _names_are_well_formed_and_distinct(self) -> Manifest:
+        seen: dict[str, str] = {}
+        for section, declared in (("inputs", self.inputs), ("outputs", self.outputs)):
+            for index, declaration in enumerate(declared):
+                path = f"{section}[{index}].name"
+                problem = name_problem(declaration.name)
+                if problem is not None:
+                    rule_error(RULE_DECLARATION_NAME, path, problem, found=declaration.name)
+                if declaration.name in seen:
+                    rule_error(
+                        RULE_DECLARATION_NAME,
+                        path,
+                        f"the name is already used at {seen[declaration.name]}; a runner binds "
+                        "inputs and outputs by name, so every name must be unique",
+                        found=declaration.name,
+                    )
+                seen[declaration.name] = path
+        return self
+
+    @model_validator(mode="after")
+    def _no_column_is_both_input_and_output(self) -> Manifest:
+        answers = {output.column for output in self.outputs}
+        for index, declaration in enumerate(self.inputs):
+            both = sorted(answers & set(declaration.columns or ()))
+            if both:
+                rule_error(
+                    RULE_COLUMN_BOTH_WAYS,
+                    f"inputs[{index}].columns",
+                    f"column {both[0]} is the output's answer and cannot also be an input: the "
+                    "model would be trained on its own answer",
+                    found=both,
+                )
+        return self
 
     # --- template resolution: T-1, then T-2, then CF-6 ---------------------------------------
 
@@ -116,46 +189,47 @@ class Manifest(BaseModel):
     @model_validator(mode="after")
     def _window_matches_template(self, info: ValidationInfo) -> Manifest:
         spec = _templates(info).get(self.model.template)
-        if spec is None:
+        if spec is None or len(self.inputs) != 1:
             return self
-        if spec.consumes_window and self.dataset.window is None:
+        window = self.inputs[0].window
+        path = "inputs[0].window"
+        if spec.consumes_window and window is None:
             rule_error(
                 RULE_WINDOW_MATCHES_TEMPLATE,
-                "dataset.window",
-                f"the {spec.identifier} template consumes a time window, so dataset.window "
-                "must be set",
+                path,
+                f"the {spec.identifier} template consumes a time window, so {path} must be set",
             )
-        if not spec.consumes_window and self.dataset.window is not None:
+        if not spec.consumes_window and window is not None:
             rule_error(
                 RULE_WINDOW_MATCHES_TEMPLATE,
-                "dataset.window",
-                f"the {spec.identifier} template does not consume a time window, so "
-                "dataset.window must be left out",
-                found=self.dataset.window,
+                path,
+                f"the {spec.identifier} template does not consume a time window, so {path} "
+                "must be left out",
+                found=window,
             )
         # A window can be present and still be too short for what the parameters describe. Only the
         # template can tell — it knows what a kernel is and the core does not — so the core asks it
         # and reports whatever sentence comes back (feature 005, research R6). Asked after the
         # parameters have validated, because a check over invalid parameters would report the wrong
         # problem.
-        if spec.window_fit is not None and spec.consumes_window and self.dataset.window is not None:
+        if spec.window_fit is not None and spec.consumes_window and window is not None:
             try:
                 params = spec.parameters.model_validate(self.model.params)
             except PydanticValidationError:
                 return self  # T-2 above already reported it
-            verdict = spec.window_fit(params, int(self.dataset.window))
+            verdict = spec.window_fit(params, int(window))
             if verdict is not None:
                 problem, accepted = verdict
                 rule_error(
                     RULE_WINDOW_MATCHES_TEMPLATE,
-                    "dataset.window",
+                    path,
                     problem,
-                    found=self.dataset.window,
+                    found=window,
                     accepted=accepted,
                 )
         return self
 
-    # --- board resolution: B-1, then CF-7 ------------------------------------------------------
+    # --- board resolution: B-1 -----------------------------------------------------------------
 
     @model_validator(mode="after")
     def _targets_are_known(self, info: ValidationInfo) -> Manifest:
@@ -171,43 +245,7 @@ class Manifest(BaseModel):
                 )
         return self
 
-    @model_validator(mode="after")
-    def _emulator_exists_for_every_target(self, info: ValidationInfo) -> Manifest:
-        if self.verify.emulator == "none":
-            return self
-        registry = _boards(info)
-        without = [
-            target
-            for target in self.export.targets
-            if (board := registry.get(target)) is not None and board.emulator is None
-        ]
-        if without:
-            rule_error(
-                RULE_EMULATOR_EXISTS,
-                "verify.emulator",
-                "these target boards have no emulator platform, so verification cannot name "
-                f"one: {', '.join(without)}",
-                found=self.verify.emulator,
-                accepted=("none",),
-            )
-        return self
-
-    # --- compliance and data terms: CF-3, CF-4, CF-8 -------------------------------------------
-
-    @model_validator(mode="after")
-    def _personal_data_is_not_minimal_risk(self) -> Manifest:
-        if (
-            self.compliance.privacy == "personal-data"
-            and self.compliance.eu_ai_act_class == "minimal-risk"
-        ):
-            rule_error(
-                RULE_PERSONAL_DATA_RISK_CLASS,
-                "compliance.eu_ai_act_class",
-                "a model that processes personal data (compliance.privacy) cannot be minimal-risk",
-                found=self.compliance.eu_ai_act_class,
-                accepted=("limited-risk", "high-risk"),
-            )
-        return self
+    # --- quantization: CF-4 ---------------------------------------------------------------------
 
     @model_validator(mode="after")
     def _int8_needs_calibration_samples(self) -> Manifest:
@@ -221,19 +259,5 @@ class Manifest(BaseModel):
                 "int8 quantization calibrates against representative samples, so at least "
                 f"{MINIMUM_REPRESENTATIVE_SAMPLES} are required",
                 found=samples,
-            )
-        return self
-
-    @model_validator(mode="after")
-    def _benchmark_only_data_is_not_published(self) -> Manifest:
-        # CF-8. The whole of what Caravan enforces about data rights: the author's own statement,
-        # held to. An unstated term is never blocked, only marked unverified (Principle VI).
-        if self.publish is not None and self.dataset.permitted_use == "benchmark-only":
-            rule_error(
-                RULE_PUBLISH_BENCHMARK_ONLY,
-                "publish",
-                "the author states that this dataset is not permitted for training "
-                "(dataset.permitted_use), so a model built from it must not be published",
-                found=self.dataset.permitted_use,
             )
         return self

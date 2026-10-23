@@ -22,14 +22,22 @@ from caravan.manifest.errors import (
     RULE_DATASET_LABELS,
     RunRuleFailure,
 )
+from caravan.stages import data as data_stage
 from tests.train.conftest import pure_windows, write_manifest, write_records
 
 HEADER = "label,a,b"
 
 
 def read(directory, labels=("normal", "attack")):
+    """Read the data, then check it against a pinned label list, as a run does.
+
+    Since feature 006 the reader returns the labels as the data spells them and the ``data`` stage
+    holds them against the manifest (DS-5), so the two steps are taken together here.
+    """
     dataset = resolve_dataset("data", directory)
-    return read_records(dataset, tuple(labels))
+    records = read_records(dataset)
+    data_stage.derive_labels(records.labels, list(labels))
+    return records
 
 
 def test_ds_2_when_no_column_is_called_label(tmp_path) -> None:

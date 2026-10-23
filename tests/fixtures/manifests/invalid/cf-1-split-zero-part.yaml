@@ -1,21 +1,23 @@
 # Invalid on purpose. A split part is zero: no data to train on, tune on or measure against.
 # Expected: CF-1 at dataset.split
-apiVersion: caravan/v0
+apiVersion: caravan/v0.1
 model:
   name: pilot-min
   version: 0.0.1
-  topic: automotive-security
-  task: can-ids
   template: mlp
   params:
     hidden:
     - 8
+inputs:
+- name: frames
+  kind: series
+  window: 32
+outputs:
+- name: verdict
+  kind: class
+  accuracy_drop_max: 0.02
 dataset:
   source: datasets/example/
-  window: 32
-  labels:
-  - normal
-  - attack
   representative_samples: 100
   split:
     train: 0.85
@@ -24,9 +26,3 @@ dataset:
 export:
   targets:
   - stm32h743
-compliance:
-  eu_ai_act_class: minimal-risk
-  privacy: no-personal-data
-  intended_use: Example model used to exercise the schema end to end
-  known_limits:
-  - Not trained; exists to validate the manifest contract

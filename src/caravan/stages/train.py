@@ -2,11 +2,9 @@
 
 Core module — every framework import is inside a function, so importing it loads no framework.
 
-Two things here are the feature's honesty, not its mechanics. The run refuses to train on data the
-author marked as not permitted for training (DS-9): their own statement, enforced against them,
-which is the whole of what Principle VI claims. And a diverged run leaves nothing behind (DS-10,
-FR-012) — no trained model, no best checkpoint — because the stage writes into a private directory
-that is only published if it finishes.
+One thing here is the feature's honesty, not its mechanics: a diverged run leaves nothing behind
+(DS-10, FR-012) — no trained model, no best checkpoint — because the stage writes into a private
+directory that is only published if it finishes.
 """
 
 from __future__ import annotations
@@ -17,11 +15,7 @@ from typing import Any
 
 from caravan.data.reader_bridge import assemble_samples
 from caravan.data.windows import SPLIT_NAMES, plan_split, plan_windows
-from caravan.manifest.errors import (
-    RULE_TRAINING_DIVERGED,
-    RULE_TRAINING_NOT_PERMITTED,
-    run_rule_error,
-)
+from caravan.manifest.errors import RULE_TRAINING_DIVERGED, run_rule_error
 from caravan.stages._framework import framework_record
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
 from caravan.stages.build import load_built_model, require_framework
@@ -40,9 +34,9 @@ MONITOR = "val_loss"
 SPEC = StageSpec(
     name="train",
     # Every field this stage reads, and nothing else — it receives a projection of exactly this
-    # tuple. ``dataset.window`` and ``dataset.labels`` are here because forming samples and
-    # ordering the output units needs them; the plan had left them to the build stage, and the
-    # projection is what made that visible.
+    # tuple. The window and the labels are here because forming samples and ordering the output
+    # units needs them. Never ``outputs[0].accuracy_drop_max``: the budget is read by ``quantize``
+    # alone, so changing it must not retrain (Principle III, feature 006 FR-031).
     reads=(
         "train.epochs",
         "train.batch",
@@ -52,18 +46,15 @@ SPEC = StageSpec(
         "train.patience",
         "train.seed",
         "dataset.split",
-        "dataset.labels",
-        "dataset.window",
-        "dataset.permitted_use",
+        "inputs[0].columns",
+        "inputs[0].window",
+        "outputs[0].name",
+        "outputs[0].labels",
     ),
     reads_dataset=True,
     upstream="build",
     artifacts=(TRAINED_MODEL, BEST_CHECKPOINT, FINAL_CHECKPOINT, METRICS, HISTORY),
 )
-
-#: The one stated use that forbids training. ``unknown`` does not: an unstated term is reported as
-#: unverified (feature 001, FR-032), not treated as a prohibition the author did not write.
-BENCHMARK_ONLY = "benchmark-only"
 
 
 class Diverged(Exception):
@@ -73,26 +64,6 @@ class Diverged(Exception):
         super().__init__(f"the loss became {value} at epoch {epoch}")
         self.epoch = epoch
         self.value = value
-
-
-def check_permitted(permitted_use: str) -> None:
-    """DS-9: the author's own statement about their data, kept.
-
-    Caravan never verifies a licence. What it does is hold an author to what they wrote: a dataset
-    declared ``benchmark-only`` is never trained on, and the message names the field rather than
-    interpreting any terms.
-    """
-    if permitted_use == BENCHMARK_ONLY:
-        run_rule_error(
-            RULE_TRAINING_NOT_PERMITTED,
-            "dataset.permitted_use",
-            (
-                "the manifest states that this dataset is permitted for benchmarking only, so it "
-                "must not be trained on; nothing was trained"
-            ),
-            found=permitted_use,
-            accepted=("training", "unknown"),
-        )
 
 
 def _optimizer(name: str, learning_rate: float) -> Any:
@@ -127,16 +98,16 @@ def stage(context: StageContext) -> StageFunction:
 
     def run(inputs: StageInputs, out_dir: Path) -> None:
         require_framework("train")
-        check_permitted(inputs["dataset.permitted_use"])
 
         import keras
 
-        labels = tuple(inputs["dataset.labels"])
+        labels = tuple(inputs["outputs[0].labels"])
+        output = inputs["outputs[0].name"]
         seed = int(inputs["train.seed"])
         keras.utils.set_random_seed(seed)
 
         records = context.records()
-        window_plan = plan_windows(records.labels, inputs["dataset.window"])
+        window_plan = plan_windows(records.labels, inputs["inputs[0].window"])
         split_spec = inputs["dataset.split"]
         split = plan_split(
             window_plan,
@@ -150,10 +121,12 @@ def stage(context: StageContext) -> StageFunction:
         # The build stage's artifacts are already in the run directory, whether this run
         # produced them or reused them from the cache.
         model = load_built_model(context.run_dir)
+        # The model returns a dict keyed by the declared output's name (build stage, rewiring), so
+        # the loss and the targets are keyed the same way.
         model.compile(
             optimizer=_optimizer(inputs["train.optimizer"], float(inputs["train.learning_rate"])),
-            loss="sparse_categorical_crossentropy",
-            metrics=["accuracy"],
+            loss={output: "sparse_categorical_crossentropy"},
+            metrics={output: ["accuracy"]},
         )
 
         (out_dir / "model").mkdir(parents=True, exist_ok=True)
@@ -180,8 +153,8 @@ def stage(context: StageContext) -> StageFunction:
         try:
             history = model.fit(
                 features[list(split.train)],
-                targets[list(split.train)],
-                validation_data=(features[list(split.val)], targets[list(split.val)]),
+                {output: targets[list(split.train)]},
+                validation_data=(features[list(split.val)], {output: targets[list(split.val)]}),
                 epochs=int(inputs["train.epochs"]),
                 batch_size=int(inputs["train.batch"]),
                 callbacks=callbacks,
@@ -222,6 +195,7 @@ def stage(context: StageContext) -> StageFunction:
             window_plan=window_plan,
             records=records,
             labels=labels,
+            output=output,
             dataset_version=context.dataset.version,
             inputs=inputs,
             epochs_run=epochs_run,
@@ -243,6 +217,7 @@ def _write_measurements(
     window_plan: Any,
     records: Any,
     labels: tuple[str, ...],
+    output: str,
     dataset_version: str,
     inputs: StageInputs,
     epochs_run: int,
@@ -264,7 +239,7 @@ def _write_measurements(
     matrices: dict[str, Any] = {}
     for name in ("val", "test"):
         indices = list(split.indices(name))
-        probabilities = model.predict(features[indices], verbose=0)
+        probabilities = model.predict(features[indices], verbose=0)[output]
         predicted = np.argmax(probabilities, axis=1)
         matrix = confusion_matrix(targets[indices], predicted, len(labels))
         metrics, confusion = metrics_from_matrix(

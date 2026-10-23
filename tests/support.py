@@ -11,11 +11,17 @@ INVALID = FIXTURES / "manifests" / "invalid"
 BOARDS = FIXTURES / "boards"
 
 PILOT = VALID / "picket-mlp.yaml"
+#: The smallest valid manifest.
 MINIMAL = VALID / "pilot-min.yaml"
-NO_VERSION = VALID / "v-2-no-version.yaml"
+#: Valid manifests that a gate stops at run time (feature 006: the fit check).
+GATE = FIXTURES / "manifests" / "gate"
 
-# Feature 002: the pilot manifest pointed at the one committed dataset.
+#: The pilot manifest pointed at the one committed dataset, labels pinned (research R11 of feature
+#: 006), and the same with the labels derived from the data.
 PILOT_FIXTURE = VALID / "picket-mlp-fixture.yaml"
+PILOT_FIXTURE_DERIVED = VALID / "picket-mlp-fixture-derived.yaml"
+#: The convolutional template on the same dataset.
+CONV1D_FIXTURE = VALID / "picket-conv1d-fixture.yaml"
 SYNTHETIC_DATASET = FIXTURES / "datasets" / "synthetic"
 
 #: What the committed fixture is, in numbers, so a test can assert against the shape rather than

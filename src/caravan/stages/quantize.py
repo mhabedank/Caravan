@@ -60,11 +60,15 @@ SPEC = StageSpec(
     name="quantize",
     reads=(
         "export.quantization",
-        "export.accuracy_drop_max",
         "dataset.representative_samples",
         "dataset.split",
-        "dataset.labels",
-        "dataset.window",
+        "inputs[0].columns",
+        "inputs[0].window",
+        "outputs[0].name",
+        "outputs[0].labels",
+        # The one stage that reads the budget (feature 006 FR-031): changing it re-runs this stage
+        # and the export, and never a build or a training.
+        "outputs[0].accuracy_drop_max",
         "train.seed",
     ),
     reads_dataset=True,
@@ -203,10 +207,11 @@ def load_trained(run_dir: Path) -> Any:
         )
 
 
-def _keras_accuracy(model: Any, features: Any, targets: Any) -> float:
+def _keras_accuracy(model: Any, features: Any, targets: Any, output: str) -> float:
     import numpy as np
 
-    predicted = np.argmax(model.predict(features, verbose=0), axis=1)
+    # The trained model returns a dict keyed by the declared output (build stage, rewiring).
+    predicted = np.argmax(model.predict(features, verbose=0)[output], axis=1)
     return float((predicted == targets).sum() / len(targets))
 
 
@@ -221,12 +226,13 @@ def stage(context: StageContext) -> StageFunction:
         from caravan.runtime.measure import measure
 
         setting = inputs["export.quantization"]
-        labels = tuple(inputs["dataset.labels"])
+        labels = tuple(inputs["outputs[0].labels"])
+        output = inputs["outputs[0].name"]
         seed = int(inputs["train.seed"])
-        threshold = float(inputs["export.accuracy_drop_max"])
+        threshold = float(inputs["outputs[0].accuracy_drop_max"])
 
         records = context.records()
-        window_plan = plan_windows(records.labels, inputs["dataset.window"])
+        window_plan = plan_windows(records.labels, inputs["inputs[0].window"])
         split_spec = inputs["dataset.split"]
         split = plan_split(
             window_plan,
@@ -295,13 +301,13 @@ def stage(context: StageContext) -> StageFunction:
             except ValueError as error:
                 run_rule_error(
                     RULE_GATE_UNMEASURABLE,
-                    "export.accuracy_drop_max",
+                    "outputs[0].accuracy_drop_max",
                     f"the accuracy comparison could not be measured ({error}); unknown is not "
                     "within budget",
                 )
 
         gate = GateOutcome(
-            trained=_keras_accuracy(model, test_features, test_targets),
+            trained=_keras_accuracy(model, test_features, test_targets, output),
             converted=converted.accuracy,
             quantized=quantized.accuracy,
             threshold=threshold,
@@ -335,7 +341,7 @@ def stage(context: StageContext) -> StageFunction:
             _write_failure(context.run_dir, record, rows)
             run_rule_error(
                 RULE_ACCURACY_GATE,
-                "export.accuracy_drop_max",
+                "outputs[0].accuracy_drop_max",
                 (
                     f"the accuracy gate failed — {gate.summary()}. On {gate.samples} test "
                     f"samples one changed prediction is {gate.resolution:.3f}; no model was "

@@ -26,9 +26,10 @@ def test_the_pilot_manifest_is_valid(tmp_path, capsys) -> None:
     # Provenance Principle III names: both identifiers are fields of their own.
     assert report["dataset"] == "datasets/car-hacking/"
     assert report["template"] == "mlp"
-    # A valid manifest is not a resolved dataset, and silence about a licence stays visible.
+    # A valid manifest is not a resolved dataset. Nothing is said about a licence at all: Caravan
+    # neither asks about data rights nor claims to check them (feature 006, Principle VI).
     kinds = {item["kind"] for item in report["unresolved"]}
-    assert kinds == {"dataset-reference", "dataset-terms"}
+    assert kinds == {"dataset-reference"}
 
 
 @pytest.mark.parametrize(("name", "manifest", "expected"), invalid_cases())

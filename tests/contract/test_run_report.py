@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from caravan.cli.main import main
-from tests.support import INVALID, PILOT
+from tests.support import INVALID, PILOT, PILOT_FIXTURE
 
 EXPECTED_FIELDS = [
     "caravan_version",
@@ -16,9 +16,7 @@ EXPECTED_FIELDS = [
     "manifest_sha256",
     "dataset",
     "template",
-    "schema_version_declared",
-    "schema_version_effective",
-    "migrations_applied",
+    "schema_version",
     "outcome",
     "gates",
     "findings",
@@ -38,12 +36,17 @@ def test_the_report_carries_exactly_the_contract_fields_in_order(tmp_path, capsy
     assert list(report) == EXPECTED_FIELDS
 
 
-def test_both_schema_versions_are_present_even_when_equal(tmp_path, capsys) -> None:
-    main(["validate", str(PILOT), "--runs-dir", str(tmp_path)])
+def test_the_report_carries_the_declared_schema_version(tmp_path, capsys) -> None:
+    main(["validate", str(PILOT_FIXTURE), "--runs-dir", str(tmp_path)])
+    assert report_of(tmp_path)["schema_version"] == "caravan/v0.1"
+
+
+def test_a_refused_version_is_recorded_as_written(tmp_path, capsys) -> None:
+    main(["validate", str(INVALID / "v-1-previous-version.yaml"), "--runs-dir", str(tmp_path)])
     report = report_of(tmp_path)
-    assert report["schema_version_declared"] == "caravan/v0"
-    assert report["schema_version_effective"] == "caravan/v0"
-    assert report["migrations_applied"] == []
+    assert report["outcome"] == "invalid"
+    assert report["schema_version"] == "caravan/v0"
+    assert [finding["rule"] for finding in report["findings"]] == ["V-1"]
 
 
 def test_artifact_paths_are_relative_to_the_run_directory(tmp_path, capsys) -> None:

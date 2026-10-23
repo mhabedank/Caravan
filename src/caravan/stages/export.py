@@ -22,7 +22,7 @@ from caravan.env import (
     missing_runtime_message,
     model_runtime_available,
 )
-from caravan.export import c_array, resolver, skeleton
+from caravan.export import c_array, interface, resolver, skeleton
 from caravan.export.artifacts import ExportSet, RunnerRequirements, record_artifact
 from caravan.manifest.errors import (
     RULE_FORMAT_NOT_IMPLEMENTED,
@@ -46,6 +46,8 @@ ARRAY_SOURCE = f"model/{MODEL_STEM}.cc"
 ARRAY_HEADER = f"model/{MODEL_STEM}.h"
 RESOLVER = f"model/{resolver.HEADER_NAME}"
 RECORD = "export.json"
+#: The interface contract (feature 006, contracts/interface.md).
+INTERFACE = "model/interface.json"
 
 #: What this version can produce. ``onnx`` is in the schema because the roadmap still intends it;
 #: a manifest asking for it is refused by name rather than silently given the other two.
@@ -67,10 +69,22 @@ def _skeletons(inputs: StageInputs) -> tuple[str, ...]:
 
 SPEC = StageSpec(
     name="export",
-    reads=("export.formats", "export.targets", "export.quantization"),
+    reads=(
+        "model.name",
+        "model.version",
+        "export.formats",
+        "export.targets",
+        "export.quantization",
+        # For the interface contract (feature 006): which model, what goes in, what comes out.
+        "inputs[0].name",
+        "inputs[0].columns",
+        "inputs[0].window",
+        "outputs[0].name",
+        "outputs[0].labels",
+    ),
     reads_dataset=False,
     upstream="quantize",
-    artifacts=(MODEL, ARRAY_SOURCE, ARRAY_HEADER, RESOLVER, RECORD),
+    artifacts=(MODEL, ARRAY_SOURCE, ARRAY_HEADER, RESOLVER, INTERFACE, RECORD),
     artifacts_from=_skeletons,
 )
 
@@ -143,7 +157,7 @@ def stage(context: StageContext) -> StageFunction:
     def run(inputs: StageInputs, out_dir: Path) -> None:
         require_parts("export")
 
-        from caravan.runtime.flatbuffer import FLOOR_METHOD, inspect_graph
+        from caravan.runtime.flatbuffer import FLOOR_METHOD, inspect_graph, read_bindings
 
         formats = check_formats(list(inputs["export.formats"]))
         targets = tuple(inputs["export.targets"])
@@ -159,8 +173,41 @@ def stage(context: StageContext) -> StageFunction:
         exported = ExportSet(formats=formats, graph=graph)
         exported.artifacts.append(record_artifact(out_dir, MODEL, format="flatbuffer"))
 
-        (out_dir / ARRAY_SOURCE).write_text(c_array.source(MODEL_STEM, blob), encoding="utf-8")
-        (out_dir / ARRAY_HEADER).write_text(c_array.header(MODEL_STEM, len(blob)), encoding="utf-8")
+        # The interface contract: every number read from the file, never from the manifest.
+        input_name = inputs["inputs[0].name"]
+        output_name = inputs["outputs[0].name"]
+        bindings = [
+            binding.as_dict()
+            for binding in read_bindings(model_path, inputs=[input_name], outputs=[output_name])
+        ]
+        model_identity = {"name": inputs["model.name"], "version": inputs["model.version"]}
+        declared_input = {
+            "name": input_name,
+            "columns": inputs["inputs[0].columns"],
+            "window": inputs["inputs[0].window"],
+        }
+        declared_output = {"name": output_name, "labels": inputs["outputs[0].labels"]}
+        (out_dir / INTERFACE).write_text(
+            interface.interface_document(model_identity, bindings, declared_input, declared_output),
+            encoding="utf-8",
+        )
+        exported.artifacts.append(record_artifact(out_dir, INTERFACE, format="interface"))
+
+        array_name = c_array.array_name(MODEL_STEM)
+        (out_dir / ARRAY_SOURCE).write_text(
+            c_array.source(
+                MODEL_STEM, blob, interface.source_additions(array_name, declared_output)
+            ),
+            encoding="utf-8",
+        )
+        (out_dir / ARRAY_HEADER).write_text(
+            c_array.header(
+                MODEL_STEM,
+                len(blob),
+                interface.header_additions(array_name, model_identity, bindings, declared_output),
+            ),
+            encoding="utf-8",
+        )
         exported.artifacts.append(record_artifact(out_dir, ARRAY_SOURCE, format="c_array"))
         exported.artifacts.append(record_artifact(out_dir, ARRAY_HEADER, format="c_array"))
 
@@ -187,6 +234,8 @@ def stage(context: StageContext) -> StageFunction:
                     array_name=c_array.array_name(MODEL_STEM),
                     accelerated=accelerated,
                     operators_total=len(graph.operators),
+                    input_name=input_name,
+                    output_name=output_name,
                 ),
                 encoding="utf-8",
             )

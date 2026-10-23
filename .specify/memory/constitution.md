@@ -1,7 +1,40 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 2.4.0 → 3.0.0
+Version change: 3.0.0 → 4.0.0
+Bump rationale: MAJOR. Principle IX is redefined incompatibly: the migration it required for every
+schema version is no longer required before Caravan 1.0.0. Source: the owner's decision of
+2026-10-23 — "wir machen erst eine backward compatibility, wenn wir bewusst auf 1.0.0 sind, vorher
+ist alles variabel" — after feature 006 had shipped a full caravan/v0 → caravan/v0.1 migration that
+Principle IX 3.0.0 demanded.
+
+Modified principles:
+- IX. Stable Manifest Contract → IX. Manifest Contract: Variable Until 1.0.0, Stable From It.
+  Before 1.0.0 the schema, CLI, run report and artifacts may change without migration or
+  compatibility. Kept in every phase: a declared schema version, no rewrite of the user's file,
+  rejection of unknown fields with path and accepted values, actionable errors, and refusal (never
+  reinterpretation) of a manifest whose version the build does not implement, now including an
+  undeclared version, which used to be read as the oldest. A breaking change still gets a new
+  version identifier and a change note. 1.0.0 is a deliberate amendment; from it, the former
+  migration rules apply in full.
+
+Modified sections:
+- Technical Baseline: "would otherwise become a schema migration" → "a breaking schema change".
+- Development Workflow: the release gate asks for a change note per breaking schema change, and
+  from 1.0.0 also its migration.
+
+Unchanged on purpose: Principle III (the Caravan version in every provenance record, which is what
+keeps an old manifest reproducible without migration), Principle XI.
+
+Follow-up (not done by this amendment):
+- Feature 006 (PR #11): remove the caravan/v0 → caravan/v0.1 migration, its notices in validate,
+  render and the run report, the `.notices.json` fixtures and the migration fixture directory;
+  refuse caravan/v0 and an undeclared version with the change note; rewrite the remaining previous-
+  form fixtures and tests to the new form; turn the migration section of
+  docs/manifest-migrations.md into a change note; adjust spec 006 (FR-005, FR-006, SC-002, User
+  Story 1) and rule V-2, which accepted an undeclared version.
+
+Previous report: 2.4.0 → 3.0.0
 Bump rationale: MAJOR. Principle VI is redefined incompatibly: the compliance block it made
 mandatory is now forbidden, and the model card leaves the pipeline. Principles I, II, V, VIII and
 X gain rules, and X's test for what may be built is widened. Source: the owner's decisions of
@@ -566,32 +599,42 @@ directory is a model nobody else can feed correctly. The C array export of featu
 the byte array and its length and nothing else (checked 2026-10-23), so the contract is required
 here rather than left to each runner.
 
-### IX. Stable Manifest Contract
+### IX. Manifest Contract: Variable Until 1.0.0, Stable From It
 
-- Every manifest MUST declare the schema version it is written against. A manifest that declares
-  none MUST be treated as the oldest version the framework knows.
-- The framework MUST carry one registered migration per schema version and MUST upgrade an older
-  manifest to the current version in memory on every load. It MUST NOT rewrite the user's file.
-  The run report MUST record both the declared version and the effective version after migration.
-- Refusal is reserved for a declared version the framework does not know. It MUST then name the
-  versions it implements.
-- Unknown or misspelled fields MUST be rejected with the field path and the accepted values. A
-  manifest MUST NOT be silently reinterpreted and unknown input MUST NOT be ignored.
-- While the schema version is `v0`, breaking changes are permitted, but each one MUST ship its
-  migration together with a note that names the affected fields and the change required.
-- From the first stable schema version onward, a breaking change requires a new schema version,
-  and its migration MUST exist before the change is released. A manifest that validated under a
-  published stable version MUST keep loading through migration.
-- Validation errors MUST be actionable: field path, what was wrong, what is accepted.
+- Every manifest MUST declare the schema version it is written against, and the framework MUST
+  NOT rewrite the user's file.
+- **Before Caravan 1.0.0** the manifest schema, the command line, the run report and the exported
+  artifacts MAY change in any release, without migration and without backward compatibility.
+  Nothing written for an earlier pre-1.0.0 release is promised to load in a later one.
+- What does not vary before 1.0.0 is honesty about it. A breaking schema change MUST get a new
+  schema version identifier and a short change note naming the affected fields and the edit an
+  author makes by hand. A manifest that declares a version this build does not implement — older
+  or newer — or declares none MUST be refused, naming the version it implements and pointing at
+  the change note. It MUST NOT be silently reinterpreted or partly read.
+- Unknown or misspelled fields MUST be rejected with the field path and the accepted values;
+  unknown input MUST NOT be ignored. Validation errors MUST be actionable: field path, what was
+  wrong, what is accepted. These hold before and after 1.0.0.
+- **1.0.0 is a deliberate decision**, recorded as an amendment of this constitution before that
+  release, not a version number that happens to arrive. From that release onward:
+  - the framework MUST carry one registered migration per schema version and MUST upgrade an
+    older manifest to the current version in memory on every load;
+  - the run report MUST record both the declared version and the effective version after
+    migration;
+  - a breaking change requires a new schema version, and its migration MUST exist before the
+    change is released;
+  - a manifest that validated under a published stable version MUST keep loading through
+    migration.
 
-Rationale: The manifest is the public interface of the framework and it is also the archival
-record of how a published model was built. Silent reinterpretation of an old manifest would
-quietly break the reproducibility the zoo relies on — but refusing it is no better, because it
-turns the record of every published model into dead weight the moment the schema moves. Ludwig
-settled this by keeping the framework version inside the configuration and running a registry of
-per-version transforms on every load, on a copy; migrating in memory and never rewriting the file
-is cheap to add while the registry is empty and expensive to retrofit after the first migration
-is needed.
+Rationale: The owner decided on 2026-10-23 that Caravan owes no backward compatibility before it
+deliberately reaches 1.0.0: until then the product is still finding its shape, and a migration for
+every step turns each simplification into twice the work — feature 006 spent a schema migration, a
+notice per removed field and a fixture directory on manifests nobody had to keep. Reproducibility
+does not depend on it either: Principle III records the Caravan version in every artifact's
+provenance, and the zoo pins the version it builds with, so an old manifest is rebuilt with the
+version that read it. What stays is refusal with a reason, because a manifest read wrongly is worse
+than one not read at all. From 1.0.0 the manifest becomes the public interface and the archival
+record it was always meant to be, and Ludwig's answer — a registry of per-version transforms
+applied on every load, on a copy — applies in full.
 
 ### X. Built for Real Models
 
@@ -787,7 +830,7 @@ These choices are architectural and apply until amended with a stated rationale:
   conversion half and still not the project's current stable. Both windows are stated under
   Principle XII rather than rounded to "everywhere".
 - Identifiers that outlive a release — schema field values, format names, artifact names — MUST
-  NOT be vendor product names. A product rename would otherwise become a schema migration.
+  NOT be vendor product names. A product rename would otherwise become a breaking schema change.
 - Interface: a Python command line application. Manifest validation uses a schema library with
   strict, typed models.
 - Emulation: Renode, using its own declarative platform descriptions. Caravan does not define a
@@ -836,9 +879,9 @@ These choices are architectural and apply until amended with a stated rationale:
   the source of each value is recorded.
 - Gate before reporting a number: the number carries its provenance label (Principle IV) and
   comes from a run report, not from a person.
-- Gate before a framework release: the version follows semantic versioning, the manifest schema
-  compatibility statement is present, migration notes exist for every breaking schema change, and
-  the pilot manifest runs green.
+- Gate before a framework release: the version follows semantic versioning, a change note exists
+  for every breaking schema change (and, from 1.0.0, its migration — Principle IX), and the pilot
+  manifest runs green.
 - Gate before the publish stage runs: all budget gates passed, provenance labels present, no
   dataset, raw source data or credential among the files to upload, and credentials supplied by
   the environment.
@@ -863,4 +906,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 3.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-23
+**Version**: 4.0.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-23

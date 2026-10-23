@@ -18,12 +18,12 @@ HEADER = "label,a,b"
 #: The fixture manifest template of feature 002 carries int8 by default through the schema, so a
 #: quantization setting has to be written in for these cases to be about this stage.
 EXPORT_BLOCK = "export:\n  targets: [stm32h743]\n"
-EXPORT_WITH = "export:\n  targets: [stm32h743]\n  quantization: int8\n  accuracy_drop_max: 0.5\n"
+EXPORT_WITH = "export:\n  targets: [stm32h743]\n  quantization: int8\n"
 
 
 def prepare(tmp_path, **overrides):
     write_records(tmp_path / "data", [HEADER, *pure_windows(["normal", "attack"], 4, 8)])
-    manifest = write_manifest(tmp_path, **overrides)
+    manifest = write_manifest(tmp_path, **{"accuracy_drop_max": 0.5, **overrides})
     text = manifest.read_text(encoding="utf-8").replace(EXPORT_BLOCK, EXPORT_WITH)
     manifest.write_text(text, encoding="utf-8")
     return manifest
@@ -51,14 +51,24 @@ def edit(manifest, old: str, new: str) -> None:
     manifest.write_text(text.replace(old, new), encoding="utf-8")
 
 
-ALL_REUSED = {"build": OUTCOME_REUSED, "train": OUTCOME_REUSED, "quantize": OUTCOME_REUSED}
+ALL_REUSED = {
+    "data": OUTCOME_REUSED,
+    "build": OUTCOME_REUSED,
+    "fit": OUTCOME_REUSED,
+    "train": OUTCOME_REUSED,
+    "quantize": OUTCOME_REUSED,
+}
 ALL_PRODUCED = {
+    "data": OUTCOME_PRODUCED,
     "build": OUTCOME_PRODUCED,
+    "fit": OUTCOME_PRODUCED,
     "train": OUTCOME_PRODUCED,
     "quantize": OUTCOME_PRODUCED,
 }
 ONLY_QUANTIZE = {
+    "data": OUTCOME_REUSED,
     "build": OUTCOME_REUSED,
+    "fit": OUTCOME_REUSED,
     "train": OUTCOME_REUSED,
     "quantize": OUTCOME_PRODUCED,
 }
@@ -70,20 +80,23 @@ def test_the_first_run_produces_all_three_and_the_second_reuses_all_three(tmp_pa
     assert quantize(manifest, tmp_path) == ALL_REUSED
 
 
-def test_editing_compliance_text_re_runs_nothing(tmp_path) -> None:
+def test_renaming_the_model_re_runs_nothing_up_to_quantize(tmp_path) -> None:
+    # model.name is read by the export alone, for the interface contract (feature 006): a new name
+    # must not rebuild, retrain or re-quantize.
     manifest = prepare(tmp_path)
     quantize(manifest, tmp_path)
-    edit(manifest, "Exercises one run rule end to end", "Exercises one run rule, end to end")
+    edit(manifest, "name: rule-case", "name: rule-case-renamed")
     assert quantize(manifest, tmp_path) == ALL_REUSED
 
 
-def test_adding_a_target_board_re_runs_nothing(tmp_path) -> None:
+def test_adding_a_target_board_re_runs_only_the_fit_check(tmp_path) -> None:
     # The case worth having a test for: a board is not an input to the quantized model, so adding
-    # one must not re-quantize. ``export.targets`` is deliberately absent from the read set.
+    # one must not re-quantize or retrain. ``export.targets`` is in the read set of the fit check
+    # before training (feature 006) and of no stage that produces a model.
     manifest = prepare(tmp_path)
     quantize(manifest, tmp_path)
     edit(manifest, "targets: [stm32h743]", "targets: [stm32h743, esp32]")
-    assert quantize(manifest, tmp_path) == ALL_REUSED
+    assert quantize(manifest, tmp_path) == {**ALL_REUSED, "fit": OUTCOME_PRODUCED}
 
 
 def test_changing_the_accepted_drop_re_quantizes_only(tmp_path) -> None:
@@ -93,11 +106,13 @@ def test_changing_the_accepted_drop_re_quantizes_only(tmp_path) -> None:
     assert quantize(manifest, tmp_path) == ONLY_QUANTIZE
 
 
-def test_changing_the_quantization_setting_re_quantizes_only(tmp_path) -> None:
+def test_changing_the_quantization_setting_re_quantizes_and_rechecks_the_fit(tmp_path) -> None:
+    # The fit check reads the quantization too: the floors are counted at the stated element size
+    # (feature 006), so a different setting is a different floor — and still no retraining.
     manifest = prepare(tmp_path)
     quantize(manifest, tmp_path)
     edit(manifest, "quantization: int8", "quantization: none")
-    assert quantize(manifest, tmp_path) == ONLY_QUANTIZE
+    assert quantize(manifest, tmp_path) == {**ONLY_QUANTIZE, "fit": OUTCOME_PRODUCED}
 
 
 def test_changing_the_calibration_count_re_quantizes_only(tmp_path) -> None:
@@ -107,11 +122,13 @@ def test_changing_the_calibration_count_re_quantizes_only(tmp_path) -> None:
     assert quantize(manifest, tmp_path) == ONLY_QUANTIZE
 
 
-def test_changing_the_seed_re_runs_everything(tmp_path) -> None:
+def test_changing_the_seed_re_runs_everything_but_the_data_stage(tmp_path) -> None:
+    # The data stage reads the declarations and the data, never the seed: what the data says does
+    # not depend on how the weights were drawn (feature 006).
     manifest = prepare(tmp_path)
     quantize(manifest, tmp_path)
     edit(manifest, "epochs: 1", "epochs: 1\n  seed: 11")
-    assert quantize(manifest, tmp_path) == ALL_PRODUCED
+    assert quantize(manifest, tmp_path) == {**ALL_PRODUCED, "data": OUTCOME_REUSED}
 
 
 def test_changing_a_byte_of_the_dataset_re_runs_everything(tmp_path) -> None:

@@ -1,0 +1,4 @@
+{
+  "rule": "CF-9",
+  "path": "inputs[0].name"
+}

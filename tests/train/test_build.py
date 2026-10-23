@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from caravan.cli.main import EXIT_OK, main
+from caravan.cli.main import EXIT_OK, EXIT_RULE, main
 from caravan.stages.build import BUILT_MODEL, BUILT_REPORT
 from tests.support import FIXTURE_FEATURES, SYNTHETIC_DATASET
 from tests.train.conftest import latest_run
@@ -48,7 +48,9 @@ def test_an_implausible_model_still_builds_and_shows_why_it_is_implausible(
 ) -> None:
     # Acceptance scenario 2 of user story 2. Building is not a quality judgement: a template
     # parameter wrong by an order of magnitude is cheapest to notice *here*, and the way to notice
-    # it is a parameter count that is visibly absurd — not a refusal.
+    # it is a parameter count that is visibly absurd. Since feature 006 the fit check after the
+    # build also refuses it — 18 million weights fit none of the three boards — and that refusal
+    # comes after the build, so the built model and its description are still there to look at.
     runs, cache = workspace
     source = fixture_manifest.read_text(encoding="utf-8")
     absurd = tmp_path / "absurd.yaml"
@@ -63,10 +65,13 @@ def test_an_implausible_model_still_builds_and_shows_why_it_is_implausible(
 
     assert build(fixture_manifest, runs, cache) == EXIT_OK
     small = json.loads((latest_run(runs) / BUILT_REPORT).read_text(encoding="utf-8"))
-    assert build(absurd, runs, cache) == EXIT_OK
-    large = json.loads((latest_run(runs) / BUILT_REPORT).read_text(encoding="utf-8"))
+    assert build(absurd, runs, cache) == EXIT_RULE
+    run_dir = latest_run(runs)
+    large = json.loads((run_dir / BUILT_REPORT).read_text(encoding="utf-8"))
+    report = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
 
     assert large["parameter_count"] > 100 * small["parameter_count"]
+    assert [finding["rule"] for finding in report["findings"]] == ["F-1"]
 
 
 def test_the_report_records_the_framework_that_built_it(fixture_manifest, workspace) -> None:

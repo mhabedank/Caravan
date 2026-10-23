@@ -1,0 +1,28 @@
+# Invalid on purpose. Two inputs: several arrive with the first named model or documented
+# application that needs them (Principle X, docs/research/2026-10-23-multi-io-on-mcu.md).
+# Expected: CF-10 at inputs
+apiVersion: caravan/v0.1
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+inputs:
+- name: frames
+  kind: series
+  window: 32
+- name: payload
+  kind: series
+  window: 32
+outputs:
+- name: verdict
+  kind: class
+  accuracy_drop_max: 0.02
+dataset:
+  source: datasets/example/
+  representative_samples: 100
+export:
+  targets:
+  - stm32h743

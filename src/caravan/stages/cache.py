@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from caravan import __version__
-from caravan.manifest.migrate import CURRENT_SCHEMA_VERSION
+from caravan.manifest.version import SCHEMA_VERSION
 
 RESULT_NAME = "result.json"
 WORK_DIR_NAME = ".tmp"
@@ -55,7 +55,7 @@ def cache_key(
     """
     payload = {
         "tool": __version__,
-        "schema": CURRENT_SCHEMA_VERSION,
+        "schema": SCHEMA_VERSION,
         "stage": stage,
         "inputs": dict(inputs),
         "dataset": dataset_version,

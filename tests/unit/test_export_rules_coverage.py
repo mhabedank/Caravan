@@ -49,10 +49,13 @@ def test_every_export_rule_is_raised_by_the_code_that_owns_it() -> None:
     # X-2 and X-3 are the stage's, and X-4 belongs to the resolver, which is the only code that can
     # know whether the runtime has a method for an operator. Pinning the check to the stage file
     # alone was this test's first form, and it failed for a good reason.
+    # X-6 (feature 006) belongs to the reader of the model file: only the code that reads the
+    # signature can know that a declared name is not in it.
     source = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (
             SOURCE / "stages" / "export.py",
+            SOURCE / "runtime" / "flatbuffer.py",
             *sorted((SOURCE / "export").glob("*.py")),
         )
     )

@@ -80,7 +80,20 @@ def test_the_stage_modules_import_with_every_framework_unimportable(
     # A stage loads its framework-bearing parts by name when it runs, so importing the stage
     # itself has to work where no framework exists — otherwise ``caravan validate`` would break
     # the moment the command line grew a stage verb.
-    for name in ("caravan.stages.build", "caravan.stages.train", "caravan.stages.cache"):
+    for name in (
+        "caravan.stages.build",
+        "caravan.stages.train",
+        "caravan.stages.cache",
+        # Feature 006: the two internal stages, the fit arithmetic, the interface emitters and the
+        # schema's new modules — all core, all importable where no framework can be.
+        "caravan.stages.data",
+        "caravan.stages.fit",
+        "caravan.targets.fit",
+        "caravan.export.interface",
+        "caravan.manifest.schema.io",
+        "caravan.manifest.schema.removed",
+        "caravan.manifest.version",
+    ):
         monkey = importlib.import_module(name)
         assert monkey is not None
 

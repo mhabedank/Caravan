@@ -29,11 +29,20 @@ SPEC = StageSpec(
     reads=(
         "model.template",
         "model.params",
-        "dataset.window",
-        "dataset.labels",
         "train.seed",
+        # Field by field, never the whole declaration: the budget inside ``outputs[0]`` is read by
+        # ``quantize`` alone, so changing it must not rebuild (Principle III, feature 006 FR-031).
+        "inputs[0].name",
+        "inputs[0].kind",
+        "inputs[0].columns",
+        "inputs[0].window",
+        "outputs[0].name",
+        "outputs[0].kind",
+        "outputs[0].labels",
     ),
-    # The feature width comes from the data (FR-004), so the data is an input to the built shape.
+    # The feature width is the number of the input's columns, which the projection carries since
+    # feature 006. The data stays part of the key all the same: building is cheap, and a dataset
+    # that changed is retrained on anyway.
     reads_dataset=True,
     upstream=None,
     artifacts=(BUILT_MODEL, BUILT_REPORT),
@@ -50,7 +59,34 @@ def require_framework(command: str) -> None:
         raise EnvironmentIncomplete(missing_extra_message(command))
 
 
-def describe(model: Any, template: str, window: int | None, labels: tuple[str, ...]) -> dict:
+def rewire(model: Any, input_name: str, output_name: str) -> Any:
+    """The builder's model, unchanged, under the declared names (feature 006, research R4).
+
+    The converter keeps an input's name but drops an output layer's name unless the model returns a
+    dict, and with two outputs it reorders them; only the signature then still says which is
+    which. So: an ``Input`` named after the declared input, the builder's own layers applied in
+    order — the same layer objects, so the same weights — and a dict output keyed by the declared
+    output. Measured on both templates: no weight and no converted operator changes.
+
+    Builders keep their signature; the names are the pipeline's concern, not a template's, and a
+    third-party template registered by entry point works unchanged.
+    """
+    import keras
+
+    inputs = keras.Input(shape=tuple(model.input_shape[1:]), name=input_name)
+    tensor = inputs
+    for layer in model.layers:
+        tensor = layer(tensor)
+    return keras.Model(inputs, {output_name: tensor}, name=model.name)
+
+
+def describe(
+    model: Any,
+    template: str,
+    window: int | None,
+    labels: tuple[str, ...],
+    names: tuple[str, str] = ("input", "output"),
+) -> dict:
     """The contents of ``built.json``: the shape report FR-002 requires."""
     # ``math.prod`` over the shapes rather than a count attribute: Keras 3 variables expose a
     # shape, and a count attribute that exists in one version and not another is how a report
@@ -59,6 +95,8 @@ def describe(model: Any, template: str, window: int | None, labels: tuple[str, .
     non_trainable = sum(math.prod(weight.shape) for weight in model.non_trainable_weights)
     return {
         "template": template,
+        "input_name": names[0],
+        "output_name": names[1],
         "input_shape": list(input_shape_for(window, int(model.input_shape[-1]))),
         "output_units": len(labels),
         "parameter_count": trainable + non_trainable,
@@ -79,14 +117,19 @@ def construct(inputs: StageInputs, context: StageContext) -> Any:
     # Before construction, because construction is where the weights are drawn.
     keras.utils.set_random_seed(int(inputs["train.seed"]))
 
-    records = context.records()
-    window = inputs["dataset.window"]
-    labels = tuple(inputs["dataset.labels"])
-    shape = input_shape_for(window, records.schema.feature_count)
+    window = inputs["inputs[0].window"]
+    labels = tuple(inputs["outputs[0].labels"])
+    # The columns are the merged, derived-or-stated list (data stage): their number is the width.
+    shape = input_shape_for(window, len(inputs["inputs[0].columns"]))
 
     builder = load_builder(inputs["model.template"])
-    model = builder(inputs["model.params"], shape, labels)
-    return model, describe(model, inputs["model.template"], window, labels)
+    names = (inputs["inputs[0].name"], inputs["outputs[0].name"])
+    model = rewire(builder(inputs["model.params"], shape, labels), *names)
+    description = describe(model, inputs["model.template"], window, labels, names)
+    # The kinds the shape and the head were built for: a series of records in, one class out.
+    description["input_kind"] = inputs["inputs[0].kind"]
+    description["output_kind"] = inputs["outputs[0].kind"]
+    return model, description
 
 
 def stage(context: StageContext) -> StageFunction:

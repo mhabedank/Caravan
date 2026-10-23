@@ -30,7 +30,7 @@ def test_field_path_comes_first() -> None:
 def test_unknown_field_lists_what_is_accepted_and_suggests_the_nearest() -> None:
     text = rendered("unknown-field")
     assert "model.hiden — unknown field" in text
-    assert "accepted here: name, version, topic, task, template, params" in text
+    assert "accepted here: name, version, template, params" in text
     assert "did you mean: hidden" not in text  # hidden is a template parameter, not a field
     assert "accepted here" in text
 
@@ -38,14 +38,22 @@ def test_unknown_field_lists_what_is_accepted_and_suggests_the_nearest() -> None
 def test_misplaced_field_says_where_it_belongs() -> None:
     text = rendered("unknown-field-misplaced")
     assert "model.window — unknown field" in text
-    assert "this field belongs at: dataset.window" in text
+    assert "this field belongs at: inputs[0].window" in text
 
 
 def test_cross_field_rule_names_the_fields_it_relates() -> None:
-    text = rendered("cf-3-personal-data-minimal-risk")
-    assert "compliance.eu_ai_act_class" in text
-    assert "compliance.privacy" in text
-    assert "accepted: limited-risk, high-risk" in text
+    # CF-11 relates the input's columns to the output's column, and says which column and why.
+    text = rendered("cf-11-label-as-input")
+    assert "inputs[0].columns" in text
+    assert "column label is the output's answer" in text
+
+
+def test_a_removed_field_says_it_was_removed_and_why() -> None:
+    # FR-001 of feature 006: not "unknown field", so the author does not hunt for a typo.
+    text = rendered("removed-compliance")
+    assert "compliance — removed in caravan/v0.1" in text
+    assert "Principle VI" in text
+    assert "unknown field" not in text
 
 
 def test_identity_rejection_states_the_required_form() -> None:
@@ -53,9 +61,7 @@ def test_identity_rejection_states_the_required_form() -> None:
     from caravan.manifest.schema.model import ModelSpec
 
     with pytest.raises(Exception) as caught:
-        ModelSpec.model_validate(
-            {"name": "AB", "version": "0.1.0", "topic": "t", "task": "t", "template": "mlp"}
-        )
+        ModelSpec.model_validate({"name": "AB", "version": "0.1.0", "template": "mlp"})
     message = str(caught.value)
     assert "lower-case letters, digits and hyphens" in message
     assert "at least 3 characters" in message

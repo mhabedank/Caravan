@@ -1,8 +1,9 @@
 """What a training run refuses, and what it leaves behind when it does: nothing.
 
-Three refusals, from three different places. The author's own statement about their data (DS-9),
-a dataset reference that does not resolve (DS-1), and a run whose loss stops being a number
-(DS-10). All three are exit 1 — a rule said no — and none of them leaves a model behind.
+Two refusals, from two different places: a dataset reference that does not resolve (DS-1), and a
+run whose loss stops being a number (DS-10). Both are exit 1 — a rule said no — and neither leaves
+a model behind. A third, DS-9, refused data the author had marked as not for training; it was
+retired with the compliance layer in feature 006 (Principle VI).
 """
 
 from __future__ import annotations
@@ -10,11 +11,7 @@ from __future__ import annotations
 import json
 
 from caravan.cli.main import EXIT_RULE, main
-from caravan.manifest.errors import (
-    RULE_DATASET_UNREADABLE,
-    RULE_TRAINING_DIVERGED,
-    RULE_TRAINING_NOT_PERMITTED,
-)
+from caravan.manifest.errors import RULE_DATASET_UNREADABLE, RULE_TRAINING_DIVERGED
 from caravan.stages.build import BUILT_MODEL
 from caravan.stages.train import BEST_CHECKPOINT, TRAINED_MODEL
 from tests.train.conftest import latest_run, pure_windows, write_manifest, write_records
@@ -43,32 +40,6 @@ def report_of(tmp_path) -> dict:
 
 def rules_in(report: dict) -> set[str]:
     return {finding.get("rule") for finding in report["findings"]}
-
-
-def test_ds_9_refuses_to_train_on_data_the_author_marked_benchmark_only(tmp_path) -> None:
-    # The author's own statement, enforced against them — which is the whole of what Principle VI
-    # claims. Caravan verifies no licence; it keeps what the manifest says.
-    write_records(tmp_path / "data", [HEADER, *pure_windows(["normal", "attack"], 4, 4)])
-    manifest = write_manifest(tmp_path, permitted_use="benchmark-only")
-
-    assert train(manifest, tmp_path) == EXIT_RULE
-    report = report_of(tmp_path)
-    assert RULE_TRAINING_NOT_PERMITTED in rules_in(report)
-    # The field is named, not the terms interpreted.
-    finding = next(f for f in report["findings"] if f.get("rule") == RULE_TRAINING_NOT_PERMITTED)
-    assert finding["path"] == "dataset.permitted_use"
-
-    run_dir = latest_run(tmp_path / "runs")
-    assert not (run_dir / TRAINED_MODEL).exists()
-
-
-def test_an_unstated_permitted_use_is_not_a_prohibition(tmp_path) -> None:
-    # The control case for DS-9: ``unknown`` means unverified, not forbidden. Treating silence as
-    # a prohibition would make every dataset without a declaration untrainable, which is the
-    # overhead Principle VI was amended to avoid.
-    write_records(tmp_path / "data", [HEADER, *pure_windows(["normal", "attack"], 4, 4)])
-    manifest = write_manifest(tmp_path, permitted_use="unknown")
-    assert train(manifest, tmp_path) == 0
 
 
 def test_ds_1_names_the_path_and_says_the_reference_did_not_resolve(tmp_path) -> None:
@@ -103,8 +74,8 @@ def test_ds_10_a_diverged_run_fails_and_leaves_no_model(tmp_path) -> None:
 def test_a_refused_run_still_writes_its_report_and_resolved_manifest(tmp_path) -> None:
     # A failed run is still a run: what it did and why it stopped is the record (FR-012). What it
     # must not leave is a model.
-    write_records(tmp_path / "data", [HEADER, *pure_windows(["normal", "attack"], 4, 4)])
-    manifest = write_manifest(tmp_path, permitted_use="benchmark-only")
+    write_records(tmp_path / "data", [HEADER, *pure_windows(["normal", "attack"], 4, 8)])
+    manifest = write_manifest(tmp_path, learning_rate=1e30, epochs=2)
     train(manifest, tmp_path)
 
     run_dir = latest_run(tmp_path / "runs")
@@ -118,7 +89,7 @@ def test_a_refused_run_still_writes_its_report_and_resolved_manifest(tmp_path) -
     assert not (run_dir / TRAINED_MODEL).exists()
     assert not (run_dir / BEST_CHECKPOINT).exists()
     report = report_of(tmp_path)
-    assert [stage["name"] for stage in report["stages"]] == ["build"]
+    assert [stage["name"] for stage in report["stages"]] == ["data", "build", "fit"]
 
 
 def test_nothing_is_cached_for_a_refused_run(tmp_path) -> None:
