@@ -185,8 +185,9 @@ name. Compare with what Caravan did.
   sections of stages that do not exist yet — `verify`, `bench` and `publish` — MUST be removed
   with the other fields and return with their stages (constitution 3.0.0, Principle I).
 - **FR-003**: Validation rules that exist only for the removed fields — personal data against risk
-  class (CF-3), publication needs compliance (CF-5), benchmark-only data not published (CF-8),
-  training not permitted (DS-9) — MUST be removed, and their identifiers MUST NOT be reused.
+  class (CF-3), publication needs compliance (CF-5), an emulator exists for every target (CF-7, on
+  the removed `verify` section), benchmark-only data not published (CF-8), training not permitted
+  (DS-9) — MUST be removed, and their identifiers MUST NOT be reused.
 - **FR-004**: The resolved manifest and the run report MUST NOT contain any removed field or any
   statement that a licence, a permission or a use was checked.
 - **FR-005**: A manifest in the previous form MUST migrate in memory to the new form on load,
@@ -298,8 +299,11 @@ name. Compare with what Caravan did.
 - **SC-002**: Every manifest in the repository's valid fixtures that was valid before this feature
   loads after it through migration, with one notice per dropped field and no other change in
   behaviour.
-- **SC-003**: The pilot model trained from the new form and from the migrated previous form under
-  the same seed produces byte-identical trained weights.
+- **SC-003**: The pilot model trained from the migrated previous form and from a new-form manifest
+  that pins the same label order produces byte-identical trained weights under the same seed. (A
+  new-form manifest that derives its labels sorts them, `dos, fuzzy, normal, replay` against the
+  pilot's stated `normal, dos, fuzzy, replay`, so its output units are in a different order and its
+  weights differ by construction.)
 - **SC-004**: A model too large for a target board fails before training, so a run that would have
   failed the footprint gate after training fails in the build stage instead, with no training
   time spent.
