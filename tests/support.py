@@ -40,3 +40,34 @@ def invalid_cases() -> list[tuple[str, Path, dict]]:
         expected = json.loads(manifest.with_suffix(".expected.json").read_text(encoding="utf-8"))
         cases.append((manifest.stem, manifest, expected))
     return cases
+
+
+#: The fixed-split variant of the committed dataset (feature 007): the same records with a `split`
+#: column. Derived at test time from the one committed file rather than committed as a second
+#: dataset (feature 002, FR-013). Per label, windows 0-11 are `train`, 12-15 `val`, 16-19 `test`;
+#: the last `normal` window names `test` in its first half and `val` in its second, so it is mixed
+#: by part and discarded; the committed mixed-label window is `train` and is discarded by label.
+SPLIT_COUNTS = {"train": 48, "val": 16, "test": 15}
+SPLIT_DISCARDED = 1
+
+
+def write_split_dataset(destination: Path) -> Path:
+    """Write the fixed-split dataset into ``destination`` and return the directory."""
+    lines = (SYNTHETIC_DATASET / "records.csv").read_text(encoding="utf-8").splitlines()
+    header, rows = lines[0].split(","), lines[1:]
+    window = len(rows) // (len(FIXTURE_LABELS) * 20 + 1)
+    out = [",".join(["label", "split", *header[1:]])]
+    for index, row in enumerate(rows):
+        label, rest = row.split(",", 1)
+        number, position = divmod(index, window)
+        within = number % 20
+        if number >= len(FIXTURE_LABELS) * 20:
+            part = "train"
+        elif label == "normal" and within == 19:
+            part = "test" if position < window // 2 else "val"
+        else:
+            part = "train" if within < 12 else "val" if within < 16 else "test"
+        out.append(f"{label},{part},{rest}")
+    destination.mkdir(parents=True, exist_ok=True)
+    (destination / "records.csv").write_text("\n".join(out) + "\n", encoding="utf-8")
+    return destination

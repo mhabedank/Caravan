@@ -24,9 +24,11 @@ from caravan.manifest.errors import (
     RULE_DATASET_CELL,
     RULE_DATASET_COLUMNS,
     RULE_DATASET_HEADERS_DIFFER,
+    RULE_SPLIT_VALUE,
     RULE_UNKNOWN_INPUT_COLUMN,
     run_rule_error,
 )
+from caravan.manifest.schema.dataset import PART_NAMES
 from caravan.manifest.schema.io import DEFAULT_OUTPUT_COLUMN
 
 _DELIMITERS = {".csv": ",", ".tsv": "\t", ".txt": ","}
@@ -49,6 +51,8 @@ class RecordSchema:
     #: Columns neither the input nor the output reads — visible, so a column a stated list left
     #: out is never dropped silently.
     ignored_names: tuple[str, ...] = ()
+    #: The column naming each record's part of a fixed split, or ``None`` (feature 007).
+    split_name: str | None = None
 
     @property
     def feature_count(self) -> int:
@@ -64,6 +68,8 @@ class RecordSet:
     features: np.ndarray
     #: The label of each record, parallel to ``features``.
     labels: tuple[str, ...]
+    #: The part each record names, parallel to ``labels``, for a fixed split; else ``None``.
+    parts: tuple[str, ...] | None = None
 
 
 def _read_header(path: Path) -> list[str]:
@@ -86,6 +92,7 @@ class _Columns:
     feature_positions: tuple[int, ...]
     label_index: int
     ignored: tuple[str, ...]
+    split_index: int | None = None
 
 
 def _check_header(
@@ -93,6 +100,7 @@ def _check_header(
     header: list[str],
     input_columns: tuple[str, ...] | None,
     output_column: str,
+    split_column: str | None = None,
 ) -> _Columns:
     if header.count(output_column) != 1:
         run_rule_error(
@@ -106,8 +114,26 @@ def _check_header(
             accepted=(output_column,),
         )
     label_index = header.index(output_column)
+    split_index: int | None = None
+    if split_column is not None:
+        if header.count(split_column) != 1:
+            run_rule_error(
+                RULE_SPLIT_VALUE,
+                "dataset.split.column",
+                (
+                    f"{path.name} must have exactly one column named {split_column!r}, which says "
+                    f"where each record belongs; it has {header.count(split_column)}"
+                ),
+                found=header,
+                accepted=(split_column,),
+            )
+        split_index = header.index(split_column)
     if input_columns is None:
-        names = tuple(name for position, name in enumerate(header) if position != label_index)
+        names = tuple(
+            name
+            for position, name in enumerate(header)
+            if position != label_index and position != split_index
+        )
         if not names:
             run_rule_error(
                 RULE_DATASET_COLUMNS,
@@ -131,10 +157,9 @@ def _check_header(
             )
         names = tuple(input_columns)
     positions = tuple(header.index(name) for name in names)
-    ignored = tuple(
-        name for position, name in enumerate(header) if position not in {*positions, label_index}
-    )
-    return _Columns(names, positions, label_index, ignored)
+    read = {*positions, label_index, *(() if split_index is None else (split_index,))}
+    ignored = tuple(name for position, name in enumerate(header) if position not in read)
+    return _Columns(names, positions, label_index, ignored, split_index)
 
 
 def _diagnose_bad_cell(path: Path, feature_columns: tuple[int, ...]) -> None:
@@ -234,17 +259,46 @@ def _read_values(path: Path, feature_columns: tuple[int, ...], label_column: int
     return features, [str(value) for value in labels]
 
 
+def _read_parts(path: Path, split_index: int, split_column: str) -> list[str]:
+    """Each record's part, checked to be one of the three names (DS-13, feature 007)."""
+    values = np.loadtxt(
+        path,
+        delimiter=delimiter_for(path),
+        skiprows=1,
+        usecols=(split_index,),
+        dtype=str,
+        ndmin=1,
+    )
+    parts = [str(value) for value in values]
+    for index, part in enumerate(parts):
+        if part not in PART_NAMES:
+            run_rule_error(
+                RULE_SPLIT_VALUE,
+                "dataset.split.column",
+                (
+                    f"{path.name}, line {index + 2}: column {split_column!r} holds {part!r}; a "
+                    f"fixed split accepts only {', '.join(PART_NAMES)}"
+                ),
+                found=part,
+                accepted=PART_NAMES,
+            )
+    return parts
+
+
 def read_records(
     dataset: DatasetFiles,
     *,
     input_columns: tuple[str, ...] | None = None,
     output_column: str = DEFAULT_OUTPUT_COLUMN,
+    split_column: str | None = None,
 ) -> RecordSet:
     """Read every record of the dataset, in sequence order.
 
     ``input_columns`` is what the input declares, or ``None`` for every column but the output's,
     in file order. The labels are returned as the data spells them; whether they agree with a
-    pinned list is the ``data`` stage's question, not the reader's (feature 006).
+    pinned list is the ``data`` stage's question, not the reader's (feature 006). With
+    ``split_column``, each record's part is read too, and that column is never an input
+    (feature 007).
 
     Sequence order is file order, and across files the sorted relative-path order the fingerprint
     used — so the windows a run produces are the windows its dataset version identifies.
@@ -252,10 +306,11 @@ def read_records(
     first: tuple[Path, list[str], _Columns] | None = None
     blocks: list[np.ndarray] = []
     labels: list[str] = []
+    parts: list[str] = []
 
     for path in dataset.files:
         header = _read_header(path)
-        columns = _check_header(path, header, input_columns, output_column)
+        columns = _check_header(path, header, input_columns, output_column, split_column)
         if first is None:
             first = (path, header, columns)
         elif header != first[1]:
@@ -282,6 +337,8 @@ def read_records(
         _check_field_counts(path, len(header), len(block_labels), columns.feature_positions)
         blocks.append(block)
         labels.extend(block_labels)
+        if columns.split_index is not None and split_column is not None:
+            parts.extend(_read_parts(path, columns.split_index, split_column))
 
     assert first is not None  # resolve_dataset guarantees at least one file
     columns = first[2]
@@ -294,7 +351,9 @@ def read_records(
             record_count=len(labels),
             label_name=output_column,
             ignored_names=columns.ignored,
+            split_name=split_column,
         ),
         features=features_array,
         labels=tuple(labels),
+        parts=tuple(parts) if split_column is not None else None,
     )

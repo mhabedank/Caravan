@@ -12,6 +12,7 @@ hold by construction rather than by review.
 
 from __future__ import annotations
 
+import copy
 import re
 from typing import Any
 
@@ -224,3 +225,17 @@ def test_the_tool_version_is_part_of_the_identity(monkeypatch) -> None:
 def test_the_two_stages_never_share_a_key() -> None:
     base = resolved_pilot()
     assert key_for(BUILD, base) != key_for(TRAIN, base)
+
+
+def test_the_split_column_reruns_the_data_stage_and_a_fraction_does_not() -> None:
+    # Analysis finding A1 of feature 007: the data stage leaves the split column out of the
+    # derived inputs, so the column is part of its key; it does not split, so a fraction is not.
+    base = resolved_pilot()
+    fixed = copy.deepcopy(base)
+    fixed["dataset"]["split"] = {"column": "split"}
+    assert key_for(DATA, fixed) != key_for(DATA, base)
+    tighter = copy.deepcopy(base)
+    tighter["dataset"]["split"]["train"] = 0.6
+    tighter["dataset"]["split"]["val"] = 0.25
+    assert key_for(DATA, tighter) == key_for(DATA, base)
+    assert key_for(TRAIN, tighter) != key_for(TRAIN, base)

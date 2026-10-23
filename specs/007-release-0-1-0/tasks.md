@@ -248,7 +248,7 @@ it against contracts/release.md.
 
 ### Tests for the fixed split
 
-- [ ] T022 [P] [US4] Write `tests/unit/test_fixed_split.py` for `src/caravan/data/windows.py`:
+- [X] T022 [P] [US4] Write `tests/unit/test_fixed_split.py` for `src/caravan/data/windows.py`:
   - `plan_windows(labels, window, parts=…)` keeps a window whose records all name one part and
     records that part;
   - it discards a window whose records name two parts, counting it in `discarded_mixed_split`;
@@ -258,7 +258,7 @@ it against contracts/release.md.
   - a part with no window raises DS-8 naming the column.
 
   Pure Python, no extra.
-- [ ] T023 [P] [US4] Add invalid fixtures, each with an `.expected.json`:
+- [X] T023 [P] [US4] Add invalid fixtures, each with an `.expected.json`:
   - `tests/fixtures/manifests/invalid/cf-12-split-column-with-fractions.yaml`, expecting CF-12 at
     `dataset.split`;
   - `tests/fixtures/manifests/invalid/cf-13-split-column-as-input.yaml`, expecting CF-13 at
@@ -266,49 +266,49 @@ it against contracts/release.md.
 
   Also add a valid fixture, `tests/fixtures/manifests/valid/picket-mlp-fixed-split.yaml`, which uses
   `split: {column: split}` and `source: ../../datasets/split`.
-- [ ] T024 [P] [US4] Generate `tests/fixtures/datasets/split/records.csv` with a seeded
-  `tests/fixtures/datasets/split/make.py`, in the style of the synthetic fixture's `make.py`:
-  - columns `label,split,can_id,dlc,b0,b1,b2`;
-  - four labels, 64-record windows, 12 windows per label in `train`, 4 in `val`, 4 in `test`;
-  - one window whose records name two parts.
+- [X] T024 [P] [US4] ~~Generate a second committed dataset under `tests/fixtures/datasets/split/`~~.
+  **Changed during implementation:** feature 002's FR-013 allows exactly one committed dataset, and
+  `tests/unit/test_fixture_dataset.py` says so. So `tests/support.py` gains
+  `write_split_dataset(dest)`, which derives the fixed-split data at test time from the committed
+  synthetic records:
+  - it adds a `split` column: per label, windows 0–11 `train`, 12–15 `val`, 16–19 `test`;
+  - the last `normal` window names two parts and is discarded;
+  - the counts are `SPLIT_COUNTS = {train: 48, val: 16, test: 15}`.
 
-  Add a regeneration test to `tests/unit/test_fixture_dataset.py`.
-
-  The constitution permits synthetic test fixtures as the only data in the repository. Keep this
-  one under 120 kB, and record in `make.py`'s docstring that it is arithmetic, not a capture.
-- [ ] T025 [P] [US4] Write `tests/train/test_fixed_split_run.py`:
+  The valid fixture `picket-mlp-fixed-split.yaml` reads `source: data/`, which the tests write.
+- [X] T025 [P] [US4] Write `tests/train/test_fixed_split_run.py`:
   - `caravan train` on the fixed-split fixture: the report's `dataset_resolved` has
-    `split_source: column:split`, `windows_discarded_mixed_split: 1`, and split counts 48/16/16;
+    `split_source: column:split`, `windows_discarded_mixed_split: 1`, and split counts 48/16/15;
   - `data/schema.json` lists the derived input columns without `split`;
   - a copy of the data with one value set to `holdout` stops with DS-13, naming file, line and
     value.
 
 ### Implementation of the fixed split
 
-- [ ] T026 [US4] Add `RULE_SPLIT_COLUMN_WITH_FRACTIONS = "CF-12"`,
+- [X] T026 [US4] Add `RULE_SPLIT_COLUMN_WITH_FRACTIONS = "CF-12"`,
   `RULE_SPLIT_COLUMN_DECLARED = "CF-13"` and `RULE_SPLIT_VALUE = "DS-13"` to
   `src/caravan/manifest/errors.py`. CF-12 and CF-13 go in `MANIFEST_REJECTION_RULES`, DS-13 in the
   dataset run rules. Update `tests/unit/test_rules_coverage_v01.py` or the coverage test that
   enumerates new rules.
-- [ ] T027 [US4] In `src/caravan/manifest/schema/dataset.py`, give `Split` the field `column: str |
+- [X] T027 [US4] In `src/caravan/manifest/schema/dataset.py`, give `Split` the field `column: str |
   None = Field(default=None, min_length=1)`.
   - A `model_validator(mode="before")` raises CF-12 when `column` is set together with any of
     `train`, `val`, `test` or `stratified` in the raw input. Message from contracts/manifest.md.
   - Skip CF-1 when `column` is set.
   - Add CF-13 to the cross-field validator in `src/caravan/manifest/schema/__init__.py`: the column
     equals `outputs[0].column` or is in `inputs[0].columns`.
-- [ ] T028 [US4] In `src/caravan/data/reader.py`:
+- [X] T028 [US4] In `src/caravan/data/reader.py`:
   - `read_records` takes `split_column: str | None` and returns each record's part;
   - a missing column or a value outside `train`, `val`, `test` raises DS-13 with file, line and
     value;
   - derived input columns exclude the split column.
-- [ ] T029 [US4] In `src/caravan/data/windows.py`:
+- [X] T029 [US4] In `src/caravan/data/windows.py`:
   - `plan_windows` takes optional per-record parts and returns per-window parts plus
     `discarded_mixed_split`;
   - `plan_split` takes `column=` and returns the fixed `SplitPlan` (data-model.md) instead of
     drawing by seed;
   - `SplitPlan` gains `source`.
-- [ ] T030 [US4] Thread the split column through the stages:
+- [X] T030 [US4] Thread the split column through the stages:
   - `src/caravan/stages/data.py` writes `split_column` to `data/schema.json`;
   - `src/caravan/stages/train.py` and `src/caravan/stages/quantize.py` pass
     `dataset.split.column` to the reader and to `plan_split`;
@@ -320,7 +320,7 @@ it against contracts/release.md.
   `src/caravan/stages/data.py`, because it now excludes that column from the derived inputs. Add a
   case to `tests/unit/test_cache_key_projection.py`: changing `dataset.split.column` changes the
   `data` key, and changing a fraction does not.
-- [ ] T031 [US4] Document the fixed split:
+- [X] T031 [US4] Document the fixed split:
   - a section in `docs/try-it.md`, "Your own data";
   - the README's manifest example comment;
   - the manifest contract of feature 006 is historical, so it is not touched.
@@ -348,7 +348,7 @@ FR-020).
 
 **Independent test**: quickstart §6.
 
-- [ ] T034 [P] [US4] Write `ports/pace-cnn/convert.py`. Standard library plus numpy, which the
+- [X] T034 [P] [US4] Write `ports/pace-cnn/convert.py`. Standard library plus numpy, which the
   train extra already brings. It takes `<archive.zip> <out dir>`.
   1. **Verify** the archive's SHA-256 against
      `c00b803081a5c797cd5e4b83700a9810b38d53d9d84e01917e090e1fdbc81031` (the zoo's
@@ -371,7 +371,7 @@ FR-020).
   6. **Write** `stats.json` with the mean, std and the validation subjects.
 
   The output directory must be outside the repository; refuse a path inside it.
-- [ ] T035 [P] [US4] Write `ports/pace-cnn/pace-cnn.yaml`:
+- [X] T035 [P] [US4] Write `ports/pace-cnn/pace-cnn.yaml`:
   - **input and output**: one `series` input `imu` with window 128, and a `class` output
     `activity`, labels pinned in the dataset's order, `accuracy_drop_max: 0.03` (the zoo's K2);
   - **template**: `conv1d` with three blocks (16/5/pool 2, 32/5/pool 2, 32/3), all with
@@ -383,7 +383,7 @@ FR-020).
     `targets: [esp32]`. The zoo also measured an ESP8266, for which Caravan has no board
     description;
   - **`dataset.source`**: a placeholder the README tells the author to replace.
-- [ ] T036 [US4] Write `ports/pace-cnn/README.md`:
+- [X] T036 [US4] Write `ports/pace-cnn/README.md`:
   - what the port is: an internal test of Caravan on a real model, not a zoo release, nothing
     published;
   - the steps, using the candidate's install line;

@@ -283,6 +283,7 @@ def run_pipeline(
                 run_id=run_dir.name,
                 input_columns=None if declared_columns is None else tuple(declared_columns),
                 output_column=manifest.outputs[0].column,
+                split_column=manifest.dataset.split.column,
             )
 
             # The data stage reads the declarations as written; every later stage reads them with

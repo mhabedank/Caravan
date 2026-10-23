@@ -81,7 +81,11 @@ path order, as one sequence of records:
   disagree on the label is discarded and counted;
 - the labels are the distinct values of the label column, sorted, unless `outputs[0].labels` pins
   their order;
-- the split is drawn at random from the fractions in `dataset.split`, stratified by label.
+- the split is drawn at random from the fractions in `dataset.split`, stratified by label, or
+  the data decides it: with `dataset.split: {column: split}`, every record names `train`, `val` or
+  `test` in that column. Use that whenever samples of one subject, vehicle or session must not
+  end up on both sides, and whenever your windows came from a recording cut with overlap. A window
+  whose records name two parts is discarded and counted, and the split column is never an input.
 
 `caravan validate` checks a manifest without reading the data; the first `build`, `train` or
 `export` reads it and says what it found.

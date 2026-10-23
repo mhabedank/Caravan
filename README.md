@@ -132,7 +132,8 @@ A dataset is raw, record-level delimited text. The output names the column holdi
 (`label` unless it says otherwise), and the class names are read from it, sorted, unless the
 manifest pins their order; the input reads every other column unless it names its own. Caravan does
 the windowing, and a window whose records disagree about the label is discarded and counted rather
-than labelled. `specs/002-build-and-train/contracts/dataset.md` and
+than labelled. The split is drawn by fractions, or, with `dataset.split: {column: split}`, named by
+the data record by record, so a subject or a recording never ends up on both sides. `specs/002-build-and-train/contracts/dataset.md` and
 `specs/006-declared-io/contracts/manifest.md` are the whole contract.
 
 `quantize` converts the trained model and then **judges** it: three accuracies on the test split —

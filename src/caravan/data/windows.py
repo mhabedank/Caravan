@@ -33,6 +33,11 @@ class WindowPlan:
     discarded_mixed: int
     #: Records at the end of the sequence that did not fill a window.
     dropped_remainder: int
+    #: The part each kept sample belongs to, parallel to ``kept``, when the data names it
+    #: (a fixed split, feature 007); ``None`` when the split is drawn by fractions.
+    parts: tuple[str, ...] | None = None
+    #: Windows whose records named different parts. Never assigned, always counted.
+    discarded_mixed_split: int = 0
 
     @property
     def samples(self) -> int:
@@ -47,9 +52,12 @@ class SplitPlan:
     val: tuple[int, ...]
     test: tuple[int, ...]
     stratified: bool
-    seed: int
+    #: ``None`` for a fixed split: the data decided, not a generator.
+    seed: int | None
     #: label -> split -> count, written into the run report so the split is inspectable.
     per_label_counts: dict[str, dict[str, int]]
+    #: ``fractions``, or ``column:<name>`` for a split the data decided (feature 007).
+    source: str = "fractions"
 
     def indices(self, split: str) -> tuple[int, ...]:
         return getattr(self, split)  # type: ignore[no-any-return]
@@ -59,7 +67,12 @@ class SplitPlan:
         return {name: len(self.indices(name)) for name in SPLIT_NAMES}
 
 
-def plan_windows(record_labels: Sequence[str], window: int | None) -> WindowPlan:
+def plan_windows(
+    record_labels: Sequence[str],
+    window: int | None,
+    *,
+    parts: Sequence[str] | None = None,
+) -> WindowPlan:
     """Group records into samples.
 
     With a window, a sample is ``window`` consecutive records and windows do not overlap —
@@ -71,6 +84,9 @@ def plan_windows(record_labels: Sequence[str], window: int | None) -> WindowPlan
     A window whose records disagree about the label is discarded rather than given a label it
     cannot be known to have (FR-025). Majority voting has no answer for a tie, and the last
     record's label mislabels the tail of every burst.
+
+    With ``parts`` (a fixed split, feature 007), a window whose records name different parts is
+    discarded and counted the same way. A window mixed both ways counts as mixed by label.
     """
     total = len(record_labels)
 
@@ -84,6 +100,7 @@ def plan_windows(record_labels: Sequence[str], window: int | None) -> WindowPlan
             labels=tuple(record_labels),
             discarded_mixed=0,
             dropped_remainder=0,
+            parts=None if parts is None else tuple(parts),
         )
 
     complete = total // window
@@ -91,7 +108,9 @@ def plan_windows(record_labels: Sequence[str], window: int | None) -> WindowPlan
 
     kept: list[int] = []
     labels: list[str] = []
+    kept_parts: list[str] = []
     mixed = 0
+    mixed_split = 0
     for index in range(complete):
         start = index * window
         span = record_labels[start : start + window]
@@ -99,11 +118,17 @@ def plan_windows(record_labels: Sequence[str], window: int | None) -> WindowPlan
         if any(label != first for label in span):
             mixed += 1
             continue
+        if parts is not None:
+            named = parts[start : start + window]
+            if any(part != named[0] for part in named):
+                mixed_split += 1
+                continue
+            kept_parts.append(named[0])
         kept.append(start)
         labels.append(first)
 
     if not kept:
-        _no_samples(total, window, complete, mixed, remainder)
+        _no_samples(total, window, complete, mixed + mixed_split, remainder)
 
     return WindowPlan(
         window=window,
@@ -112,6 +137,8 @@ def plan_windows(record_labels: Sequence[str], window: int | None) -> WindowPlan
         labels=tuple(labels),
         discarded_mixed=mixed,
         dropped_remainder=remainder,
+        parts=None if parts is None else tuple(kept_parts),
+        discarded_mixed_split=mixed_split,
     )
 
 
@@ -131,7 +158,8 @@ def _no_samples(
     else:
         problem = (
             f"no usable sample remains: {records} records gave {examined} complete windows, "
-            f"{mixed} of which were discarded because their records disagreed about the label, "
+            f"{mixed} of which were discarded because their records disagreed about the label "
+            "or the part of a fixed split, "
             f"and {remainder} records did not fill a window"
         )
     run_rule_error(
@@ -170,11 +198,12 @@ def _take(indices: list[int], fractions: Mapping[str, float]) -> dict[str, list[
 
 def plan_split(
     plan: WindowPlan,
-    fractions: Mapping[str, float],
+    fractions: Mapping[str, float] | None,
     *,
     stratified: bool,
-    seed: int,
+    seed: int | None,
     labels: Sequence[str],
+    column: str | None = None,
 ) -> SplitPlan:
     """Split samples — never records — reproducibly.
 
@@ -182,7 +211,13 @@ def plan_split(
     including which split a leftover sample goes to. "Shuffle and slice" is not reproducible from
     a report; this is. The standard library's generator is used rather than the framework's, so
     the split can be reproduced by someone who has no framework installed.
+
+    With ``column`` the data has decided: each sample goes to the part its records named
+    (feature 007). An empty part is refused the same way, naming the column.
     """
+    if column is not None:
+        return _fixed_split(plan, column, labels)
+    assert fractions is not None and seed is not None
     pools: dict[str, list[int]] = {}
     if stratified:
         for label in labels:
@@ -257,4 +292,59 @@ def _empty_split(
             + ("train on" if name == "train" else "measure against")
         ),
         found={"samples": plan.samples, "per_label": counts},
+    )
+
+
+def _fixed_split(plan: WindowPlan, column: str, labels: Sequence[str]) -> SplitPlan:
+    """The parts the data named, in sample order."""
+    if plan.parts is None:  # pragma: no cover - the stages always pass parts with a column
+        raise ValueError("a fixed split needs the part of every sample")
+    parts: dict[str, list[int]] = {name: [] for name in SPLIT_NAMES}
+    for position, part in enumerate(plan.parts):
+        parts[part].append(position)
+    per_label = {
+        label: {
+            name: sum(1 for position in parts[name] if plan.labels[position] == label)
+            for name in SPLIT_NAMES
+        }
+        for label in labels
+    }
+    for name in SPLIT_NAMES:
+        if not parts[name]:
+            run_rule_error(
+                RULE_SPLIT_EMPTY,
+                "dataset.split.column",
+                (
+                    f"no window of the data is in the {name} part: column {column!r} names it "
+                    "for no whole window, so there is no data to "
+                    + ("train on" if name == "train" else "measure against")
+                ),
+                found={"samples": plan.samples, "per_label": per_label},
+            )
+    return SplitPlan(
+        train=tuple(parts["train"]),
+        val=tuple(parts["val"]),
+        test=tuple(parts["test"]),
+        stratified=False,
+        seed=None,
+        per_label_counts=per_label,
+        source=f"column:{column}",
+    )
+
+
+def split_for(
+    plan: WindowPlan, spec: Mapping[str, object], *, seed: int, labels: Sequence[str]
+) -> SplitPlan:
+    """The split a resolved ``dataset.split`` asks for, in either form (feature 007)."""
+    column = spec.get("column")
+    if column is not None:
+        return plan_split(
+            plan, None, stratified=False, seed=None, labels=labels, column=str(column)
+        )
+    return plan_split(
+        plan,
+        {name: float(spec[name]) for name in SPLIT_NAMES},  # type: ignore[arg-type]
+        stratified=bool(spec["stratified"]),
+        seed=seed,
+        labels=labels,
     )

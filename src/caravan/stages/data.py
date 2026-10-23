@@ -36,6 +36,9 @@ SPEC = StageSpec(
         "outputs[0].kind",
         "outputs[0].column",
         "outputs[0].labels",
+        # The split column is left out of the derived inputs (feature 007), so it is part of
+        # this stage's key; the fractions are not, because this stage does not split.
+        "dataset.split.column",
     ),
     reads_dataset=True,
     upstream=None,
@@ -112,6 +115,7 @@ def describe(records: Any, inputs: StageInputs) -> dict[str, Any]:
         "labels": labels,
         "labels_source": labels_source,
         "ignored_columns": list(records.schema.ignored_names),
+        "split_column": inputs["dataset.split.column"],
         "records": records.schema.record_count,
     }
 

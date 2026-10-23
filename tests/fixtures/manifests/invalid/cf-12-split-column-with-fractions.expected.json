@@ -1,0 +1,4 @@
+{
+  "rule": "CF-12",
+  "path": "dataset.split"
+}

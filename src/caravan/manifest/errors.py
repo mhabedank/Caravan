@@ -32,6 +32,12 @@ RULE_DECLARATION_NAME = "CF-9"
 RULE_DECLARATIONS_IMPLEMENTED = "CF-10"
 #: A column named by the input is the output's column: a model would be trained on its own answer.
 RULE_COLUMN_BOTH_WAYS = "CF-11"
+#: A fixed split (``dataset.split.column``) stated together with fractions or ``stratified``,
+#: which it would silently override (feature 007).
+RULE_SPLIT_COLUMN_WITH_FRACTIONS = "CF-12"
+#: The split column is also the output's column or one of the input's: a model would learn which
+#: part a sample is in (feature 007).
+RULE_SPLIT_COLUMN_DECLARED = "CF-13"
 
 #: Rules that can refuse a manifest. Every one of these must have an invalid manifest fixture,
 #: and ``tests/unit/test_fixture_coverage.py`` fails when one does not.
@@ -48,6 +54,8 @@ MANIFEST_REJECTION_RULES: frozenset[str] = frozenset(
         RULE_DECLARATION_NAME,
         RULE_DECLARATIONS_IMPLEMENTED,
         RULE_COLUMN_BOTH_WAYS,
+        RULE_SPLIT_COLUMN_WITH_FRACTIONS,
+        RULE_SPLIT_COLUMN_DECLARED,
     }
 )
 
@@ -68,6 +76,9 @@ RULE_TRAINING_DIVERGED = "DS-10"
 RULE_TOO_FEW_CLASSES = "DS-11"
 #: The input names a column the data does not have.
 RULE_UNKNOWN_INPUT_COLUMN = "DS-12"
+#: The split column is missing from a data file, or a record names a part other than train, val
+#: or test (feature 007).
+RULE_SPLIT_VALUE = "DS-13"
 
 #: Run rules. Every one of these must have a test that provokes it, and
 #: ``tests/unit/test_run_rules_coverage.py`` fails when one does not. DS-7 is deliberately absent:
@@ -84,6 +95,7 @@ RUN_RULES: frozenset[str] = frozenset(
         RULE_TRAINING_DIVERGED,
         RULE_TOO_FEW_CLASSES,
         RULE_UNKNOWN_INPUT_COLUMN,
+        RULE_SPLIT_VALUE,
     }
 )
 

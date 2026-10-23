@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from caravan.data.reader_bridge import assemble_samples
-from caravan.data.windows import SPLIT_NAMES, plan_split, plan_windows
+from caravan.data.windows import plan_windows, split_for
 from caravan.env import (
     EnvironmentIncomplete,
     missing_extra_message,
@@ -232,15 +232,8 @@ def stage(context: StageContext) -> StageFunction:
         threshold = float(inputs["outputs[0].accuracy_drop_max"])
 
         records = context.records()
-        window_plan = plan_windows(records.labels, inputs["inputs[0].window"])
-        split_spec = inputs["dataset.split"]
-        split = plan_split(
-            window_plan,
-            {name: float(split_spec[name]) for name in SPLIT_NAMES},
-            stratified=bool(split_spec["stratified"]),
-            seed=seed,
-            labels=labels,
-        )
+        window_plan = plan_windows(records.labels, inputs["inputs[0].window"], parts=records.parts)
+        split = split_for(window_plan, inputs["dataset.split"], seed=seed, labels=labels)
         features, targets = assemble_samples(records, window_plan, labels)
 
         calibration = plan_calibration(inputs["dataset.representative_samples"], split.train, seed)

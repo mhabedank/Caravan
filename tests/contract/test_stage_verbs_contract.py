@@ -32,6 +32,7 @@ EXPECTED_OPTIONS = {
     "--runs-dir",
     "--cache-dir",
     "--fresh",
+    "--framework-output",
     "--json",
     "-q",
     "--quiet",

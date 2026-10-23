@@ -1,4 +1,4 @@
-"""Every rule feature 006 added is raised by the code and provoked by a test.
+"""Every rule features 006 and 007 added is raised by the code and provoked by a test.
 
 The same shape as the coverage tests of the DS, Q and X rules: a rule nobody raises is a promise
 nobody keeps, and a rule no test provokes is a rule nobody has seen fire.
@@ -13,7 +13,7 @@ import pytest
 from caravan.manifest import errors
 
 ROOT = Path(__file__).resolve().parents[2]
-NEW_RULES = ("CF-9", "CF-10", "CF-11", "DS-11", "DS-12", "F-1", "X-6")
+NEW_RULES = ("CF-9", "CF-10", "CF-11", "DS-11", "DS-12", "F-1", "X-6", "CF-12", "CF-13", "DS-13")
 
 
 def constant_for(rule: str) -> str:

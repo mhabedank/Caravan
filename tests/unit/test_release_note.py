@@ -1,4 +1,4 @@
-"""The release note says what the release is, where it runs and where it stops (feature 007, US3)."""
+"""The release note says what the release is, where it runs and where it stops (007, US3)."""
 
 from __future__ import annotations
 

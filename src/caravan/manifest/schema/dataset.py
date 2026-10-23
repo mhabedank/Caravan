@@ -8,28 +8,66 @@ author's; Caravan neither asks about them nor claims to check them (Principle VI
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from caravan.manifest.errors import RULE_SPLIT_SUM, rule_error
+from caravan.manifest.errors import RULE_SPLIT_COLUMN_WITH_FRACTIONS, RULE_SPLIT_SUM, rule_error
 
 #: The documented floor for int8 calibration. Calibration data determines the quantized
 #: activation ranges; too few or unrepresentative samples are a known cause of accuracy collapse,
 #: so this is a schema requirement rather than a convention. More is better.
 MINIMUM_REPRESENTATIVE_SAMPLES = 100
 
+#: The fields of the fractions form, none of which a fixed split accepts (CF-12).
+FRACTION_FIELDS = ("train", "val", "test", "stratified")
+#: What a record of a fixed split may name.
+PART_NAMES = ("train", "val", "test")
+
 
 class Split(BaseModel):
-    """Named parts, never a positional list (FR-018)."""
+    """Named parts, never a positional list (FR-018) — or a column of the data that names them.
+
+    Two forms (feature 007, research R9). With fractions, samples are drawn into the parts by
+    seed. With ``column``, every record names its own part, ``train``, ``val`` or ``test``, so a
+    dataset can keep subjects, vehicles or sessions on one side of the split. The fractions and
+    ``stratified`` are absent from the second form rather than ignored in it (CF-12).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    train: float = 0.7
-    val: float = 0.15
-    test: float = 0.15
-    stratified: bool = True
+    train: float | None = None
+    val: float | None = None
+    test: float | None = None
+    stratified: bool | None = None
+    column: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _one_form_only(cls, data: Any) -> Any:
+        # CF-12, on the raw input: a fraction the author wrote beside the column would otherwise be
+        # dropped without a word, and so would `stratified: true`.
+        if isinstance(data, dict) and data.get("column") is not None:
+            stated = sorted(key for key in FRACTION_FIELDS if key in data)
+            if stated:
+                rule_error(
+                    RULE_SPLIT_COLUMN_WITH_FRACTIONS,
+                    "dataset.split",
+                    f"a fixed split takes its parts from the column {data['column']!r}; "
+                    f"{', '.join(stated)} would be ignored, so they are not accepted beside it",
+                    found=stated,
+                )
+        return data
 
     @model_validator(mode="after")
     def _parts_sum_to_one(self) -> Split:
+        if self.column is not None:
+            return self
+        # The fractions form, with the documented defaults for what the author left out.
+        self.train = 0.7 if self.train is None else self.train
+        self.val = 0.15 if self.val is None else self.val
+        self.test = 0.15 if self.test is None else self.test
+        self.stratified = True if self.stratified is None else self.stratified
         # CF-1. A part of zero is rejected: a part with no data cannot be trained on, tuned on or
         # evaluated against, and the frozen test part is the reference for every later result.
         parts = {"train": self.train, "val": self.val, "test": self.test}

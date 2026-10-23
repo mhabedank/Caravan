@@ -52,6 +52,10 @@ class StageContext:
     #: the data needs identically, and the ``data`` stage records what it produced (feature 006).
     input_columns: tuple[str, ...] | None = None
     output_column: str = "label"
+    #: The column naming each record's part of a fixed split, or ``None`` (feature 007). Like the
+    #: two above, it decides how the data is read; the stages that use it also declare
+    #: ``dataset.split`` or ``dataset.split.column``, so it is part of their keys.
+    split_column: str | None = None
     _records: Any = None
 
     @property
@@ -65,7 +69,10 @@ class StageContext:
             from caravan.data.reader import read_records
 
             self._records = read_records(
-                self.dataset, input_columns=self.input_columns, output_column=self.output_column
+                self.dataset,
+                input_columns=self.input_columns,
+                output_column=self.output_column,
+                split_column=self.split_column,
             )
         return self._records
 
