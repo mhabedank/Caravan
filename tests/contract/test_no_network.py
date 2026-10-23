@@ -33,7 +33,7 @@ def test_render_needs_no_network(no_network, tmp_path, capsys) -> None:
 
 
 def test_rejection_needs_no_network(no_network, tmp_path, capsys) -> None:
-    manifest = INVALID / "cf-8-benchmark-only-publish.yaml"
+    manifest = INVALID / "v01-two-inputs.yaml"
     assert main(["validate", str(manifest), "--runs-dir", str(tmp_path)]) == EXIT_RULE
 
 

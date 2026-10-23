@@ -131,6 +131,8 @@ class Report:
     schema_version_declared: str | None = None
     schema_version_effective: str | None = None
     migrations_applied: tuple[str, ...] = ()
+    #: One per field a migration dropped, moved or added (feature 006, Principle IX), as dicts.
+    migration_notices: Sequence[dict[str, Any]] = field(default_factory=tuple)
     dataset: str | None = None
     template: str | None = None
     gates: Sequence[Gate] = field(default_factory=tuple)
@@ -149,6 +151,13 @@ class Report:
     #: The whole quantization record, as the stage's own artifact carries it — so a reused result
     #: reports the same numbers as the run that produced it, and a failed gate reports them too.
     quantization: dict[str, Any] | None = None
+    # --- added by feature 006 -----------------------------------------------------------------
+    #: What the data stage found: the input's columns, the labels, and where each came from.
+    data: dict[str, Any] | None = None
+    #: The fit check before training: estimated lower bounds against every target board.
+    fit: dict[str, Any] | None = None
+    #: The interface contract the export wrote.
+    interface: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """The contract's field order, which is also the order a reader wants it in."""
@@ -163,6 +172,7 @@ class Report:
             "schema_version_declared": self.schema_version_declared,
             "schema_version_effective": self.schema_version_effective,
             "migrations_applied": list(self.migrations_applied),
+            "migration_notices": [dict(notice) for notice in self.migration_notices],
             "outcome": self.outcome,
             "gates": [gate.as_dict() for gate in self.gates],
             "findings": [finding.as_dict() for finding in self.findings],
@@ -185,6 +195,12 @@ class Report:
             out["confusion_matrix"] = self.confusion_matrix.as_dict()
         if self.quantization is not None:
             out["quantization"] = self.quantization
+        if self.data is not None:
+            out["data"] = self.data
+        if self.fit is not None:
+            out["fit"] = self.fit
+        if self.interface is not None:
+            out["interface"] = self.interface
         return out
 
     def as_json(self) -> str:

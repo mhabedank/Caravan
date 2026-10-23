@@ -67,7 +67,19 @@ def _skeletons(inputs: StageInputs) -> tuple[str, ...]:
 
 SPEC = StageSpec(
     name="export",
-    reads=("export.formats", "export.targets", "export.quantization"),
+    reads=(
+        "model.name",
+        "model.version",
+        "export.formats",
+        "export.targets",
+        "export.quantization",
+        # For the interface contract (feature 006): which model, what goes in, what comes out.
+        "inputs[0].name",
+        "inputs[0].columns",
+        "inputs[0].window",
+        "outputs[0].name",
+        "outputs[0].labels",
+    ),
     reads_dataset=False,
     upstream="quantize",
     artifacts=(MODEL, ARRAY_SOURCE, ARRAY_HEADER, RESOLVER, RECORD),

@@ -1,9 +1,17 @@
 # The pilot in the new form (schema version caravan/v0.1, feature 006), on the synthetic fixture.
 #
 # Mirrors picket-mlp-fixture.yaml, which is the same model in the previous form and now loads
-# through migration. Everything that is not here is either derived from the data — the labels from
-# the `label` column, the input columns from every other column — or was removed because no stage
-# read it. The budget is stated, not defaulted: Principle V requires every manifest to state it.
+# through migration. The input columns are derived from the data (every column but `label`); what
+# else is missing was removed because no stage read it. The budget is stated, not defaulted:
+# Principle V requires every manifest to state it.
+#
+# The labels are pinned, in the previous form's order, and that is a measured decision rather than
+# a habit. Derived, they sort to dos, fuzzy, normal, replay; the model trains to different weights,
+# and on this fixture the int8 gate then fails — 0.75 trained, 0.50 quantized, 3 of 12 test windows
+# (measured 2026-10-23). The cause is not the order but unscaled inputs: CAN identifiers in the
+# hundreds and payload bytes share one int8 input scale, which feature 006 does not change (input
+# scaling is proposal P5). Pinned, this model is the migrated pilot's, and passes as it always did.
+# picket-mlp-v01-derived.yaml is the same manifest with the labels derived.
 apiVersion: caravan/v0.1
 
 model:
@@ -22,6 +30,7 @@ inputs:
 outputs:
   - name: attack
     kind: class
+    labels: [normal, dos, fuzzy, replay]
     accuracy_drop_max: 0.02
 
 dataset:

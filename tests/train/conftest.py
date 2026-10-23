@@ -51,23 +51,29 @@ def latest_run(runs: Path) -> Path:
     return max(runs.iterdir(), key=lambda path: path.stat().st_mtime)
 
 
-MANIFEST_TEMPLATE = """apiVersion: caravan/v0
+MANIFEST_TEMPLATE = """apiVersion: caravan/v0.1
 
 model:
   name: rule-case
   version: 0.0.1
-  topic: automotive-security
-  task: can-ids
   template: mlp
   params:
     hidden: [4]
 
+inputs:
+  - name: frames
+    kind: series
+    window: {window}
+
+outputs:
+  - name: verdict
+    kind: class
+    labels: [{labels}]
+    accuracy_drop_max: {accuracy_drop_max}
+
 dataset:
   source: {source}
-  window: {window}
-  labels: [{labels}]
   representative_samples: 100
-  permitted_use: {permitted_use}
   split:
     train: {train}
     val: {val}
@@ -81,13 +87,6 @@ train:
 
 export:
   targets: [stm32h743]
-
-compliance:
-  eu_ai_act_class: minimal-risk
-  privacy: no-personal-data
-  intended_use: "Exercises one run rule end to end"
-  known_limits:
-    - "Synthetic data written by the test that uses it"
 """
 
 
@@ -101,7 +100,7 @@ def write_manifest(directory: Path, **overrides) -> Path:
         "source": "data",
         "window": 4,
         "labels": "normal, attack",
-        "permitted_use": "unknown",
+        "accuracy_drop_max": 0.02,
         "train": 0.5,
         "val": 0.25,
         "test": 0.25,

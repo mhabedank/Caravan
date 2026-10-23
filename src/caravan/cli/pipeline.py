@@ -24,7 +24,7 @@ from typing import Any
 from caravan.cli.main import EXIT_ENVIRONMENT, EXIT_OK, EXIT_RULE, EXIT_USAGE
 from caravan.cli.validate import json_document, report_for
 from caravan.env import EnvironmentIncomplete, missing_extra_message, training_framework_available
-from caravan.manifest._yaml import DocumentError
+from caravan.manifest._yaml import DocumentError, dump_mapping
 from caravan.manifest.errors import (
     Finding,
     Gate,
@@ -33,8 +33,8 @@ from caravan.manifest.errors import (
     render_finding,
 )
 from caravan.manifest.load import load_manifest
+from caravan.manifest.resolve import merge_derived, resolve
 from caravan.manifest.resolve import render as render_manifest
-from caravan.manifest.resolve import resolve
 from caravan.run.paths import RESOLVED_MANIFEST_NAME, create_run_directory, file_digest
 from caravan.run.report import (
     OUTCOME_ERROR,
@@ -45,6 +45,7 @@ from caravan.run.report import (
     write_report,
 )
 from caravan.stages import cache as cache_module
+from caravan.stages import data as data_stage
 from caravan.stages.base import StageContext, StageSpec, run_stage
 
 #: The files a stage writes its measurements into, and the ones the report is built from — so a
@@ -224,6 +225,9 @@ def run_pipeline(
     resolved = resolve(manifest)
 
     run_dir = create_run_directory(Path(args.runs_dir), file_digest(path))
+    # Written once the data stage has said what the data holds, so a run's resolved manifest carries
+    # the derived labels and columns rather than the marker (feature 006, FR-013). Until then the
+    # declared form stands in, which is also what remains if the data stage fails.
     (run_dir / RESOLVED_MANIFEST_NAME).write_text(render_manifest(manifest), encoding="utf-8")
     cache_dir = Path(args.cache_dir)
     report = report_for(
@@ -240,14 +244,37 @@ def run_pipeline(
         from caravan.data.fingerprint import resolve_dataset
 
         dataset = resolve_dataset(manifest.dataset.source, path.parent)
+        declared_columns = manifest.inputs[0].columns
         context = StageContext(
             dataset=dataset,
-            labels=tuple(manifest.dataset.labels),
             run_dir=run_dir,
             run_id=run_dir.name,
+            input_columns=None if declared_columns is None else tuple(declared_columns),
+            output_column=manifest.outputs[0].column,
         )
 
+        # The data stage reads the declarations as written; every later stage reads them with what
+        # the data said merged in, so the derived values are part of their keys (research R3).
         keys: dict[str, str] = {}
+        result = run_stage(
+            data_stage.SPEC,
+            data_stage.stage(context),
+            resolved=resolved,
+            run_dir=run_dir,
+            cache_dir=cache_dir,
+            dataset_version=dataset.version,
+            fresh=args.fresh,
+            run_id=run_dir.name,
+        )
+        keys[data_stage.SPEC.name] = result.key
+        outcomes.append(result)
+        schema = data_stage.load_schema(run_dir)
+        resolved = merge_derived(
+            resolved, input_columns=schema["input_columns"], labels=schema["labels"]
+        )
+        (run_dir / RESOLVED_MANIFEST_NAME).write_text(dump_mapping(resolved), encoding="utf-8")
+        report.data = schema
+
         for plan in stages:
             result = run_stage(
                 plan.spec,

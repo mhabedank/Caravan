@@ -37,13 +37,13 @@ def test_a_defaults_section_is_not_accepted() -> None:
     assert error["loc"] == ("defaults",)
 
 
-def test_a_manifest_without_compliance_is_invalid() -> None:
-    # FR-015: invalid, not merely incomplete.
+def test_a_manifest_without_an_output_is_invalid() -> None:
+    # Principle I (constitution 3.0.0): the manifest declares what goes in and what comes out.
     data = manifest_data()
-    del data["compliance"]
+    del data["outputs"]
     error = first_error(data)
     assert error["type"] == "missing"
-    assert error["loc"] == ("compliance",)
+    assert error["loc"] == ("outputs",)
 
 
 def test_a_positional_split_is_not_accepted() -> None:

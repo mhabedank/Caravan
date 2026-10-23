@@ -43,6 +43,7 @@ def report_for(command: str, path: Path, outcome: LoadOutcome, **extra: object) 
         schema_version_declared=outcome.declared_version,
         schema_version_effective=outcome.effective_version,
         migrations_applied=outcome.migrations_applied,
+        migration_notices=tuple(notice.as_dict() for notice in outcome.notices),
         dataset=manifest.dataset.source if manifest else None,
         template=manifest.model.template if manifest else None,
         gates=tuple(outcome.gates),

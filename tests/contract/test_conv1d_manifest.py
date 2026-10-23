@@ -67,7 +67,7 @@ def test_a_window_too_short_for_the_blocks_is_refused_with_the_arithmetic(tmp_pa
     )
     assert main(["validate", str(manifest), "--runs-dir", str(tmp_path / "runs")]) == EXIT_RULE
     message = capsys.readouterr().err
-    assert "dataset.window" in message
+    assert "inputs[0].window" in message
     assert "block 2" in message
     assert "3 samples left" in message
     # The offered window is computed by walking the blocks, not estimated.
@@ -78,7 +78,7 @@ def test_a_missing_window_is_still_refused(tmp_path, capsys) -> None:
     # The older half of CF-6: this template consumes a window, so one has to be there.
     manifest = _variant(tmp_path, **{"  window: 64\n": ""})
     assert main(["validate", str(manifest), "--runs-dir", str(tmp_path / "runs")]) == EXIT_RULE
-    assert "dataset.window" in capsys.readouterr().err
+    assert "inputs[0].window" in capsys.readouterr().err
 
 
 def test_a_fitting_configuration_is_not_refused_for_its_window(tmp_path) -> None:

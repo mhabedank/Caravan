@@ -24,11 +24,10 @@ from caravan.manifest.errors import (
     RULE_DATASET_CELL,
     RULE_DATASET_COLUMNS,
     RULE_DATASET_HEADERS_DIFFER,
-    RULE_DATASET_LABELS,
+    RULE_UNKNOWN_INPUT_COLUMN,
     run_rule_error,
 )
-
-LABEL_COLUMN = "label"
+from caravan.manifest.schema.io import DEFAULT_OUTPUT_COLUMN
 
 _DELIMITERS = {".csv": ",", ".tsv": "\t", ".txt": ","}
 
@@ -41,9 +40,15 @@ def delimiter_for(path: Path) -> str:
 class RecordSchema:
     """The header, once it has been read and agreed on by every file."""
 
+    #: The input's columns, in the order they go into the tensor.
     feature_names: tuple[str, ...]
     label_column: int
     record_count: int
+    #: The output's column.
+    label_name: str = DEFAULT_OUTPUT_COLUMN
+    #: Columns neither the input nor the output reads — visible, so a column a stated list left
+    #: out is never dropped silently.
+    ignored_names: tuple[str, ...] = ()
 
     @property
     def feature_count(self) -> int:
@@ -73,28 +78,63 @@ def _read_header(path: Path) -> list[str]:
     )
 
 
-def _check_header(path: Path, header: list[str]) -> tuple[tuple[str, ...], int]:
-    if header.count(LABEL_COLUMN) != 1:
+@dataclass(frozen=True)
+class _Columns:
+    """Where in one file's header the input and the output are."""
+
+    feature_names: tuple[str, ...]
+    feature_positions: tuple[int, ...]
+    label_index: int
+    ignored: tuple[str, ...]
+
+
+def _check_header(
+    path: Path,
+    header: list[str],
+    input_columns: tuple[str, ...] | None,
+    output_column: str,
+) -> _Columns:
+    if header.count(output_column) != 1:
         run_rule_error(
             RULE_DATASET_COLUMNS,
             "dataset.source",
             (
-                f"{path.name} must have exactly one column named {LABEL_COLUMN!r}, which holds "
-                f"the class name; it has {header.count(LABEL_COLUMN)}"
+                f"{path.name} must have exactly one column named {output_column!r}, which holds "
+                f"the class name (outputs[0].column); it has {header.count(output_column)}"
             ),
             found=header,
-            accepted=(LABEL_COLUMN,),
+            accepted=(output_column,),
         )
-    index = header.index(LABEL_COLUMN)
-    features = tuple(name for position, name in enumerate(header) if position != index)
-    if not features:
-        run_rule_error(
-            RULE_DATASET_COLUMNS,
-            "dataset.source",
-            f"{path.name} has no feature column: every column but {LABEL_COLUMN!r} is a feature",
-            found=header,
-        )
-    return features, index
+    label_index = header.index(output_column)
+    if input_columns is None:
+        names = tuple(name for position, name in enumerate(header) if position != label_index)
+        if not names:
+            run_rule_error(
+                RULE_DATASET_COLUMNS,
+                "dataset.source",
+                f"{path.name} has no feature column: every column but {output_column!r} is a "
+                "feature",
+                found=header,
+            )
+    else:
+        missing = [name for name in input_columns if name not in header]
+        if missing:
+            run_rule_error(
+                RULE_UNKNOWN_INPUT_COLUMN,
+                "inputs[0].columns",
+                (
+                    f"the input names {len(missing)} column(s) {path.name} does not have: "
+                    f"{', '.join(missing)}"
+                ),
+                found=missing,
+                accepted=tuple(name for name in header if name != output_column),
+            )
+        names = tuple(input_columns)
+    positions = tuple(header.index(name) for name in names)
+    ignored = tuple(
+        name for position, name in enumerate(header) if position not in {*positions, label_index}
+    )
+    return _Columns(names, positions, label_index, ignored)
 
 
 def _diagnose_bad_cell(path: Path, feature_columns: tuple[int, ...]) -> None:
@@ -194,102 +234,67 @@ def _read_values(path: Path, feature_columns: tuple[int, ...], label_column: int
     return features, [str(value) for value in labels]
 
 
-def read_records(dataset: DatasetFiles, declared_labels: tuple[str, ...]) -> RecordSet:
-    """Read every record of the dataset, in sequence order, and check it against the manifest.
+def read_records(
+    dataset: DatasetFiles,
+    *,
+    input_columns: tuple[str, ...] | None = None,
+    output_column: str = DEFAULT_OUTPUT_COLUMN,
+) -> RecordSet:
+    """Read every record of the dataset, in sequence order.
+
+    ``input_columns`` is what the input declares, or ``None`` for every column but the output's,
+    in file order. The labels are returned as the data spells them; whether they agree with a
+    pinned list is the ``data`` stage's question, not the reader's (feature 006).
 
     Sequence order is file order, and across files the sorted relative-path order the fingerprint
     used — so the windows a run produces are the windows its dataset version identifies.
     """
-    schema: tuple[tuple[str, ...], int] | None = None
-    first_path: Path | None = None
+    first: tuple[Path, list[str], _Columns] | None = None
     blocks: list[np.ndarray] = []
     labels: list[str] = []
 
     for path in dataset.files:
         header = _read_header(path)
-        features, index = _check_header(path, header)
-        if schema is None:
-            schema, first_path = (features, index), path
-        elif (features, index) != schema:
+        columns = _check_header(path, header, input_columns, output_column)
+        if first is None:
+            first = (path, header, columns)
+        elif header != first[1]:
+            first_path, first_header, _ = first
             differing = next(
-                (
-                    name
-                    for name, other in zip(header, [*schema[0][: schema[1]]], strict=False)
-                    if name != other
-                ),
-                header[0],
+                (name for name, other in zip(header, first_header, strict=False) if name != other),
+                None,
             )
+            if differing is None:
+                # One header is the other plus columns: the first extra column is the difference.
+                longer = header if len(header) > len(first_header) else first_header
+                differing = longer[min(len(header), len(first_header))]
             run_rule_error(
                 RULE_DATASET_HEADERS_DIFFER,
                 "dataset.source",
                 (
-                    f"{path.name} and {first_path.name if first_path else '?'} disagree about "
-                    f"their columns, first at {differing!r}; every file of one dataset must carry "
-                    "the same header, because they are read as one sequence"
+                    f"{path.name} and {first_path.name} disagree about their columns, first at "
+                    f"{differing!r}; every file of one dataset must carry the same header, because "
+                    "they are read as one sequence"
                 ),
-                found={
-                    path.name: header,
-                    (first_path.name if first_path else "?"): [
-                        *schema[0][: schema[1]],
-                        LABEL_COLUMN,
-                        *schema[0][schema[1] :],
-                    ],
-                },
+                found={path.name: header, first_path.name: first_header},
             )
-        feature_columns = tuple(position for position in range(len(header)) if position != index)
-        block, block_labels = _read_values(path, feature_columns, index)
-        _check_field_counts(path, len(header), len(block_labels), feature_columns)
+        block, block_labels = _read_values(path, columns.feature_positions, columns.label_index)
+        _check_field_counts(path, len(header), len(block_labels), columns.feature_positions)
         blocks.append(block)
         labels.extend(block_labels)
 
-    assert schema is not None  # resolve_dataset guarantees at least one file
-    feature_names, label_index = schema
+    assert first is not None  # resolve_dataset guarantees at least one file
+    columns = first[2]
     features_array = np.concatenate(blocks, axis=0) if len(blocks) > 1 else blocks[0]
-
-    _check_labels(labels, declared_labels)
 
     return RecordSet(
         schema=RecordSchema(
-            feature_names=feature_names,
-            label_column=label_index,
+            feature_names=columns.feature_names,
+            label_column=columns.label_index,
             record_count=len(labels),
+            label_name=output_column,
+            ignored_names=columns.ignored,
         ),
         features=features_array,
         labels=tuple(labels),
     )
-
-
-def _check_labels(labels: list[str], declared: tuple[str, ...]) -> None:
-    """Both directions, because both are a disagreement (DS-5).
-
-    A label in the data the manifest does not declare means the model has no output for it. A
-    declared label the data never shows means the model is asked to predict something it will
-    never see an example of — which is not a curiosity, it is a split that cannot be stratified
-    and a recall that cannot be computed.
-    """
-    seen = set(labels)
-    declared_set = set(declared)
-    undeclared = sorted(seen - declared_set)
-    unseen = sorted(declared_set - seen)
-    if undeclared:
-        run_rule_error(
-            RULE_DATASET_LABELS,
-            "dataset.labels",
-            (
-                f"the data contains {len(undeclared)} label(s) the manifest does not declare: "
-                f"{', '.join(undeclared)}"
-            ),
-            found=undeclared,
-            accepted=tuple(declared),
-        )
-    if unseen:
-        run_rule_error(
-            RULE_DATASET_LABELS,
-            "dataset.labels",
-            (
-                f"the manifest declares {len(unseen)} label(s) the data never shows: "
-                f"{', '.join(unseen)}"
-            ),
-            found=sorted(seen),
-            accepted=tuple(declared),
-        )

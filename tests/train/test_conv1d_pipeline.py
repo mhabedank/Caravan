@@ -89,5 +89,11 @@ def test_no_stage_needed_a_special_case(exported) -> None:
     # elsewhere (no identifier literal in any stage); here it is asserted by the run existing.
     run, record = exported
     report = json.loads((run / "report.json").read_text(encoding="utf-8"))
-    assert [stage["name"] for stage in report["stages"]] == ["build", "train", "quantize", "export"]
+    assert [stage["name"] for stage in report["stages"]] == [
+        "data",
+        "build",
+        "train",
+        "quantize",
+        "export",
+    ]
     assert record["graph"]["nodes"] == 8

@@ -253,3 +253,29 @@ and `export.accuracy_drop_max`.
 keeps its signature name. The output's signature name changes from the converter's `output_0` to
 `output` (R4). That change is visible to a desktop reader of the signature and invisible to a
 microcontroller runner, which binds by position (R5).
+
+## R11. Derived labels and the int8 gate on the synthetic fixture (found while implementing)
+
+**Measured** (2026-10-23, the versions above): the pilot in the new form, with its labels derived,
+trains to different weights than the previous form, because the derived order (`dos, fuzzy,
+normal, replay`) assigns the output units differently from the stated one (`normal, dos, fuzzy,
+replay`). On the synthetic fixture that model then fails the accuracy gate:
+
+| Form | Test accuracy, trained | Quantized | Gate (0.02) |
+|---|---|---|---|
+| migrated previous form, labels as stated | 0.667 | unchanged | pass |
+| new form, labels derived | 0.750 | 0.500 (3 of 12 windows) | **fail** |
+
+**Cause**: not the order itself. The inputs are unscaled: CAN identifiers in the hundreds and
+payload bytes share one per-tensor int8 input scale, so the small columns lose most of their
+resolution. Which weights a training happens to find decides whether that costs a prediction, and
+on a 12-window test split one prediction is 0.083. The previous form passed by the luck of its
+weights, not by a margin. Proposal P5 (input scaling in the export contract) is the remedy and is
+out of scope here.
+
+**Decision**: the new-form pilot used by the end-to-end tests, `picket-mlp-v01.yaml`, pins the
+previous order and so builds the migrated pilot's model, which passes. A second fixture,
+`picket-mlp-v01-derived.yaml`, is the same manifest with the labels derived. It is used wherever
+derivation is the point: validation, render, the data stage, and training. The gate was not
+loosened and the seed was not tuned to make the derived form pass. Either would have hidden this
+finding.

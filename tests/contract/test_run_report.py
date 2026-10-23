@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from caravan.cli.main import main
-from tests.support import INVALID, PILOT
+from tests.support import INVALID, PILOT, PILOT_V01
 
 EXPECTED_FIELDS = [
     "caravan_version",
@@ -19,6 +19,7 @@ EXPECTED_FIELDS = [
     "schema_version_declared",
     "schema_version_effective",
     "migrations_applied",
+    "migration_notices",
     "outcome",
     "gates",
     "findings",
@@ -39,11 +40,31 @@ def test_the_report_carries_exactly_the_contract_fields_in_order(tmp_path, capsy
 
 
 def test_both_schema_versions_are_present_even_when_equal(tmp_path, capsys) -> None:
+    main(["validate", str(PILOT_V01), "--runs-dir", str(tmp_path)])
+    report = report_of(tmp_path)
+    assert report["schema_version_declared"] == "caravan/v0.1"
+    assert report["schema_version_effective"] == "caravan/v0.1"
+    assert report["migrations_applied"] == []
+    assert report["migration_notices"] == []
+
+
+def test_a_migrated_manifest_records_both_versions_and_every_notice(tmp_path, capsys) -> None:
     main(["validate", str(PILOT), "--runs-dir", str(tmp_path)])
     report = report_of(tmp_path)
     assert report["schema_version_declared"] == "caravan/v0"
-    assert report["schema_version_effective"] == "caravan/v0"
-    assert report["migrations_applied"] == []
+    assert report["schema_version_effective"] == "caravan/v0.1"
+    assert report["migrations_applied"] == ["caravan/v0"]
+    assert [notice["path"] for notice in report["migration_notices"]] == [
+        "model.topic",
+        "model.task",
+        "compliance",
+        "verify",
+        "bench",
+        "publish",
+        "dataset.window",
+        "dataset.labels",
+        "export.accuracy_drop_max",
+    ]
 
 
 def test_artifact_paths_are_relative_to_the_run_directory(tmp_path, capsys) -> None:

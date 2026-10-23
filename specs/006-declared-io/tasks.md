@@ -30,7 +30,7 @@ merge gate (constitution, Development Workflow). Test tasks are therefore not op
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 In `src/caravan/manifest/errors.py`, add the rule identifiers, each with its one-line
+- [X] T001 In `src/caravan/manifest/errors.py`, add the rule identifiers, each with its one-line
   reason in the existing style:
   - `CF-9`, declaration name: "`[a-z][a-z0-9_]{0,31}`, unique across inputs and outputs";
   - `CF-10`, one input and one output, and kinds implemented;
@@ -44,7 +44,7 @@ merge gate (constitution, Development Workflow). Test tasks are therefore not op
   (CF-3), `RULE_PUBLISH_NEEDS_COMPLIANCE` (CF-5), `RULE_EMULATOR_EXISTS` (CF-7),
   `RULE_PUBLISH_BENCHMARK_ONLY` (CF-8) and `RULE_TRAINING_NOT_PERMITTED` (DS-9) from every group.
   Add `RETIRED_RULES = frozenset({"CF-3", "CF-5", "CF-7", "CF-8", "DS-9"})`.
-- [ ] T002 [P] Create `src/caravan/manifest/schema/removed.py`: one table, `REMOVED_FIELDS`, mapping
+- [X] T002 [P] Create `src/caravan/manifest/schema/removed.py`: one table, `REMOVED_FIELDS`, mapping
   each path to `(action, to, reason)`, with exactly the paths and messages of
   `specs/006-declared-io/contracts/manifest.md`, *Removed fields*:
   - dropped: `compliance`, `model.topic`, `model.task`, `dataset.license`,
@@ -54,10 +54,10 @@ merge gate (constitution, Development Workflow). Test tasks are therefore not op
 
   Add `BENCHMARK_ONLY_PUBLISH_NOTICE` with the sentence from the migration contract, step 2. Pure
   data, no imports beyond the standard library.
-- [ ] T003 [P] Write `tests/unit/test_retired_rules.py`: no identifier in `RETIRED_RULES` appears in
+- [X] T003 [P] Write `tests/unit/test_retired_rules.py`: no identifier in `RETIRED_RULES` appears in
   any rule group or in any `*.expected.json` under `tests/fixtures/`, and no module under
   `src/caravan/` raises one.
-- [ ] T004 [P] Write the new-form fixtures:
+- [X] T004 [P] Write the new-form fixtures:
   - `tests/fixtures/manifests/valid/picket-mlp-v01.yaml`: exactly the pilot of
     `contracts/manifest.md`, with `dataset.source: ../../datasets/synthetic`.
   - `tests/fixtures/manifests/valid/picket-conv1d-v01.yaml`: `picket-conv1d-fixture.yaml` translated
@@ -77,7 +77,7 @@ did before.
 
 ### Declarations and schema
 
-- [ ] T005 Write `tests/unit/test_io_declarations.py` first, covering `InputDeclaration` and
+- [X] T005 Write `tests/unit/test_io_declarations.py` first, covering `InputDeclaration` and
   `OutputDeclaration`:
   - `name` matches `[a-z][a-z0-9_]{0,31}` (rejects `Frames`, `can-id`, `1x` and 33 characters);
   - `kind` is `"series"` / `"class"` only;
@@ -88,9 +88,9 @@ did before.
   - `accuracy_drop_max`: a float in [0, 1], **required** on a `class` output, no default
     (Principle V; FR-029);
   - `extra="forbid"` on both.
-- [ ] T006 Implement `src/caravan/manifest/schema/io.py` to pass T005. The name pattern is one
+- [X] T006 Implement `src/caravan/manifest/schema/io.py` to pass T005. The name pattern is one
   module constant with its form sentence, like `NAME_FORM` in `schema/model.py`.
-- [ ] T007 Write `tests/unit/test_migration_v01.py` first:
+- [X] T007 Write `tests/unit/test_migration_v01.py` first:
   - every step of the migration contract, on the committed `picket-mlp.yaml` and on a manifest
     carrying every removed field;
   - the notices: count, order, `path`, `action`, `to`, `reason`;
@@ -101,7 +101,7 @@ did before.
   - the input mapping is not mutated;
   - the file's bytes are unchanged;
   - `MigrationResult` records the declared and effective versions.
-- [ ] T008 Implement the migration in `src/caravan/manifest/migrate.py`:
+- [X] T008 Implement the migration in `src/caravan/manifest/migrate.py`:
   - `CURRENT_SCHEMA_VERSION = "caravan/v0.1"`;
   - `default_registry()` knows `("caravan/v0", "caravan/v0.1")`;
   - a `Transform` returns `(mapping, notices)`;
@@ -111,7 +111,7 @@ did before.
 
   Adapt the synthetic-registry tests in `tests/unit/test_migration.py` to the new `Transform` shape
   without weakening them.
-- [ ] T009 Update the manifest schema:
+- [X] T009 Update the manifest schema:
   - remove `topic` and `task` in `src/caravan/manifest/schema/model.py`;
   - remove `labels`, `window`, `license` and `permitted_use`, and the module docstring about
     them, in `schema/dataset.py`;
@@ -119,7 +119,7 @@ did before.
   - remove `VerifySpec`, `BenchSpec` and `PublishSpec` in `schema/misc.py` (delete the module if
     it is empty);
   - delete `schema/compliance.py`.
-- [ ] T010 Rework `Manifest` in `src/caravan/manifest/schema/__init__.py`:
+- [X] T010 Rework `Manifest` in `src/caravan/manifest/schema/__init__.py`:
   - `apiVersion: Literal["caravan/v0.1"]`, `inputs: list[InputDeclaration]` and
     `outputs: list[OutputDeclaration]`;
   - remove `compliance`, `verify`, `bench`, `publish` and the CF-3, CF-7 and CF-8 validators;
@@ -129,19 +129,19 @@ did before.
   - add CF-9: names unique across inputs and outputs;
   - add CF-11: `outputs[0].column` not in `inputs[0].columns`;
   - CF-4 is unchanged.
-- [ ] T011 In `src/caravan/manifest/load.py`:
+- [X] T011 In `src/caravan/manifest/load.py`:
   - carry `MigrationResult.notices` into the load outcome;
   - in a `caravan/v0.1` document, report a path found in `REMOVED_FIELDS` with its own message at
     its own path, ahead of the generic unknown-field finding (FR-001).
-- [ ] T012 Write the resolver tests first in `tests/unit/test_resolve_v01.py`:
+- [X] T012 Write the resolver tests first in `tests/unit/test_resolve_v01.py`:
   - key order as in `data-model.md`;
   - `columns: derived` and `labels: derived` when not stated;
   - stated values kept as written;
   - `merge_derived(resolved, schema)` replaces exactly those two markers and nothing else;
   - byte-identical output across two calls.
-- [ ] T013 Implement `src/caravan/manifest/resolve.py`: the `caravan/v0.1` shape with no removed key,
+- [X] T013 Implement `src/caravan/manifest/resolve.py`: the `caravan/v0.1` shape with no removed key,
   the `DERIVED = "derived"` marker, and `merge_derived`.
-- [ ] T014 Bring the remaining invalid fixtures under `tests/fixtures/manifests/invalid/` (B-1,
+- [X] T014 Bring the remaining invalid fixtures under `tests/fixtures/manifests/invalid/` (B-1,
   CF-1, CF-2, CF-4, CF-6, T-1, T-2, V-1, unknown-field, unknown-field-misplaced) to the
   `caravan/v0.1` form, and update each `*.expected.json`; CF-6's path becomes `inputs[0].window`.
   Move the CF-3, CF-7 and CF-8 fixtures to `tests/fixtures/manifests/migration/`, each with a
@@ -151,13 +151,13 @@ did before.
 
 ### The data step and the stages
 
-- [ ] T015 Extend `project()` in `src/caravan/stages/base.py` to accept an index in a path:
+- [X] T015 Extend `project()` in `src/caravan/stages/base.py` to accept an index in a path:
   `outputs[0].labels`, `inputs[0].columns`. A missing index or key still raises
   `DeclarationError`, and the projection key is the path as written. Write
   `tests/unit/test_projection_index.py` first: indexed paths resolve, an out-of-range index raises,
   and two manifests that differ only in `outputs[0].accuracy_drop_max` give identical projections
   for every stage but `quantize` (FR-031).
-- [ ] T016 Write `tests/train/test_data_stage.py` first, on the synthetic fixture:
+- [X] T016 Write `tests/train/test_data_stage.py` first, on the synthetic fixture:
   - derived labels are `["dos", "fuzzy", "normal", "replay"]`;
   - stated labels keep their order;
   - a stated list missing a data value fails DS-5 at `outputs[0].labels`, naming it, and a stated
@@ -167,7 +167,7 @@ did before.
   - stated columns are kept in stated order, and unread columns appear in `ignored_columns`;
   - `labels_source` and `columns_source` are correct;
   - a reused `data` stage reads no records (`context.records_if_read is None`).
-- [ ] T017 Change `src/caravan/data/reader.py`:
+- [X] T017 Change `src/caravan/data/reader.py`:
   - `read_records(dataset, *, input_columns, output_column)` replaces the fixed `LABEL_COLUMN`;
   - the header check requires exactly one `output_column`, and raises DS-12 for a stated input
     column the header lacks;
@@ -178,25 +178,25 @@ did before.
   - move label validation out of the reader (`_check_labels` goes to the `data` stage).
 
   Update `src/caravan/data/reader_bridge.py` callers only as the signature requires.
-- [ ] T018 Create `src/caravan/stages/data.py`:
+- [X] T018 Create `src/caravan/stages/data.py`:
   - `SPEC = StageSpec(name="data", reads=("inputs[0].columns", "outputs[0].column",
     "outputs[0].labels"), reads_dataset=True, upstream=None, artifacts=("data/schema.json",))`;
   - the `DataSchema` of `data-model.md`;
   - derivation sorted with `sorted()` on `str`;
   - DS-5 in both directions, DS-11 and DS-12;
   - framework imports inside functions.
-- [ ] T019 Write `tests/train/test_rewire_names.py` first: for `mlp` and `conv1d` under one seed,
+- [X] T019 Write `tests/train/test_rewire_names.py` first: for `mlp` and `conv1d` under one seed,
   the rewired model's weights equal the builder's array for array. The converted int8 operator list
   equals the unwired one. The SignatureDef carries the declared input and output names (research
   R4).
-- [ ] T020 Change `src/caravan/stages/build.py`:
+- [X] T020 Change `src/caravan/stages/build.py`:
   - reads `("model.template", "model.params", "train.seed", "inputs[0].name",
     "inputs[0].columns", "inputs[0].window", "outputs[0].name", "outputs[0].labels")`;
   - a `rewire(model, input_name, output_name)` helper builds an `Input` with the declared name,
     applies the builder's layers in order, and returns `keras.Model(inp, {output_name: x})`;
   - the window comes from `inputs[0].window`, the labels from `outputs[0].labels`;
   - `describe()` records `input_name` and `output_name`.
-- [ ] T021 Change `src/caravan/stages/train.py`:
+- [X] T021 Change `src/caravan/stages/train.py`:
   - reads `train.*`, `dataset.split`, `inputs[0].columns`, `inputs[0].window`,
     `outputs[0].name` and `outputs[0].labels`, and never `outputs[0].accuracy_drop_max` (FR-031);
   - delete `check_permitted`, `BENCHMARK_ONLY` and the DS-9 import;
@@ -204,7 +204,7 @@ did before.
   - fit with targets as `{output_name: targets}`;
   - take `model.predict(...)[output_name]` before `argmax`;
   - in the module docstring, drop the Principle VI paragraph.
-- [ ] T022 Change `src/caravan/stages/quantize.py`:
+- [X] T022 Change `src/caravan/stages/quantize.py`:
   - reads `export.quantization`, `dataset.representative_samples`, `dataset.split`, `train.seed`,
     `inputs[0].columns`, `inputs[0].window`, `outputs[0].name`, `outputs[0].labels` and
     `outputs[0].accuracy_drop_max`. It is the only stage that reads the budget;
@@ -213,11 +213,11 @@ did before.
 
   Check `src/caravan/convert/debugger.py` and `src/caravan/runtime/measure.py` for output-index
   assumptions that a dict output breaks, and fix only those.
-- [ ] T023 Change `src/caravan/stages/export.py` to read `("model.name", "model.version",
+- [X] T023 Change `src/caravan/stages/export.py` to read `("model.name", "model.version",
   "export.formats", "export.targets", "export.quantization", "inputs[0].name",
   "inputs[0].columns", "inputs[0].window", "outputs[0].name", "outputs[0].labels")`. No new
   artifact yet; US4 adds it.
-- [ ] T024 Change the pipeline in `src/caravan/cli/pipeline.py`:
+- [X] T024 Change the pipeline in `src/caravan/cli/pipeline.py`:
   - every verb's stage list starts with `data`;
   - the `data` stage runs against the resolved manifest as declared, and every later stage against
     `merge_derived(resolved, schema)`;
@@ -227,17 +227,17 @@ did before.
     `ignored_columns`.
 
   Update the stage lists in `src/caravan/cli/build.py`, `train.py`, `quantize.py` and `export.py`.
-- [ ] T025 [P] Update `tests/unit/test_cache_key_projection.py` for the new `reads` of every stage,
+- [X] T025 [P] Update `tests/unit/test_cache_key_projection.py` for the new `reads` of every stage,
   including `data`. Add the re-run table of `data-model.md`, *Stages*, as cases (FR-031):
   - changing `outputs[0].accuracy_drop_max` leaves the keys of `data`, `build` and `train`
     unchanged and changes `quantize`'s;
   - changing `export.targets` leaves `data`, `build`, `train` and `quantize` unchanged;
   - changing `model.name` changes only `export`'s.
-- [ ] T026 [P] Update `tests/fixtures/models/make.py` to build its models through `rewire` with the
+- [X] T026 [P] Update `tests/fixtures/models/make.py` to build its models through `rewire` with the
   names `frames` and `attack`, regenerate the committed `example-float.tflite` and
   `example-int8.tflite`, and keep `tests/train/test_fixture_models.py` asserting that regeneration
   is byte-identical.
-- [ ] T027 Adapt every existing test that reads a removed field or an old stage `reads` path, to the
+- [X] T027 Adapt every existing test that reads a removed field or an old stage `reads` path, to the
   new form or to the migrated fixture, without weakening an assertion. The files to cover are
   those `grep -rln "dataset.labels\|dataset.window\|accuracy_drop_max\|topic\|permitted_use\|compliance" tests`
   lists: `tests/train/*`, `tests/contract/*`, `tests/integration/test_render.py`,

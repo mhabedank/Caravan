@@ -14,7 +14,7 @@ from caravan.manifest.load import load_manifest
 from caravan.manifest.resolve import DERIVED, merge_derived, render, resolve
 from tests.support import VALID
 
-NEW_PILOT = VALID / "picket-mlp-v01.yaml"
+NEW_PILOT = VALID / "picket-mlp-v01-derived.yaml"
 
 
 @pytest.fixture

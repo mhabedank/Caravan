@@ -11,6 +11,7 @@ own function, so importing a stage module never imports a framework.
 
 from __future__ import annotations
 
+import re
 import shutil
 import time
 from collections.abc import Callable, Mapping
@@ -41,12 +42,16 @@ class StageContext:
     """
 
     dataset: Any
-    labels: tuple[str, ...]
     #: Where this run's artifacts land. A stage reads the previous stage's artifacts from here,
     #: which is what makes the constitution's "resumable from the artifacts of the stage before
     #: it" true for a reused result as much as for a fresh one.
     run_dir: Path
     run_id: str | None = None
+    #: The input's columns as declared, or ``None`` for every column but the output's. Not a manifest
+    #: value reaching a stage: it decides how the data is *read*, which every stage reading the data
+    #: needs identically, and the ``data`` stage records what it produced (feature 006).
+    input_columns: tuple[str, ...] | None = None
+    output_column: str = "label"
     _records: Any = None
 
     @property
@@ -59,7 +64,9 @@ class StageContext:
         if self._records is None:
             from caravan.data.reader import read_records
 
-            self._records = read_records(self.dataset, self.labels)
+            self._records = read_records(
+                self.dataset, input_columns=self.input_columns, output_column=self.output_column
+            )
         return self._records
 
 
@@ -94,8 +101,29 @@ class StageSpec:
         return (*self.artifacts, *self.artifacts_from(inputs))
 
 
+#: One step of a projection path: a key, optionally followed by an index — ``outputs[0]``.
+_STEP = re.compile(r"^(?P<key>[A-Za-z_][A-Za-z0-9_]*)(?:\[(?P<index>\d+)\])?$")
+
+
+def _step(current: Any, part: str) -> Any:
+    match = _STEP.match(part)
+    if match is None or not isinstance(current, Mapping) or match["key"] not in current:
+        raise KeyError(part)
+    current = current[match["key"]]
+    if match["index"] is not None:
+        index = int(match["index"])
+        if not isinstance(current, list) or index >= len(current):
+            raise KeyError(part)
+        current = current[index]
+    return current
+
+
 def project(resolved: Mapping[str, Any], spec: StageSpec) -> dict[str, Any]:
     """Build a stage's inputs from its declaration.
+
+    A path may index a list, ``outputs[0].labels``, so a stage reads one field of a declaration
+    rather than the whole list: a budget change must not touch the key of a stage that does not
+    read the budget (Principle III, feature 006 FR-031).
 
     A path the resolved manifest does not have raises: a stage that declares a field which does
     not exist is a defect to find at the first test, not a key that quietly includes ``None``.
@@ -103,13 +131,14 @@ def project(resolved: Mapping[str, Any], spec: StageSpec) -> dict[str, Any]:
     inputs: dict[str, Any] = {}
     for path in spec.reads:
         current: Any = resolved
-        for part in path.split("."):
-            if not isinstance(current, Mapping) or part not in current:
-                raise DeclarationError(
-                    f"stage {spec.name!r} declares it reads {path!r}, which the resolved "
-                    "manifest does not contain"
-                )
-            current = current[part]
+        try:
+            for part in path.split("."):
+                current = _step(current, part)
+        except KeyError:
+            raise DeclarationError(
+                f"stage {spec.name!r} declares it reads {path!r}, which the resolved "
+                "manifest does not contain"
+            ) from None
         inputs[path] = current
     return inputs
 

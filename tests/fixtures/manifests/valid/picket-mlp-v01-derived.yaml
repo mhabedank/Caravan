@@ -1,0 +1,46 @@
+# The pilot in the new form with everything the data can say left to the data: the labels from the
+# `label` column, sorted, and the input columns from every other column (feature 006, FR-009,
+# FR-011). This is the form contracts/manifest.md shows.
+#
+# It validates, renders with `derived` markers and trains. Through quantization it fails the int8
+# gate on this fixture (0.75 trained, 0.50 quantized, measured 2026-10-23) — see
+# picket-mlp-v01.yaml for why, and for the pinned form the end-to-end tests export.
+apiVersion: caravan/v0.1
+
+model:
+  name: picket-mlp
+  version: 0.1.0
+  template: mlp
+  params:
+    hidden: [32, 16]
+    dropout: 0.1
+
+inputs:
+  - name: frames
+    kind: series
+    window: 64
+
+outputs:
+  - name: attack
+    kind: class
+    accuracy_drop_max: 0.02
+
+dataset:
+  source: ../../datasets/synthetic
+  split:
+    train: 0.7
+    val: 0.15
+    test: 0.15
+    stratified: true
+  representative_samples: 500
+
+train:
+  epochs: 50
+  batch: 256
+  optimizer: adam
+  early_stopping: true
+
+export:
+  quantization: int8
+  formats: [flatbuffer, c_array]
+  targets: [s32k144, stm32h743, esp32]

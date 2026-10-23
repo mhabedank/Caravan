@@ -11,7 +11,15 @@ INVALID = FIXTURES / "manifests" / "invalid"
 BOARDS = FIXTURES / "boards"
 
 PILOT = VALID / "picket-mlp.yaml"
-MINIMAL = VALID / "pilot-min.yaml"
+#: The smallest valid manifest, in the current form (caravan/v0.1, feature 006).
+MINIMAL = VALID / "pilot-min-v01.yaml"
+#: The same, in the previous form — loads through migration.
+MINIMAL_V0 = VALID / "pilot-min.yaml"
+#: The new-form pilot on the committed dataset, labels pinned (research R11 of feature 006), and
+#: the same with the labels derived.
+PILOT_V01 = VALID / "picket-mlp-v01.yaml"
+PILOT_V01_DERIVED = VALID / "picket-mlp-v01-derived.yaml"
+MIGRATION = FIXTURES / "manifests" / "migration"
 NO_VERSION = VALID / "v-2-no-version.yaml"
 
 # Feature 002: the pilot manifest pointed at the one committed dataset.
