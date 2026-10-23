@@ -162,3 +162,21 @@ def test_render_to_stdout_writes_only_the_document(capsys) -> None:
     captured = capsys.readouterr()
     assert captured.err == ""
     assert captured.out.startswith("apiVersion: caravan/v0.1\n")
+
+
+# --- feature 007: framework output is an option of the stage verbs, never a verb ---------------
+
+
+def test_the_stage_verbs_accept_framework_output() -> None:
+    parser = build_parser()
+    for verb in ("build", "train", "quantize", "export"):
+        args = parser.parse_args([verb, "m.yaml", "--framework-output"])
+        assert args.framework_output is True
+        assert parser.parse_args([verb, "m.yaml"]).framework_output is False
+
+
+def test_validate_and_render_do_not_take_framework_output(capsys) -> None:
+    parser = build_parser()
+    for verb in ("validate", "render"):
+        with pytest.raises(SystemExit):
+            parser.parse_args([verb, "m.yaml", "--framework-output"])

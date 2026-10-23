@@ -1,9 +1,32 @@
 name: ci
 
+# Documentation-only changes run nothing (constitution 4.1.0, Resources & Cost Discipline): CI
+# minutes are spent where they verify code. A change that also touches code runs everything, and
+# so does a change to a document the suite executes or checks. Later patterns override earlier.
 on:
   push:
     branches: [main]
+    paths:
+      - "**"
+      - "!specs/**"
+      - "!docs/**"
+      - "!**/*.md"
+      - "!.specify/**"
+      # Documents the suite executes or checks still run it (SC-003 of feature 007).
+      - "README.md"
+      - "docs/try-it.md"
+      - "docs/releases/**"
   pull_request:
+    paths:
+      - "**"
+      - "!specs/**"
+      - "!docs/**"
+      - "!**/*.md"
+      - "!.specify/**"
+      # Documents the suite executes or checks still run it (SC-003 of feature 007).
+      - "README.md"
+      - "docs/try-it.md"
+      - "docs/releases/**"
 
 permissions:
   contents: read

@@ -85,6 +85,11 @@ def build_parser() -> argparse.ArgumentParser:
             action="store_true",
             help="ignore any cached result and produce it again; recorded in the report",
         )
+        sub.add_argument(
+            "--framework-output",
+            action="store_true",
+            help="show the training framework's own output instead of writing it to framework.log",
+        )
         add_report_options(sub)
 
     build = subcommands.add_parser(

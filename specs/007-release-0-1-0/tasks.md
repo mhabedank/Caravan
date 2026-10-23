@@ -21,7 +21,7 @@ spec asks for the documents to be checked by tests (SC-003). Tests come before t
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `tests/unit/test_version.py`: assert `caravan.__version__ ==
+- [X] T001 Add `tests/unit/test_version.py`: assert `caravan.__version__ ==
   importlib.metadata.version("caravan-ml")` (research R3), and assert that the version parses as
   PEP 440 with `packaging.version.Version`. It must pass on the current `0.1.0.dev1`.
 
@@ -29,7 +29,7 @@ spec asks for the documents to be checked by tests (SC-003). Tests come before t
 
 ## Phase 2: Foundational
 
-- [ ] T002 Make `.github/workflows/ci.yml` skip documentation-only changes (constitution 4.1.0,
+- [X] T002 Make `.github/workflows/ci.yml` skip documentation-only changes (constitution 4.1.0,
   Resources & Cost Discipline). Add `paths-ignore: ['specs/**', 'docs/**', '**/*.md', '.specify/**']`
   to both the `push` and `pull_request` triggers. A change that also touches code still runs
   everything.
@@ -45,7 +45,7 @@ on stage verbs is clean JSON.
 
 ### Tests for User Story 2
 
-- [ ] T003 [P] [US2] Write `tests/unit/test_framework_log.py` for a context manager
+- [X] T003 [P] [US2] Write `tests/unit/test_framework_log.py` for a context manager
   `caravan.run.framework_log.captured(path)`:
   - output written with `os.write(1, …)` and `os.write(2, …)` inside it lands in the file, as do
     `print` and `warnings.warn`;
@@ -55,9 +55,9 @@ on stage verbs is clean JSON.
   - `captured(None)` redirects nothing.
 
   Use `capfd` to observe the real descriptors.
-- [ ] T004 [P] [US2] Extend `tests/contract/test_cli_contract.py`: the stage verbs accept
+- [X] T004 [P] [US2] Extend `tests/contract/test_cli_contract.py`: the stage verbs accept
   `--framework-output`, and `validate` and `render` do not (Principle XII: an option, not a verb).
-- [ ] T005 [P] [US2] Write `tests/train/test_console_output.py`. Run `caravan export` on
+- [X] T005 [P] [US2] Write `tests/train/test_console_output.py`. Run `caravan export` on
   `tests/fixtures/manifests/valid/picket-mlp-fixture.yaml` with `capfd` and assert:
   - stdout plus stderr is at most 25 lines;
   - no line matches `^(I|W|E)0000 |Saved artifact|TensorSpec\(|fully_quantize|oneDNN`;
@@ -66,7 +66,7 @@ on stage verbs is clean JSON.
 
   Second case: with `--json`, stdout parses with `json.loads`. Third case: with
   `--framework-output`, the framework lines reach the console and no `framework.log` exists.
-- [ ] T006 [P] [US2] In `tests/train/test_console_output.py`, add a failure case. Make a stage fail
+- [X] T006 [P] [US2] In `tests/train/test_console_output.py`, add a failure case. Make a stage fail
   inside the framework, by monkeypatching the converter to write to descriptor 2 and then raise.
   Assert that the console's last lines name the failing stage and print
   `framework output: <run dir>/framework.log` (contracts/cli.md), and that the log holds the
@@ -74,7 +74,7 @@ on stage verbs is clean JSON.
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Implement `src/caravan/run/framework_log.py`:
+- [X] T007 [US2] Implement `src/caravan/run/framework_log.py`:
   - `captured(path: Path | None)` flushes `sys.stdout` and `sys.stderr`, then saves descriptors 1
     and 2 with `os.dup`;
   - it opens `path` for appending and `os.dup2`s it onto 1 and 2;
@@ -84,10 +84,10 @@ on stage verbs is clean JSON.
 
   Add the module to the layering tests' list of core modules in
   `tests/layering/test_no_framework_imported.py`.
-- [ ] T008 [US2] Add `--framework-output` to `build`, `train`, `quantize` and `export` in
+- [X] T008 [US2] Add `--framework-output` to `build`, `train`, `quantize` and `export` in
   `src/caravan/cli/main.py`, with help text "show the training framework's own output instead of
   writing it to framework.log".
-- [ ] T009 [US2] In `src/caravan/cli/pipeline.py`:
+- [X] T009 [US2] In `src/caravan/cli/pipeline.py`:
   - wrap the stage loop, from `resolve_dataset` to the last `run_stage`, in
     `captured(None if args.framework_output else run_dir / "framework.log")`;
   - after it, add `framework_log` to `report.artifacts` when the file exists;
@@ -96,7 +96,7 @@ on stage verbs is clean JSON.
     `    framework output: <path>` after the existing lines when the file is not empty. Keep the
     running stage's name in a variable set before each `run_stage` call, so an internal error (exit
     3) reports it too (FR-009).
-- [ ] T010 [US2] Add `FRAMEWORK_LOG_NAME = "framework.log"` to `src/caravan/run/paths.py`, and
+- [X] T010 [US2] Add `FRAMEWORK_LOG_NAME = "framework.log"` to `src/caravan/run/paths.py`, and
   check that `tests/train/test_writes_nothing_else.py` still holds. Update its list of what a run
   may write if it enumerates files.
 
@@ -113,12 +113,12 @@ written.
 
 ### Tests for User Story 1
 
-- [ ] T011 [P] [US1] Write `tests/contract/test_example_matches_fixture.py`. Load
+- [X] T011 [P] [US1] Write `tests/contract/test_example_matches_fixture.py`. Load
   `examples/picket-mlp.yaml` and `tests/fixtures/manifests/valid/picket-mlp-fixture.yaml` with
   `read_mapping`, and assert they are equal once `dataset.source` is removed from both. Also assert
   that the example's source resolves to `tests/fixtures/datasets/synthetic` relative to the
   example's directory.
-- [ ] T012 [US1] Write `tests/train/test_try_it_guide.py`:
+- [X] T012 [US1] Write `tests/train/test_try_it_guide.py`:
   - **parse** `docs/try-it.md`: blocks open with a fence line ```` ```bash ```` and are followed by
     a comment line `# step: fetch|install|run`;
   - **prepare** a temporary directory the way the fetch block would: copy `examples/` and
@@ -134,13 +134,13 @@ written.
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Create `examples/picket-mlp.yaml`. Copy
+- [X] T013 [P] [US1] Create `examples/picket-mlp.yaml`. Copy
   `tests/fixtures/manifests/valid/picket-mlp-fixture.yaml` with
   `source: ../tests/fixtures/datasets/synthetic` and a header comment. The comment explains:
   - the synthetic data;
   - why the labels are pinned (research R11 of feature 006, in one sentence);
   - how to point `source` at one's own data.
-- [ ] T014 [US1] Write `docs/try-it.md`. It holds:
+- [X] T014 [US1] Write `docs/try-it.md`. It holds:
   1. **Requirements**: Python 3.13, `curl`, `tar`.
   2. **Install** (`# step: install`), the wheel URL of research R2 for the current version, with
      extras `train,verify`, inside a fresh virtual environment.

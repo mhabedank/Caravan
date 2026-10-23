@@ -12,6 +12,6 @@ from __future__ import annotations
 #: Only the schema and one template's parameter half exist so far. The string is provenance: it is
 #: written into every run report and every exported artifact's record, so it must not claim a
 #: milestone the code has not reached.
-__version__ = "0.1.0.dev1"
+__version__ = "0.1.0rc1"
 
 __all__ = ["__version__"]
