@@ -7,7 +7,7 @@ import json
 import pytest
 
 from caravan.cli.main import EXIT_INTERNAL, EXIT_OK, EXIT_RULE, EXIT_USAGE, build_parser, main
-from tests.support import INVALID, PILOT
+from tests.support import INVALID, PILOT, PILOT_V01
 
 
 def test_a_valid_manifest_exits_zero(tmp_path, capsys) -> None:
@@ -50,7 +50,9 @@ def test_a_defect_in_the_tool_exits_three(monkeypatch, capsys) -> None:
 
 
 def test_the_answer_goes_to_stdout_and_messages_to_stderr(tmp_path, capsys) -> None:
-    main(["render", str(PILOT), "--stdout"])
+    # A current-form manifest, so there is nothing to say: a migrated one says what changed, on
+    # stderr (feature 006, test below).
+    main(["render", str(PILOT_V01), "--stdout"])
     captured = capsys.readouterr()
     assert captured.out.startswith("apiVersion:")
     assert captured.err == ""
@@ -118,3 +120,50 @@ def test_the_parser_exposes_only_the_documented_commands() -> None:
         "templates",
         "boards",
     }
+
+
+# --- feature 006: migration notices and removed fields --------------------------------------------
+
+
+def test_a_migrated_manifest_says_from_which_version_and_lists_every_notice(capsys) -> None:
+    assert main(["validate", str(PILOT), "--no-report"]) == EXIT_OK
+    err = capsys.readouterr().err.splitlines()
+    assert err[0] == "picket-mlp.yaml: valid (migrated from caravan/v0 to caravan/v0.1)"
+    assert "    dropped compliance — Caravan carries no compliance layer" in "\n".join(err)
+    assert "    moved dataset.window → inputs[0].window" in err
+    assert len([line for line in err if line.startswith("    ")]) == 9
+
+
+def test_json_carries_the_notices_as_records(capsys) -> None:
+    assert main(["validate", str(PILOT), "--json", "--no-report"]) == EXIT_OK
+    document = json.loads(capsys.readouterr().out)
+    notices = document["migration_notices"]
+    assert notices[0] == {
+        "path": "model.topic",
+        "action": "dropped",
+        "reason": "no stage read it; the output's kind says what the model does",
+    }
+    assert {"path", "action", "reason", "to"} == set(notices[-1])
+
+
+def test_a_new_form_manifest_has_no_notices(capsys) -> None:
+    assert main(["validate", str(PILOT_V01), "--no-report"]) == EXIT_OK
+    assert capsys.readouterr().err.splitlines() == ["picket-mlp-v01.yaml: valid"]
+
+
+def test_a_removed_field_in_the_new_form_is_refused_at_its_path(capsys) -> None:
+    code = main(["validate", str(INVALID / "v01-removed-compliance.yaml"), "--no-report"])
+    assert code == EXIT_RULE
+    err = capsys.readouterr().err
+    assert "compliance — removed in caravan/v0.1: Caravan carries no compliance layer" in err
+
+
+def test_render_to_stdout_keeps_notices_off_the_document(capsys) -> None:
+    from caravan.manifest._yaml import read_mapping
+
+    assert main(["render", str(PILOT), "--stdout"]) == EXIT_OK
+    captured = capsys.readouterr()
+    assert "moved dataset.window" in captured.err
+    assert "moved" not in captured.out
+    assert captured.out.startswith("apiVersion: caravan/v0.1\n")
+    _ = read_mapping  # the stdout is a YAML document; test_render.py parses it

@@ -19,6 +19,7 @@ from typing import Any
 
 from caravan.manifest.errors import RULE_DATASET_LABELS, RULE_TOO_FEW_CLASSES, run_rule_error
 from caravan.manifest.resolve import DERIVED
+from caravan.manifest.schema.io import INPUT_KINDS, OUTPUT_KINDS
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
 
 SCHEMA = "data/schema.json"
@@ -27,7 +28,15 @@ SPEC = StageSpec(
     name="data",
     # As the author wrote them — a list, or the marker ``derived`` — so this stage's key never
     # depends on its own output (data model, *Stages*).
-    reads=("inputs[0].columns", "outputs[0].column", "outputs[0].labels"),
+    # The kinds decide what this stage derives: a ``series`` input's columns, a ``class`` output's
+    # labels (Principle I: every field is read by a stage that depends on it).
+    reads=(
+        "inputs[0].kind",
+        "inputs[0].columns",
+        "outputs[0].kind",
+        "outputs[0].column",
+        "outputs[0].labels",
+    ),
     reads_dataset=True,
     upstream=None,
     artifacts=(SCHEMA,),
@@ -86,9 +95,17 @@ def derive_labels(seen: tuple[str, ...], pinned: list[str] | None) -> tuple[list
 
 def describe(records: Any, inputs: StageInputs) -> dict[str, Any]:
     """The contents of ``data/schema.json``."""
+    if inputs["inputs[0].kind"] not in INPUT_KINDS or inputs["outputs[0].kind"] not in OUTPUT_KINDS:
+        # Unreachable through a validated manifest (rule CF-10); a defect if it ever happens.
+        raise ValueError(
+            f"the data stage implements {INPUT_KINDS} inputs and {OUTPUT_KINDS} outputs, not "
+            f"{inputs['inputs[0].kind']!r} and {inputs['outputs[0].kind']!r}"
+        )
     pinned = inputs["outputs[0].labels"]
     labels, labels_source = derive_labels(records.labels, None if pinned == DERIVED else pinned)
     return {
+        "input_kind": inputs["inputs[0].kind"],
+        "output_kind": inputs["outputs[0].kind"],
         "input_columns": list(records.schema.feature_names),
         "columns_source": "derived" if inputs["inputs[0].columns"] == DERIVED else "stated",
         "output_column": inputs["outputs[0].column"],

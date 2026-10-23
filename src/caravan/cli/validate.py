@@ -23,6 +23,7 @@ def json_document(manifest_name: str, outcome: LoadOutcome) -> str:
                 "outcome": OUTCOME_VALID if outcome.is_valid else OUTCOME_INVALID,
                 "schema_version_declared": outcome.declared_version,
                 "schema_version_effective": outcome.effective_version,
+                "migration_notices": [notice.as_dict() for notice in outcome.notices],
                 "findings": [finding.as_dict() for finding in outcome.findings],
                 "unresolved": [item.as_dict() for item in outcome.unresolved],
             },
@@ -54,6 +55,26 @@ def report_for(command: str, path: Path, outcome: LoadOutcome, **extra: object) 
     )
 
 
+def verdict_line(name: str, outcome: LoadOutcome) -> str:
+    """``valid``, and from which version a migrated manifest came (feature 006)."""
+    if outcome.notices or outcome.migrations_applied:
+        return (
+            f"{name}: valid (migrated from {outcome.declared_version} to "
+            f"{outcome.effective_version})"
+        )
+    return f"{name}: valid"
+
+
+def print_notices(outcome: LoadOutcome) -> None:
+    """One indented line per field a migration dropped, moved or added — to stderr, always.
+
+    Principle IX: an older manifest is migrated, never silently reinterpreted. On stderr, so a
+    command whose stdout is a document (``render --stdout``) stays parseable.
+    """
+    for notice in outcome.notices:
+        print(f"    {notice.line()}", file=sys.stderr)
+
+
 def report_outcome(args: argparse.Namespace, path: Path, outcome: LoadOutcome) -> int:
     """Print findings, write the report when asked, and return the exit code."""
     name = path.name
@@ -63,7 +84,8 @@ def report_outcome(args: argparse.Namespace, path: Path, outcome: LoadOutcome) -
         for finding in outcome.findings:
             print(render_finding(name, finding), file=sys.stderr)
         if outcome.is_valid:
-            print(f"{name}: valid", file=sys.stderr)
+            print(verdict_line(name, outcome), file=sys.stderr)
+            print_notices(outcome)
         else:
             count = len(outcome.findings)
             print(f"{name}: invalid — {count} finding{'s' if count != 1 else ''}", file=sys.stderr)

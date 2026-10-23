@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_the_five_identifiers_are_retired() -> None:
-    assert RETIRED_RULES == {"CF-3", "CF-5", "CF-7", "CF-8", "DS-9"}
+    assert {"CF-3", "CF-5", "CF-7", "CF-8", "DS-9"} == RETIRED_RULES
 
 
 def test_no_retired_identifier_is_in_a_rule_group() -> None:

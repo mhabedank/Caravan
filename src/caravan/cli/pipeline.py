@@ -183,6 +183,16 @@ def _attach_quantization(report: Report, run_dir: Path) -> None:
         )
 
 
+def data_line(schema: dict[str, Any]) -> str:
+    """What the data said, in one line: the label order matters to anyone reading an output unit."""
+    labels = ", ".join(schema["labels"])
+    columns = len(schema["input_columns"])
+    return (
+        f"data: labels {labels} ({schema['labels_source']}); "
+        f"{columns} input column{'s' if columns != 1 else ''} ({schema['columns_source']})"
+    )
+
+
 def run_pipeline(
     args: argparse.Namespace,
     command: str,
@@ -359,6 +369,7 @@ def run_pipeline(
                     "outcome": "valid",
                     "run": str(run_dir),
                     "stages": [stage.as_dict() for stage in outcomes],
+                    "data": report.data,
                     "metrics": [metric.as_dict() for metric in report.metrics],
                 },
                 indent=2,
@@ -368,6 +379,8 @@ def run_pipeline(
         )
     elif not args.quiet:
         summary(name, run_dir, measured)
+        if report.data is not None:
+            print(f"    {data_line(report.data)}", file=sys.stderr)
         for stage in outcomes:
             if stage.outcome == cache_module.OUTCOME_REUSED:
                 print(

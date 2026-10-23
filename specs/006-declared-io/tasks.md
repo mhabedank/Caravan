@@ -259,22 +259,22 @@ new form is refused at its path with its own message.
 
 ### Tests for User Story 1
 
-- [ ] T028 [P] [US1] Write `tests/integration/test_validate_migrated.py` (SC-002): every manifest in
+- [X] T028 [P] [US1] Write `tests/integration/test_validate_migrated.py` (SC-002): every manifest in
   `tests/fixtures/manifests/valid/` and `tests/fixtures/manifests/migration/` loads, and each
   produces exactly the notices of its `*.notices.json`, or none for new-form files. No file changes
   on disk.
-- [ ] T029 [P] [US1] Extend `tests/contract/test_cli_contract.py`:
+- [X] T029 [P] [US1] Extend `tests/contract/test_cli_contract.py`:
   - `caravan validate` on an old-form manifest exits 0, prints "valid (migrated from caravan/v0 to
     caravan/v0.1)" and then the notices;
   - `--json` carries `migration_notices` as `path`, `action`, `to` and `reason`;
   - a removed field in a `caravan/v0.1` manifest exits 1 with the `REMOVED_FIELDS` message at its
     path;
   - `caravan render` writes notices to stderr only, so its stdout parses as YAML.
-- [ ] T030 [P] [US1] Write `tests/contract/test_no_compliance_in_outputs.py` (SC-006): after
+- [X] T030 [P] [US1] Write `tests/train/test_no_compliance_in_outputs.py` (SC-006; under `tests/train` because it needs a whole run, which needs the training extra): after
   `caravan export` on the migrated pilot fixture, no file in the run directory contains the keys
   `compliance`, `eu_ai_act_class`, `privacy`, `intended_use`, `known_limits`, `license` or
   `permitted_use`, nor the words "licence checked", "license verified" or "permitted".
-- [ ] T031 [P] [US1] Write `tests/unit/test_every_field_is_read.py`:
+- [X] T031 [P] [US1] Write `tests/unit/test_every_field_is_read.py`:
   - every leaf path of the resolved `picket-mlp-v01.yaml` is in some `StageSpec.reads`, or is one
     of the two fields the constitution settles, each with its reason in a comment: `apiVersion`
     (Principle IX) and `dataset.source` (the data every `reads_dataset` stage reads);
@@ -282,25 +282,26 @@ new form is refused at its path with its own message.
 
 ### Implementation for User Story 1
 
-- [ ] T032 [US1] Print notices in `src/caravan/cli/validate.py`: after the verdict, one indented
+- [X] T032 [US1] Print notices in `src/caravan/cli/validate.py`: after the verdict, one indented
   line each, as `dropped <path> — <reason>` or `moved <path> → <to>`. In the JSON document, add
   `migration_notices`.
-- [ ] T033 [US1] In `src/caravan/cli/render.py`, send notices to stderr and the YAML to its usual
+- [X] T033 [US1] In `src/caravan/cli/render.py`, send notices to stderr and the YAML to its usual
   destination unchanged.
-- [ ] T034 [US1] In `src/caravan/run/report.py`, add `manifest.migration_notices`, and fill it in
+- [X] T034 [US1] In `src/caravan/run/report.py`, add `manifest.migration_notices`, and fill it in
   `src/caravan/cli/pipeline.py`, on both the success path and the failure path.
-- [ ] T035 [US1] Remove what is left of the compliance layer from `src/`: references in
+- [X] T035 [US1] Remove what is left of the compliance layer from `src/`: references in
   `src/caravan/env.py`, `src/caravan/convert/__init__.py`, `src/caravan/manifest/_yaml.py`,
   `src/caravan/stages/cache.py` and `src/caravan/stages/base.py` docstrings, and anywhere else that
   `grep -rn "compliance\|permitted_use\|Principle VI" src` lists. No text may claim that a licence
   is checked or that data is permitted.
-- [ ] T036 [P] [US1] Write `docs/migrations/caravan-v0.1.md`, the migration note Principle IX
-  requires. It gives:
+- [X] T036 [P] [US1] Write the migration note Principle IX
+  requires, as a section of the existing `docs/manifest-migrations.md` (the procedure the note
+  belongs to). It gives:
   - every affected field with the change required, from `REMOVED_FIELDS`;
   - the pilot before and after;
   - the one-time cache invalidation (research R9);
   - the label-order caveat of SC-003: derived labels sort, so pin them to keep an old order.
-- [ ] T037 [P] [US1] Update `README.md`:
+- [X] T037 [P] [US1] Update `README.md`:
   - the manifest example becomes the new pilot;
   - remove the compliance block and its paragraph;
   - remove "model card" and "publication" from the stage list, which becomes the constitution 3.0.0
@@ -321,29 +322,29 @@ counts as the migrated pilot.
 
 ### Tests for User Story 2
 
-- [ ] T038 [P] [US2] Write `tests/integration/test_render_derived.py`: `render` of the new pilot
+- [X] T038 [P] [US2] Write `tests/integration/test_render_derived.py`: `render` of the new pilot
   shows `columns: derived` and `labels: derived`. A run's `resolved.yaml` for the same file differs
   from `render`'s output in exactly those two values (FR-013).
-- [ ] T039 [P] [US2] Write `tests/train/test_declared_io_end_to_end.py`:
+- [X] T039 [P] [US2] Write `tests/train/test_declared_io_end_to_end.py`:
   - `caravan train` on `picket-mlp-v01.yaml` succeeds, with `data/schema.json` and `resolved.yaml`
     holding the derived values;
   - `windows_kept`, `windows_discarded_mixed`, `records_dropped_remainder` and the split counts
     equal those of the migrated `picket-mlp-fixture.yaml` run;
   - the same holds for `picket-conv1d-v01.yaml` against `picket-conv1d-fixture.yaml`.
-- [ ] T040 [P] [US2] Write `tests/train/test_migration_same_model.py` (SC-003): the migrated
+- [X] T040 [P] [US2] Write `tests/train/test_migration_same_model.py` (SC-003): the migrated
   `picket-mlp-fixture.yaml`, and a new-form copy pinning `labels: [normal, dos, fuzzy, replay]` and
   naming the input `input` and the output `output`, train under the same seed to byte-identical
   weights (`get_weights()` compared array for array).
-- [ ] T041 [P] [US2] Write `tests/unit/test_rules_coverage_v01.py`: CF-9, CF-10, CF-11, DS-11,
+- [X] T041 [P] [US2] Write `tests/unit/test_rules_coverage_v01.py`: CF-9, CF-10, CF-11, DS-11,
   DS-12, F-1 and X-6 are each raised somewhere in `src/` and each has a message naming what to do.
   This is the same shape as `tests/unit/test_run_rules_coverage.py`.
 
 ### Implementation for User Story 2
 
-- [ ] T042 [US2] In `src/caravan/cli/pipeline.py`, print the derived labels and the number of input
+- [X] T042 [US2] In `src/caravan/cli/pipeline.py`, print the derived labels and the number of input
   columns in the success summary of `train` and `export`, and the derived values in `--json`
   output, so an author sees the order without opening a file.
-- [ ] T043 [US2] Run quickstart §2 and §4 (to the end of the `data/schema.json` and `resolved.yaml`
+- [X] T043 [US2] Run quickstart §2 and §4 (to the end of the `data/schema.json` and `resolved.yaml`
   checks), and record any deviation as a fix here before moving on.
 
 **Checkpoint**: US1 and US2 together are the MVP: the new manifest form, end to end.

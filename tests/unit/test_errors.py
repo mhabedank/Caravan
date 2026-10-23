@@ -61,9 +61,7 @@ def test_identity_rejection_states_the_required_form() -> None:
     from caravan.manifest.schema.model import ModelSpec
 
     with pytest.raises(Exception) as caught:
-        ModelSpec.model_validate(
-            {"name": "AB", "version": "0.1.0", "template": "mlp"}
-        )
+        ModelSpec.model_validate({"name": "AB", "version": "0.1.0", "template": "mlp"})
     message = str(caught.value)
     assert "lower-case letters, digits and hyphens" in message
     assert "at least 3 characters" in message

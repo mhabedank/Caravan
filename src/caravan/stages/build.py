@@ -33,9 +33,11 @@ SPEC = StageSpec(
         # Field by field, never the whole declaration: the budget inside ``outputs[0]`` is read by
         # ``quantize`` alone, so changing it must not rebuild (Principle III, feature 006 FR-031).
         "inputs[0].name",
+        "inputs[0].kind",
         "inputs[0].columns",
         "inputs[0].window",
         "outputs[0].name",
+        "outputs[0].kind",
         "outputs[0].labels",
     ),
     # The feature width is the number of the input's columns, which the projection carries since
@@ -123,7 +125,11 @@ def construct(inputs: StageInputs, context: StageContext) -> Any:
     builder = load_builder(inputs["model.template"])
     names = (inputs["inputs[0].name"], inputs["outputs[0].name"])
     model = rewire(builder(inputs["model.params"], shape, labels), *names)
-    return model, describe(model, inputs["model.template"], window, labels, names)
+    description = describe(model, inputs["model.template"], window, labels, names)
+    # The kinds the shape and the head were built for: a series of records in, one class out.
+    description["input_kind"] = inputs["inputs[0].kind"]
+    description["output_kind"] = inputs["outputs[0].kind"]
+    return model, description
 
 
 def stage(context: StageContext) -> StageFunction:

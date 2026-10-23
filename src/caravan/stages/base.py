@@ -47,9 +47,9 @@ class StageContext:
     #: it" true for a reused result as much as for a fresh one.
     run_dir: Path
     run_id: str | None = None
-    #: The input's columns as declared, or ``None`` for every column but the output's. Not a manifest
-    #: value reaching a stage: it decides how the data is *read*, which every stage reading the data
-    #: needs identically, and the ``data`` stage records what it produced (feature 006).
+    #: The input's columns as declared, or ``None`` for every column but the output's. Not a
+    #: manifest value reaching a stage: it decides how the data is *read*, which every stage reading
+    #: the data needs identically, and the ``data`` stage records what it produced (feature 006).
     input_columns: tuple[str, ...] | None = None
     output_column: str = "label"
     _records: Any = None

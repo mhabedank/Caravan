@@ -27,7 +27,13 @@ FIXTURE_COLUMNS = ["can_id", "dlc", "b0", "b1", "b2"]
 
 
 def declared(columns=DERIVED, column="label", labels=DERIVED) -> dict:
-    return {"inputs[0].columns": columns, "outputs[0].column": column, "outputs[0].labels": labels}
+    return {
+        "inputs[0].kind": "series",
+        "inputs[0].columns": columns,
+        "outputs[0].kind": "class",
+        "outputs[0].column": column,
+        "outputs[0].labels": labels,
+    }
 
 
 def schema_of(directory, *, columns=None, column="label", labels=DERIVED) -> dict:
@@ -121,8 +127,8 @@ def test_another_output_column_is_read(tmp_path) -> None:
 def test_a_reused_data_stage_reads_no_records(tmp_path) -> None:
     dataset = resolve_dataset(str(SYNTHETIC_DATASET), SYNTHETIC_DATASET.parent)
     resolved = {
-        "inputs": [{"columns": DERIVED}],
-        "outputs": [{"column": "label", "labels": DERIVED}],
+        "inputs": [{"kind": "series", "columns": DERIVED}],
+        "outputs": [{"kind": "class", "column": "label", "labels": DERIVED}],
     }
     cache = tmp_path / "cache"
     for attempt in ("first", "second"):
