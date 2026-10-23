@@ -39,7 +39,7 @@ gate, 2 usage, 3 internal, 4 environment.
 
 ## Rule identifiers
 
-- New: CF-9, CF-10, CF-11, DS-11, DS-12, F-1.
+- New: CF-9, CF-10, CF-11, DS-11, DS-12, F-1, X-6.
 - Retired and reserved: CF-3, CF-5, CF-7, CF-8, DS-9.
 - A test asserts that every new rule can be reached and is covered, as every earlier rule set has
   one.

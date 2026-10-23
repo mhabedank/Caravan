@@ -225,6 +225,7 @@ A test asserts that no rule table uses any of the five identifiers.
 | DS-11 | the output column holds fewer than two distinct values (FR-011) | `data` stage |
 | DS-12 | an input names a column the data does not have | `data` stage |
 | F-1 | a floor exceeds a board (FR-018) | `fit` stage |
+| X-6 | a declared name is missing from the converted model's signature: a defect between rewiring and conversion, refused by name rather than guessed | `export` stage |
 
 **Removed fields** get a message of their own, so an author learns that a field was removed and does
 not hunt for a typo (FR-001). The reasons are listed in `contracts/manifest.md`.

@@ -167,6 +167,7 @@ the same failure path the accuracy gate uses (feature 003).
 | CF-9, CF-10, CF-11 | manifest rules | new |
 | DS-11, DS-12 | dataset rules | new |
 | F-1 | fit rules | new group |
+| X-6 | export rules | new: a declared name missing from the converted model's signature |
 | DS-5 | dataset rules | unchanged in meaning; its path becomes `outputs[0].labels` |
 | CF-6 | manifest rules | unchanged in meaning; its path becomes `inputs[0].window` |
 

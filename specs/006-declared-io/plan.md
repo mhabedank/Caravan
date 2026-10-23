@@ -67,7 +67,7 @@ nothing here executes on them.
 **Scale/Scope**:
 - one schema version and its migration;
 - two internal stages;
-- six new rules and five retired;
+- seven new rules and five retired;
 - one new artifact (`interface.json`) and additions to two generated C files;
 - the documentation of the migration.
 
@@ -201,7 +201,8 @@ tests/
 
 tests/fixtures/manifests/
 ├── valid/picket-mlp-v01.yaml, picket-conv1d-v01.yaml   # the new form
-├── invalid/v01-*.yaml                                   # the refusals of quickstart §3 and §6
+├── invalid/v01-*.yaml                                   # the refusals of quickstart §3
+├── gate/too-big-for-s32k144.yaml                        # valid, fails F-1 (quickstart §6)
 └── migration/                                           # former cf-3, cf-8 fixtures, with expected notices
 ```
 

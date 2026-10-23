@@ -91,7 +91,7 @@ evaluation makes, on every test window of the fixture.
 ## 6. A model that cannot fit stops before training
 
 ```bash
-caravan train tests/fixtures/manifests/invalid/v01-too-big-for-s32k144.yaml
+caravan train tests/fixtures/manifests/gate/too-big-for-s32k144.yaml
 ```
 
 Expected:
