@@ -21,17 +21,39 @@ architecture search. See `.specify/memory/constitution.md`.
 
 ## Status
 
-Early. Five of the pipeline's verbs exist: `validate` and `render` (feature 001), `build` and
-`train` (002), and `quantize` (003) — the first stage with a budget that decides whether a run
-produces an artifact at all. The core still loads no machine-learning framework.
+**0.1.0rc1, the first release candidate.** Every stage from manifest to C array exists: `validate`,
+`render`, `build`, `train`, `quantize` and `export`, with `templates` and `boards` to list what is
+registered. Two templates, `mlp` and `conv1d`, and three boards, `s32k144`, `stm32h743` and `esp32`.
+`build` checks the model against the boards' flash and RAM before any training, and `export` writes
+an interface contract a firmware author binds by. 0.1.0 follows once the zoo's `pace-cnn` has been
+rebuilt with this candidate (`docs/releases/0.1.0.md` says what is in it and what is not).
+
+Not on the package index. Each version is installed from its GitHub release.
+
+## Try it
+
+`docs/try-it.md` goes from an empty directory to an exported model in one sequence of commands.
+With a checkout, the example manifest validates on any supported Python:
+
+```bash
+# step: readme
+caravan validate examples/picket-mlp.yaml
+caravan render examples/picket-mlp.yaml --stdout
+```
 
 ## Install
 
+From the release, in a virtual environment:
+
 ```bash
-pip install caravan-ml                      # the command is `caravan`
-pip install "caravan-ml[verify]"            # plus reading and running exported models
-pip install "caravan-ml[train,verify]"      # plus training and converting, on Python 3.13
+pip install "caravan-ml @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc1/caravan_ml-0.1.0rc1-py3-none-any.whl"
+pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc1/caravan_ml-0.1.0rc1-py3-none-any.whl"
 ```
+
+The first line is the core: `validate` and `render`, on Python 3.13 to 3.15. The second adds
+training and converting (Python 3.13) and reading exported models (3.13 and 3.14). To build from
+the tagged source instead:
+`pip install "caravan-ml[train,verify] @ git+https://github.com/mhabedank/Caravan@v0.1.0rc1"`.
 
 The default installation has two runtime dependencies, weighs about 9 MiB and pulls no
 machine-learning framework, because checking and resolving a manifest does not need one.

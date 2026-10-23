@@ -31,6 +31,14 @@ YAML like the zoo's.
 | quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | **delivered** (feature 003) | `picket-mlp` |
 | export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | **delivered** (feature 004) | `picket-mlp` |
 | `conv1d` template, both halves | v0.1 | **delivered** (feature 005) | **`pace-cnn`** (decided 2026-10-22) |
+| Declared inputs and outputs, labels and columns from the data, the fit check before training, the interface contract in the export | v0.1 | **delivered** (feature 006) | `picket-mlp`; constitution 3.0.0 |
+| A fixed split from a column of the data; the framework's output in `framework.log`; the try-it guide; the release workflow | v0.1 | **delivered** (feature 007) | **`pace-cnn`** (the split); the release |
+| Export with only the runtime installed, when training and quantization are cached | v0.1 | **deferred** by the owner, 2026-10-23 | a known limit of 0.1.0 |
+
+**The release, 2026-10-23.** Candidate `v0.1.0rc1` first: the version to try by hand
+(`docs/try-it.md`) and the version the `pace-cnn` port pins. `v0.1.0` follows once the port has run
+and every Caravan defect it found is fixed (feature 007; `docs/releases/0.1.0.md`). Installed from
+the GitHub release; the package index is not used for 0.1.0 (owner decision).
 
 Feature numbers under `specs/` and git branch names are independent; features are named here
 rather than numbered, because the numbering continues from 001 while a chore branch may carry any
@@ -98,7 +106,7 @@ per-extra version window (constitution v2.3.0, research R1 of feature 002). All 
 and 3.15 are tested, so the claim in the metadata is true. The floor returns to `>=3.14` and the
 3.13 job is deleted as soon as a stable TensorFlow ships a cp314 wheel depending on a released
 `keras`; 2.22.0rc0 already ships the wheel and depends on `keras-nightly`, so the wait is for the
-final release. This is the one open obligation of v0.1 that is not a feature.
+final release (still a candidate, checked 2026-10-23). This is the one open obligation of v0.1 that is not a feature.
 
 **The conversion question is answered, and the floor stays.** The Technical Baseline left open
 whether an int8 conversion path exists without the training framework, to be settled when the

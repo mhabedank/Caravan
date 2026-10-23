@@ -1,0 +1,122 @@
+name: release
+
+# On a pushed tag v*: check that the tag is the version, build from the tag, check the built
+# package, publish a GitHub release with the wheel and the sdist, then run the try-it guide
+# literally against what was published (feature 007, contracts/release.md).
+#
+# Nothing goes to the package index (owner decision, 2026-10-23), and no secret exists beyond this
+# workflow's own token. A failure before `release` publishes nothing; a tag is never moved.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv python install 3.13
+      - name: the tag is the version
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          declared=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          module=$(grep -m1 '^__version__ = ' src/caravan/__init__.py | cut -d'"' -f2)
+          echo "tag $tag, pyproject $declared, module $module"
+          if [ "$tag" != "$declared" ] || [ "$tag" != "$module" ]; then
+            echo "the tag does not match the version; nothing is published"; exit 1
+          fi
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+      - name: the whole suite, both extras, from the tag
+        run: |
+          uv venv --python 3.13 /tmp/train
+          VIRTUAL_ENV=/tmp/train uv pip install -e ".[train,verify]" pytest packaging
+          VIRTUAL_ENV=/tmp/train /tmp/train/bin/python -m pytest tests -q
+
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv python install 3.13 3.14
+      - run: uv build
+      - name: the built package reports the tag's version
+        run: |
+          wheel="dist/caravan_ml-${VERSION}-py3-none-any.whl"
+          test -f "$wheel"
+          uv venv --python 3.13 /tmp/full
+          VIRTUAL_ENV=/tmp/full uv pip install "caravan-ml[train,verify] @ ./$wheel"
+          test "$(/tmp/full/bin/caravan --version)" = "caravan-ml ${VERSION}"
+          uv venv --python 3.14 /tmp/core
+          VIRTUAL_ENV=/tmp/core uv pip install "./$wheel"
+          test "$(/tmp/core/bin/caravan --version)" = "caravan-ml ${VERSION}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  release:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: publish the GitHub release
+        run: |
+          base="${VERSION%%rc*}"
+          flags=()
+          case "$VERSION" in *rc*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Caravan ${VERSION}" \
+            --notes-file "docs/releases/${base}.md" \
+            "${flags[@]}"
+
+  verify:
+    # A fresh runner, the guide as written, against the release just published (research R5).
+    needs: [check, release]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: source
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: the guide, fetch, install and run, in an empty directory
+        run: |
+          mkdir /tmp/try && cd /tmp/try
+          for step in install fetch run; do
+            python3.13 "$GITHUB_WORKSPACE/source/tests/support_docs.py" \
+              "$GITHUB_WORKSPACE/source/docs/try-it.md" "$step" > "/tmp/$step.sh"
+          done
+          start=$(date +%s)
+          bash -euo pipefail -c '. /tmp/install.sh; . /tmp/fetch.sh; . /tmp/run.sh' | tee /tmp/guide.out
+          elapsed=$(( $(date +%s) - start ))
+          echo "guide: ${elapsed}s from install to export" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$elapsed" -gt 600 ]; then echo "over the 10 minutes of SC-001"; exit 1; fi
+      - name: the README's first install line, as written, in a fresh environment
+        run: |
+          python3.13 -m venv /tmp/readme
+          line=$(grep -m1 '^pip install "caravan-ml @ ' "$GITHUB_WORKSPACE/source/README.md")
+          eval "/tmp/readme/bin/${line}"
+          test "$(/tmp/readme/bin/caravan --version)" = "caravan-ml ${VERSION}"

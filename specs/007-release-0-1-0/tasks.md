@@ -176,13 +176,13 @@ written.
 
 ### Tests for User Story 3
 
-- [ ] T015 [P] [US3] Write `tests/integration/test_readme.py`:
+- [X] T015 [P] [US3] Write `tests/integration/test_readme.py`:
   - every `caravan …` line in the README's quick-start block runs, from the repository root, with
     exit 0, against `examples/picket-mlp.yaml`. These are `validate` and `render` only, so the test
     runs without extras;
   - the README contains no `pip install caravan-ml` line without a URL;
   - its install lines name the same URL form as `docs/try-it.md`.
-- [ ] T016 [P] [US3] Write `tests/unit/test_release_note.py`. `docs/releases/0.1.0.md` exists and
+- [X] T016 [P] [US3] Write `tests/unit/test_release_note.py`. `docs/releases/0.1.0.md` exists and
   has the sections:
   - "What it does";
   - "Where it runs";
@@ -193,21 +193,21 @@ written.
 
 ### Implementation for User Story 3
 
-- [ ] T017 [P] [US3] Rewrite the README's "Status", "Install" and quick-start sections in
+- [X] T017 [P] [US3] Rewrite the README's "Status", "Install" and quick-start sections in
   `README.md`:
   - **Status**: every verb (`validate`, `render`, `build`, `train`, `quantize`, `export`,
     `templates`, `boards`) and both templates;
   - **Install**: the wheel URL form and the `git+https://github.com/mhabedank/Caravan@v<version>`
     form, with the Python window per extra, and a link to `docs/try-it.md`;
   - remove every claim of a package-index install.
-- [ ] T018 [P] [US3] Update `docs/roadmap.md`:
+- [X] T018 [P] [US3] Update `docs/roadmap.md`:
   - add feature 006 (declared inputs and outputs, fit check, interface contract), the fixed split
     and the console output to the v0.1 table, marked delivered;
   - state the release as "candidate `v0.1.0rc1`; `v0.1.0` after the `pace-cnn` port";
   - keep the Python floor obligation with its closing condition, updated to "2.22.0rc0 still a
     candidate, checked 2026-10-23";
   - record the runtime-only export as deferred by the owner, with its date.
-- [ ] T019 [P] [US3] Draft `docs/releases/0.1.0.md` with the sections of T016. Known limits:
+- [X] T019 [P] [US3] Draft `docs/releases/0.1.0.md` with the sections of T016. Known limits:
   - the training half needs Python 3.13;
   - export needs the training extra even when training and quantization are cached;
   - unscaled inputs, with derived labels failing the int8 gate on the synthetic example (R11);
@@ -215,11 +215,11 @@ written.
   - only one input and one output.
 
   Leave the port section as "pending".
-- [ ] T020 [US3] Move the guide-block parser from T012 into `tests/support_docs.py` and use it in
+- [X] T020 [US3] Move the guide-block parser from T012 into `tests/support_docs.py` and use it in
   `tests/train/test_try_it_guide.py`, `tests/integration/test_readme.py` and
   `.github/workflows/release.yml` (T021, via `python -m tests.support_docs <file> <step>`, printing the
   blocks of that step).
-- [ ] T021 [US3] Write `.github/workflows/release.yml` (research R6, contracts/release.md):
+- [X] T021 [US3] Write `.github/workflows/release.yml` (research R6, contracts/release.md):
   - **trigger and permissions**: on `push` of tags `v*`; `permissions: contents: write`;
   - **check**: the tag without `v` equals the version in `pyproject.toml` and
     `caravan.__version__`; then the full suite on 3.13 with both extras;
