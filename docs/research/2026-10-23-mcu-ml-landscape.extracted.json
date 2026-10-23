@@ -1,0 +1,747 @@
+{
+  "generated": "2026-10-23",
+  "workflow": "wf_a02a77b7-212",
+  "status": "UNVERIFIED: claims extracted from fetched sources by one agent each, before adversarial voting. Only the claims in the matching .claims.json passed voting. Treat everything here as a lead, not a finding.",
+  "note": "The extraction agents did not record the source URL per result; the fetched sources are listed in the .claims.json file.",
+  "extractions": [
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2020-02-25",
+      "claims": [
+        {
+          "claim": "The NXP i.MX 8M Plus SoC (Cortex-A class) has a dedicated Verisilicon NPU rated at 2.3 TOPS, attached to the system bus.",
+          "quote": "The i.MX 8M Plus contains a dedicated 2.3 TOPS (tera operations per second) Verisilicon NPU attached to the system bus",
+          "importance": "central"
+        },
+        {
+          "claim": "The Arm Ethos-U55 microNPU is a co-processor for Cortex-M33/M7/M4 MCUs rated at about 0.1–0.5 TOPS, which is roughly an order of magnitude below the i.MX 8M Plus NPU. The blog gives 32–256 MACs/cycle for the Ethos-U55 and 1150 MACs/cycle for the i.MX 8M Plus NPU. This throughput gap is one way to draw the line between an MCU and a small SoC.",
+          "quote": "0.1-0.5 TOPS ... designed as a co-processor ... 32-256 MACs/cycle and 1150 MACs/cycle, respectively",
+          "importance": "central"
+        },
+        {
+          "claim": "The blog cites Arm's claim that the Ethos-U55 cuts ML energy use by up to 90% compared with running ML on current Cortex-M CPUs, and that its die area starts at about 0.1 mm² in TSMC 16FFC. Both figures are vendor claims that NXP relays from Arm, not independent measurements.",
+          "quote": "Ethos-U55 provides up to 90% energy reduction over current Cortex-M CPU's ... starting at about 0.1mm² in TSMC 16FFC process",
+          "importance": "supporting"
+        },
+        {
+          "claim": "NXP places the SoC-class NPU (i.MX 8M Plus) in heavier workloads: several complex vision algorithms running in parallel, and natural-language processing with a vocabulary of about 40,000 words. Sub-1-TOPS acceleration is positioned for low-power tiny edge sensors. This suggests that large-vocabulary speech and multi-model vision realistically need a small SoC rather than an MCU.",
+          "quote": "running several complex vision algorithms in parallel ... natural language processing recognizing 40,000 words ... the value of ML acceleration in the low-power domain(sub 1 TOP)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The use cases NXP gives as examples for edge ML acceleration are assembly-line visual product inspection, face recognition added to a doorbell, and local processing of voice commands.",
+          "quote": "adding face recognition to a doorbell",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "blog",
+      "publishDate": "2024-07-25",
+      "claims": [
+        {
+          "claim": "The classic TFLM baseline applications on a Cortex-M4 MCU with no NPU (Arduino Nano 33 BLE Sense) are small. Keyword detection takes about 336K MACs, 10 KB RAM, 19 KB flash and 60 ms latency. Person detection takes about 7.2M MACs, 136 KB RAM, 294 KB flash and 657 ms latency. All latencies exclude pre- and post-processing.",
+          "quote": "Keyword detection | 336,008 | 10 KB | 19 KB | 60 ms ... Person detection | 7,215,492 | 136 KB | 294 KB | 657 ms",
+          "importance": "central"
+        },
+        {
+          "claim": "On a Himax WiseEye2 HX6538 (Cortex-M55 + Ethos-U55 at 400 MHz, 512 KB TCM, 2 MB SRAM, 16 MB external flash), the Ethos-U55 speeds up BlazeFace (31M MACs, 128x128 input) from 3,380 ms to 31 ms (109x). It speeds up Face Mesh (36.8M MACs, 192x192 input) from 4,436 ms to 43 ms (103x), using under 500 KB RAM.",
+          "quote": "The Ethos-U55 NPU accelerates inference by 109 times! ... The Ethos-U55 NPU accelerates inference by 103 times.",
+          "importance": "central"
+        },
+        {
+          "claim": "A YOLOv8-based pose estimation model (256x256 input, 728M MACs, 17 keypoints) needs 61,486 ms on the Cortex-M55 CPU alone. With the Ethos-U55 it needs 93 ms (611x speedup), using 551 KB RAM and 2.19 MB flash. That is just over 10 FPS on an MCU-class device.",
+          "quote": "The Ethos-U55 NPU accelerates inference by 611 times! ... Offloading ML computation to the Ethos-U55 allows this application to perform over 10 inferences per second.",
+          "importance": "central"
+        },
+        {
+          "claim": "An MCU with an Ethos-U55 NPU can run mobile-class vision models that need tens to hundreds of millions of MACs at interactive frame rates. This moves the MCU/SoC boundary for vision tasks such as face landmarks and pose estimation. Without the NPU the same models manage only one inference every few seconds to every minute.",
+          "quote": "Offloading ML computation to the Ethos-U55 allows this application to perform over 10 inferences per second.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The Ethos-U55 NPU can be configured for 32, 64, 128 or 256 MACs per cycle and supports bit-accurate output for 44 TFLite operators. Operators outside that set fall back to the CPU.",
+          "quote": "Ethos-U55: Supports bit-accurate output for 44 TFLite operators and can be configured for 32, 64, 128, or 256 MACs per cycle.",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2024-08-28",
+      "claims": [
+        {
+          "claim": "µYOLO, a YOLO-style single-shot object detector with pruning and 8-bit post-training quantization, runs on a Cortex-M7 MCU (OpenMV H7 R2, 480 MHz, no hardware acceleration) at about 3.5 FPS on 128x128 RGB input, using under 800 KB flash and under 350 KB RAM.",
+          "quote": "achieving a framerate of 3.5 frames per second at 480 MHz while requiring less than 800 KB of Flash and less than 350 KB of RAM.",
+          "importance": "central"
+        },
+        {
+          "claim": "Input resolution is the main factor that limits MCU object detection: at 256x256 the model needs 1.01 MB RAM and at 448x448 it needs 3.97 MB, so it cannot be deployed on the OpenMV H7. At 88x88 it needs 133 KB flash and 152 KB RAM and runs at 8.4 FPS. This points to where the MCU vs. SoC/NPU boundary lies for vision detection.",
+          "quote": "the large increase in RAM consumption makes the use of µYOLO with larger input image resolutions on the OpenMV H7 microcontroller quickly infeasible.",
+          "importance": "central"
+        },
+        {
+          "claim": "Detection accuracy on COCO-derived tasks is low at MCU scale: average mAP0.5 is 27.7% for human detection (1 class) and 12.3% for vehicle detection (5 classes), compared with 56.4% on a simpler self-recorded 4-class fridge-groceries dataset. The authors attribute the gap to scene complexity, small and occluded objects, and the low input resolution.",
+          "quote": "56.4% on average) than on the other two tasks (27.7% on average on the human detection task and 12.3% on average on the vehicles detection task)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The authors describe typical MCU constraints as less than 1–2 MB flash and less than 1 MB RAM. They note that single-shot detectors on edge devices have so far mostly been deployed on larger embedded platforms such as the Jetson Xavier.",
+          "quote": "despite severe resource constraints (typically less than 1-2 MB of Flash and less than 1 MB of RAM)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Training data used: the backbone was pretrained on Caltech-256 (38% top-1). The detection tasks were COCO subsets (humans; truck/bus/car/bicycle/motorcycle) plus a self-recorded fridge dataset. The paper gives no licence or availability details for the self-recorded data (not verified).",
+          "quote": "two derived from subsets of the COCO dataset [7] and one using a self-recorded dataset",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2025-08-11",
+      "claims": [
+        {
+          "claim": "MCU-deployed object detectors on Pascal VOC (8-bit) span roughly 0.47M–1.2M parameters and about 53–511 kB peak SRAM, at 51–75% mAP. Examples: MCUNetV2-YOLOv3 on STM32F412 at 0.47M params, 247 kB peak SRAM and 64.6% mAP; XiNet-YOLOv7-S on STM32H743 at 53 kB peak SRAM and 54.0% mAP. These figures come from the survey's comparison table, which gives no latency or flash figures.",
+          "quote": "MCUNetV2-YOLOv3-M4 | NeurIPS 2021 | STM32F412 | 0.47M | 172 | 247 kB | 64.6%",
+          "importance": "central"
+        },
+        {
+          "claim": "TinyissimoYOLO, running on the GAP9 RISC-V MCU with an accelerator, reaches 56.4% mAP on VOC at 55 MMACs with about 0.70M parameters.",
+          "quote": "achieving a map score of 56.4% on the voc dataset, while operating with only 55 MMACs",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The survey characterises TinyML target MCUs as having under 1 MB of memory. Its hardware table lists the MAX78000 (Cortex-M4F, 100 MHz, CNN accelerator) with 128 KB SRAM and 512 KB flash, the STM32H743 (Cortex-M7, no accelerator) with 1 MB SRAM and 2 MB flash, and the STM32N6 (Cortex-M55 + NPU, 800 MHz) with 4.2 MB SRAM. The table entries are paraphrased from the WebFetch extraction, not quoted.",
+          "quote": "ultra-low-power devices like mcu, which typically operate with less than 1MB of memory",
+          "importance": "central"
+        },
+        {
+          "claim": "Visual Wake Words (about 115k images) targets vision models under about 250 KB, and the newer Wake Vision dataset (over 5M images) is reported to give a 1.93% accuracy gain over VWW. The standard detection benchmarks used for TinyML OD are Pascal VOC (20 classes) and COCO (80 classes).",
+          "quote": "tiny vision models with extreme memory constraints (e.g., models under 250 KB)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Full-size object detectors (for example the YOLOv5-S class at 7.2M parameters, or GPU/TensorRT pipelines such as Grounding DINO 1.5 Edge at 75.2 fps) are outside MCU budgets. This implies detection beyond the roughly 1M-parameter, sub-MB-SRAM class needs a larger edge device or SoC. The boundary is inferred from the survey's contrast, not stated as a hard threshold.",
+          "quote": "impractical for deployment on edge devices with limited resources",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2026-02-17",
+      "claims": [
+        {
+          "claim": "On the NXP i.MX93 small SoC (2x Cortex-A55 + Cortex-M33 + Ethos-U65), running int8 vision models on the Ethos-U65 NPU gives a 6x to 11x speedup over the Cortex-A55 CPU baseline (TFLite with ruy/gemmlowp NEON) for supported models. Tested with mainline Linux 6.19-rc1.",
+          "quote": "Ethos-U65 execution on i.MX93 works and delivers speedups between 6× and 11× for supported models.",
+          "importance": "central"
+        },
+        {
+          "claim": "The Ethos-U65 NPU on the i.MX93 only accelerates INT8/UINT8 models with per-tensor quantization. Per-channel quantized models often fall back to the CPU, and float models do not run on the NPU at all. The fallback is silent.",
+          "quote": "Models must be quantized to INT8 or UINT8 and use per-tensor quantization. Per-channel quantized models often fall back to CPU. Float models do not run on the NPU.",
+          "importance": "central"
+        },
+        {
+          "claim": "The image classifiers Inception V1/V2 and MobileNet V1/V2 ran successfully on the Ethos-U65 with no accuracy difference from the CPU. For object detection, only SSD MobileNet V2 worked reliably with a clear benefit. SSD MobileNet V1 gave incorrect results because of frequent CPU fallback, and other detection models fell back, gave wrong output, or were too slow.",
+          "quote": "SSD MobileNet V2 was the only detection model that works reliably on the NPU",
+          "importance": "supporting"
+        },
+        {
+          "claim": "In this upstream setup, inference uses TensorFlow Lite with Mesa's Teflon delegate in 'direct mode', which the article calls the only supported way to run workloads on the Ethos-U65 with this stack. The Cortex-A host drives the NPU directly, replacing the earlier 'Assisted Mode', where the NPU was reached through remoteproc and the Cortex-M33.",
+          "quote": "Inference uses TensorFlow Lite together with Mesa's Teflon delegate in direct mode.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2022-12",
+      "claims": [
+        {
+          "claim": "On the NXP i.MX 8M Plus, an in-house-trained TinyYOLOv3 licence-plate detector ran slower on the NPU (1.18 Hz) than on the Cortex-A CPU (1.99 Hz), so the CPU was 1.69x faster. Running on the NPU did not improve throughput.",
+          "quote": "the inference rate was 1.18 Hz ... the CPU was 1.69x faster, with 1.99 Hz",
+          "importance": "central"
+        },
+        {
+          "claim": "The main benefit of the i.MX 8M Plus NPU in this smart-parking pipeline was CPU offloading. With detection on the NPU, CPU load dropped below 20%. Running both models on the CPU used more than 200%.",
+          "quote": "the CPU consumption drops below 20% (10x gained), freeing the CPU for other tasks",
+          "importance": "central"
+        },
+        {
+          "claim": "Models that cannot be quantised, here the Rosetta character-recognition model, cannot be accelerated on the i.MX 8M Plus NPU. Rosetta stayed on the CPU at about 1 Hz and limited the whole pipeline to 1 Hz. The paper says the NPU supports 8- and 16-bit fixed-point arithmetic.",
+          "quote": "Rosetta could not be accelerated because the model does not support quantisation ... The performance obtained has an inference rate of 1 Hz, limited by the character inference.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Based on their earlier Jetson Nano TinyYOLOv2 results, the authors expected about 15 Hz for TinyYOLO on the i.MX 8M Plus. They measured only about 2 Hz, so small-SoC NPU vision performance fell well short of expectations.",
+          "quote": "expected to have around 15 Hz but the actual rate achieved was 2 Hz",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The study names no training dataset or licence and reports no accuracy metrics. The detector is described only as 'in-house trained', and the evaluation covers inference rate and CPU usage only.",
+          "quote": "in-house trained",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2021-08-24 (arXiv v4; v1 June 2021; NeurIPS 2021 Datasets & Benchmarks)",
+      "claims": [
+        {
+          "claim": "MLPerf Tiny v0.5 defines four inference benchmarks, each with a fixed dataset, int8 TFLite reference model and quality target: keyword spotting (Speech Commands, 49x10 input, DS-CNN 52.5 KB, 90% top-1), visual wake words (VWW 96x96, MobileNetV1 325 KB, 80% top-1), image classification (CIFAR-10 32x32, ResNet 96 KB, 85% top-1) and anomaly detection (ToyADMOS 5x128, FC autoencoder 270 KB, AUC 0.85).",
+          "quote": "Keyword Spotting Speech Commands (49x10) DS-CNN (52.5 KB) 90% (Top-1) / Visual Wake Words VWW Dataset (96x96) MobileNetV1 (325 KB) 80% (Top-1) / Image Classification CIFAR10 (32x32) ResNet (96 KB) 85% (Top-1) / Anomaly Detection ToyADMOS (5*128) FC-AutoEncoder (270 KB) .85 (AUC)",
+          "importance": "central"
+        },
+        {
+          "claim": "The reference implementations run with TensorFlow Lite for Microcontrollers on an STM32 NUCLEO-L4R5ZI (Cortex-M4) board and are open source on GitHub (mlcommons/tiny). Pre- and post-processing, such as feature extraction, are excluded from the measurement.",
+          "quote": "The reference implementations run the reference models in the TFLite format using TFLite for Microcontrollers (TFLM) [7] on the NUCLEO-L4R5ZI board. ... The reference implementations are open source and available on GitHub at https://github.com/mlcommons/tiny",
+          "importance": "central"
+        },
+        {
+          "claim": "The paper states that Speech Commands v2 has 105,829 utterances from 2,618 speakers under a Creative Commons BY licence, with speaker-disjoint train, validation and test splits. The KWS benchmark uses 12 classes (10 words, 'unknown' and 'silence') and a DS-CNN with 38.6K parameters. The licence claim is secondary and still needs checking against the dataset's own licence page.",
+          "quote": "a collection of 105,829 utterances collected from 2,618 speakers with a variety of accents. It is freely available for download under the Creative Commons BY license. ... with 38.6K parameters, it fits within the available memory of most microcontrollers",
+          "importance": "central"
+        },
+        {
+          "claim": "The VWW task (person or no person) is built from MSCOCO 2014, keeping images where a person fills more than 2.5% of the frame and resizing them to 96x96. The paper names smart doorbells and occupancy sensing as target applications. MobileNetV1 with alpha 0.25 reaches about 86%. Because VWW derives from COCO, it inherits COCO's licence terms; the paper says nothing about licence.",
+          "quote": "This task is directly relevant to smart doorbell and occupancy applications ... The Visual Wakewords Challenge uses the MSCOCO 2014 dataset [15] ... image which contain at least one person occupying more than 2.5% of the source image. Images are also resized to 96x96",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The anomaly detection benchmark uses only the ToyCar machine type from DCASE2020 Task 2, which combines ToyADMOS and MIMII. The input is a log-mel spectrogram with 128 bands and 32 ms frames, fed to the autoencoder as 5-frame windows (640 inputs, bottleneck of 8). The autoencoder is trained only on normal data and reaches AUC 0.88 at fp32 and 0.86 after quantization. The paper names power, temperature and vibration as other anomaly data sources.",
+          "quote": "we choose to use the Toy-car machine type only ... The audio is pre-processed into a log-mel-spectrogram with 128 bands and a frame size of 32 ms ... the fp32 version of the reference model achieves an AUC of 0.88 while the AUC after quantization is 0.86",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2025 (footer copyright; no exact release date given for v4.0)",
+      "claims": [
+        {
+          "claim": "The STM32 model zoo v4.0 groups its models into three modality-based use-case areas: computer vision (image classification, object detection, pose, segmentation, depth, style transfer, re-identification, face detection), audio (audio event detection, speech enhancement), and time series (human activity recognition, hand posture recognition, arc fault detection/AFCI).",
+          "quote": "New use-cases: AFCI, Re‑ID, Face Detection.",
+          "importance": "central"
+        },
+        {
+          "claim": "The model zoo lists 24 image-classification model families and 12 object-detection families, including ST_YOLO, YOLOv8 and YOLO11. Vision has the most families of the three areas, compared with 3 audio-event-detection families and 2 human-activity-recognition families.",
+          "quote": "Image classification: 24 families … Object detection: 12 families (incl. ST_YOLO, YOLOv8, YOLO11)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The zoo targets STM32 microcontrollers and supports the Neural-ART NPU embedded in the STM32N6, which makes it an example of an MCU with an NPU.",
+          "quote": "support of the Neural-ART Accelerator NPU embedded in the STM32N6",
+          "importance": "central"
+        },
+        {
+          "claim": "The models come in PyTorch, TensorFlow and ONNX and are meant to be retrained on user datasets with the provided scripts, which include quantization. The landing page names no training datasets.",
+          "quote": "A large collection of application-oriented models in PyTorch, TensorFlow, and ONNX, ready for re-training.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The landing page states no licence, only that the models are free and available on GitHub. The licence terms could not be verified here and need to be checked in the GitHub repository.",
+          "quote": "Free AI models … Available on GitHub",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2024-03-29 (arXiv v2; published in IEEE Circuits and Systems Magazine, IEEE copyright 2023)",
+      "claims": [
+        {
+          "claim": "Typical MCUs targeted by TinyML have less than 256 kB of SRAM and read-only flash. The reference board STM32F746 (Cortex-M7) has 320 KB SRAM and 1 MB flash. MCUs have about 3 orders of magnitude less memory than mobile phones and 5–6 orders less than cloud GPUs.",
+          "quote": "Microcontrollers have 3 orders of magnitude less memory and storage compared to mobile phones, and 5-6 orders of magnitude less than cloud GPUs.",
+          "importance": "central"
+        },
+        {
+          "claim": "Visual Wake Words (person/no-person) is the representative low-energy TinyML vision task. MCUNet reaches over 90% VWW accuracy with less than 32 kB of memory.",
+          "quote": "It achieves >90% accuracy under <32kB memory, facilitating deployment on extremely small hardware.",
+          "importance": "central"
+        },
+        {
+          "claim": "MCUNet reaches 71.8% ImageNet top-1 accuracy on a commercial MCU with 512 kB SRAM and 2 MB flash, and 64.9% with 256 kB SRAM (MCUNet-M4). MCUNet-H7 reaches 68.3% mAP on Pascal VOC detection under 512 kB SRAM.",
+          "quote": "Under 512kB SRAM/2MB Flash, MCUNet achieves a new record ImageNet accuracy of 71.8% on commercial microcontrollers.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The survey names these TinyML application classes: keyword spotting, speech recognition and speaker verification on wearables; object and face detection in smart homes; healthcare; gesture recognition; anomaly detection; autonomous vehicles; and agriculture/ecology. Datasets used include ImageNet, VWW, CIFAR-10/100, Pascal VOC, WIDER FACE and a KWS subset. (Extractor note: the summary listed these applications without verbatim quotes, except for the speech examples.)",
+          "quote": "keyword spotting, automatic speech recognition, and speaker verification",
+          "importance": "supporting"
+        },
+        {
+          "claim": "On-device training is feasible on MCUs through algorithm–system co-design: training memory drops from 303 MB (PyTorch) to 149 KB at the same transfer-learning accuracy.",
+          "quote": "Algorithm and system co-design reduces the training memory from 303MB (PyTorch) to 149KB with the same transfer learning accuracy",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "undated README (main branch, accessed 2026-10-23; GitLab project created 2025-09-20)",
+      "claims": [
+        {
+          "claim": "The Arm ML Embedded Evaluation Kit (MLEK) ships reference MCU+NPU use cases for image classification (MobileNet V2), keyword spotting (MicroNet), ASR (Wav2Letter; Conformer via ExecuTorch), audio anomaly detection on machine sounds (MicroNet), visual wake word (MicroNet), noise reduction (RNNoise) and face object detection (Yolo Fastest). Note: the original git.mlplatform.org URL now redirects to gitlab.arm.com; the content is quoted from the README.md on the main branch there.",
+          "quote": "[Anomaly Detection](./docs/use_cases/ad.md) | Detecting abnormal behavior based on a sound recording of a machine | [MicroNet](https://github.com/ARM-software/ML-zoo/tree/7c32b097f7d94aae2cd0b98a8ed5a3ba81e66b18/models/anomaly_detection/micronet_medium/tflite_int8/)",
+          "importance": "central"
+        },
+        {
+          "claim": "The target hardware is Cortex-M55/M85 with Ethos-U55/U65/U85 NPUs (Corstone-300/310/315/320). The default configuration is an Ethos-U55 with 128 MACs/cycle sharing SRAM with the Cortex-M55. The models are int8 TFLite Micro models taken from the Arm ML-Zoo.",
+          "quote": "The default flow assumes Arm® Ethos™-U55 NPU usage, configured to use 128 Multiply-Accumulate units and is sharing SRAM with the Arm® Cortex®-M55.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The kit supports TensorFlow Lite for Microcontrollers (on the NPU, with fallback to CMSIS-NN int8 kernels on the CPU) and also PyTorch ExecuTorch. ExecuTorch is fully supported only on Corstone-320 with Ethos-U85, and the Conformer ASR model runs only there.",
+          "quote": "*The *Conformer* model for the ASR use case currently works only on Arm® Corstone™-320 with Arm® Ethos™-U85.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The sample code is Apache 2.0. The keyword-spotting samples come from Google Speech Commands v0.02 and are labelled CC BY 4.0; the ASR samples come from OpenSLR 12 (LibriSpeech), CC BY 4.0; the noise-reduction samples come from Edinburgh DataShare 10283/2791, CC BY 4.0; the image, VWW and object-detection samples come from Pexels and are labelled CC BY 1.0. These are Arm's own labels for the samples only and have not been checked against the original licence pages.",
+          "quote": "| [Keyword Spotting Samples](./resources/kws/samples/files.md) | [Creative Commons Attribution 4.0 International Public License](./resources/LICENSE_CC_4.0.txt) | <http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz> |",
+          "importance": "central"
+        },
+        {
+          "claim": "In the Ethos-U85 configuration space, MLEK supports 128 to 2048 MACs/cycle (default 256). The Ethos-U55 supports 32 to 256 (default 128), and the Ethos-U65 supports 256 or 512.",
+          "quote": "| *Ethos™-U85*   | 256             | 128, 512, 1024, 2048    | Dedicated_Sram      | Sram_Only, Shared_Sram       |",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "secondary",
+      "publishDate": "2025-06 (arXiv v1); v2 PDF created 2025-09-21",
+      "claims": [
+        {
+          "claim": "MLPerf Tiny (MLCommons with EEMBC) defines four core TinyML tasks: keyword spotting, Visual Wake Words, image classification on low-resolution inputs, and anomaly detection on sensor data. The reference networks are typically under 250 kB.",
+          "quote": "It defines four core tasks representative of common TinyML applications: keyword spotting (KWS), Visual Wake Words (VWW), image classification on low-resolution inputs, and anomaly detection using sensor data [35]. These tasks are performed using compact neural networks, typically under 250 kB in size.",
+          "importance": "central"
+        },
+        {
+          "claim": "The survey's table lists the MLPerf Tiny reference models with their sizes: DS-CNN for keyword spotting at about 0.05 MB on a Cortex-M4, MobileNet for VWW at about 0.32 MB, a deep autoencoder for anomaly detection at about 0.27 MB, and ResNet for image classification at about 0.096 MB. Caveat: the table credits the IC ResNet with 'ImageNet' accuracy, but MLPerf Tiny IC actually uses CIFAR-10, so treat the table as a secondary source and check it against the MLPerf Tiny paper.",
+          "quote": "DS-CNN (MLPerf) 1D-CNN 0.05 20.0 >90.0 (Commands) Wake Word Detection ARM Cortex-M4 ... MobileNet (VWW) CNN 0.32 8.0 80.0 (VWW) Visual Wake Words STM32 MCU ... Deep AutoEncoder (AD) Autoencoder 0.27 15.0 85.0 (AD Bench) Anomaly Detection MCU Platform",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Typical TinyML MCUs run below 1 mW with 32 to 512 kB of SRAM. The ESP32 has about 520 KB of RAM at up to 240 MHz, and STM32 Cortex-M7 parts at 216 MHz have a few hundred KB of RAM.",
+          "quote": "operating under 1 mW of power, often with only 32 to 512 kB of Static Random-Access Memory (SRAM) and constrained flash storage",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The survey's taxonomy separates classic TinyML (models of 250 KB or less; gesture, ECG, HAR, anomaly detection) from TinyDL (hundreds of KB to under 1 MB, enhanced MCUs/NPUs; speech, NLP, object detection, drones).",
+          "quote": "TinyML Model Size ≤ 250 KB ... Gesture, ECG, HAR, Anomaly Detection | TinyDL Typically, hundreds of KB to under 1 MB ... Speech, NLP, Object Detection, Drones",
+          "importance": "central"
+        },
+        {
+          "claim": "The standard TinyML benchmark datasets the survey lists are Google Speech Commands (1 s of audio at 16 kHz, 12–35 classes), Visual Wake Words (96×96 RGB, 2 classes, person detection), Tiny ImageNet (64×64, 200 classes) and CIFAR-10/100 (32×32). The survey says nothing about their licences.",
+          "quote": "Google Speech Commands [172] Keyword spotting 1 s audio (16 kHz) 12–35 Voice command detection; Visual Wake Words [40] Person detection 96×96 RGB 2 Vision-triggered wake-up",
+          "importance": "central"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": null,
+      "claims": [
+        {
+          "claim": "Edge Impulse's FOMO object detector runs at 30 fps on an Arduino Nicla Vision (Cortex-M7 at 480 MHz) using about 245 KB of RAM. On a Cortex-M4F at 80 MHz it runs at about 10 fps with under 100 KB of RAM. These are vendor figures from Edge Impulse, not independent benchmarks.",
+          "quote": "30 fps object detection on an Arduino Nicla Vision (Cortex-M7 MCU), using 245K RAM. ... runs under 100KB RAM and ~10 fps. on a Cortex-M4F at 80MHz.",
+          "importance": "central"
+        },
+        {
+          "claim": "FOMO's memory needs are small. The vendor states a minimum of 256 KB for 64x64 black-and-white images (buffer included) and recommends at least 512 KB for 96x96 images. It also reports that buffer, model and application logic, including a wireless stack, have fit in about 200 KB at 64x64.",
+          "quote": "we have seen buffer, model and app logic (including wireless stack) fit in as little as 200KB for 64x64 pixel images. ... 256 KB 64x64 pixels (B&W, buffer included) ... ≥ 512 KB 96x96 pixels (B&W, buffer Included)",
+          "importance": "central"
+        },
+        {
+          "claim": "FOMO is built on a MobileNetV2 trunk cut off at the block_6_expand_relu layer. It does not output bounding boxes but a per-cell heat map (centroids) 8 times smaller than the input, for example a 12x12 map from a 96x96 input. Objects whose centroids overlap therefore cannot be detected.",
+          "quote": "FOMO uses MobileNetV2 as a base model for its trunk ... by default does a spatial reduction of 1/8th from input to output ... it does not output bounding boxes ... It's thus not possible to detect objects with overlapping centroids.",
+          "importance": "central"
+        },
+        {
+          "claim": "Edge Impulse says FOMO uses up to 30 times less compute and memory than MobileNet SSD or YOLOv5, and runs 20 times faster than MobileNet SSD, which manages about 3 fps on the comparison hardware. This is a vendor marketing comparison and has not been independently verified.",
+          "quote": "using up to 30x less processing power and memory than MobileNet SSD or YOLOv5. ... This is 20x faster than MobileNet SSD which does ~3 frames/second.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "On SoC- or Linux-class hardware FOMO reaches about 60 fps on a Raspberry Pi 4. On the Himax WE-I Plus it runs at about 14 fps on a DSP.",
+          "quote": "FOMO lets you do 60 fps object detection on a Raspberry Pi 4 ... doing 14 frames per second on a DSP",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2019-09-20",
+      "claims": [
+        {
+          "claim": "The Zenodo record (version 'public 1.0') licenses the MIMII dataset under CC BY-SA 4.0. Commercial use and derivatives are therefore allowed, but derivatives must carry the same licence (share-alike) and credit is required. The page lists no extra commercial-use restriction.",
+          "quote": "made available under a \"Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) license.\"",
+          "importance": "central"
+        },
+        {
+          "claim": "MIMII contains sounds from four kinds of industrial machine (valves, pumps, fans, slide rails), recorded with an 8-channel microphone array at 16 kHz and 16 bit. That makes it a reference dataset for audio anomaly detection in industrial machine monitoring.",
+          "quote": "It contains the sounds generated from four types of industrial machines, i.e. valves, pumps, fans, and slide rails. ... eight-channel microphone array ... 16 kHz, 16 bits per sample",
+          "importance": "central"
+        },
+        {
+          "claim": "Each machine model has 5,000 to 10,000 seconds of normal sound and about 1,000 seconds of anomalous sound. The anomalies are real faults (contamination, leakage, rotating unbalance, rail damage). Background noise recorded in real factories was mixed in.",
+          "quote": "Normal sounds: 5,000 to 10,000 seconds per model; anomalous sounds about 1,000 seconds per model. Anomaly types include contamination, leakage, rotating unbalance, and rail damage. Background noise recorded in multiple real factories was mixed with the machine sounds.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Only four of the seven product models per machine type are in this release (IDs 00, 02, 04, 06). The data comes as ZIP archives in three SNR conditions (-6 dB, 0 dB, 6 dB), about 100 GB in total.",
+          "quote": "this version includes only four (model IDs 00, 02, 04, and 06) ... files for -6 dB, 0 dB, 6 dB conditions (e.g. fan -6 dB 10.9 GB) ... ~100.2 GB total",
+          "importance": "supporting"
+        },
+        {
+          "claim": "All seven listed authors of the MIMII dataset are affiliated with Hitachi, Ltd., so the dataset comes from industrial research.",
+          "quote": "Harsh Purohit, Ryo Tanabe, Kenji Ichige, Takashi Endo, Yuki Nikaido, Kaori Suefusa, and Yohei Kawaguchi, all listed with Hitachi, Ltd.",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2017-08-24",
+      "claims": [
+        {
+          "claim": "The Google Speech Commands dataset is released under CC BY 4.0. That licence allows commercial use and derivatives, with attribution required. Both the original Google Research blog post and the Hugging Face card google/speech_commands state it.",
+          "quote": "released under a Creative Commons BY 4.0 license",
+          "importance": "central"
+        },
+        {
+          "claim": "Speech Commands v0.01 (Aug 2017) holds about 65,000 one-second utterances of 30 short words from thousands of contributors. The HF card gives 64,727 files for v0.01 and 105,829 files for v0.02 (Apr 2018), which adds 5 words. The speaker count is not stated in the sources checked.",
+          "quote": "65,000 one-second long utterances of 30 short words",
+          "importance": "central"
+        },
+        {
+          "claim": "According to the HF card, the audio is one-second WAV files at 16 kHz. Labels are 10 core commands (Yes, No, Up, Down, Left, Right, On, Off, Stop, Go), auxiliary words flagged is_unknown, and a _silence_ background-noise class.",
+          "quote": "one-second .wav audio files",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The dataset has official train/validation/test splits: v0.01 51,093 / 6,799 / 3,081 and v0.02 84,848 / 9,982 / 4,890 (per the HF card). This supports reproducible keyword-spotting (KWS) benchmarking, as in the arXiv:1804.03209 methodology.",
+          "quote": "Suggests a methodology for reproducible and comparable accuracy metrics for this task.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The dataset is designed for training and evaluating small-footprint keyword-spotting / simple voice-command systems, the typical MCU audio task, rather than full-sentence speech recognition.",
+          "quote": "Describes an audio dataset of spoken words designed to help train and evaluate keyword spotting systems.",
+          "importance": "central"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2019-07-30",
+      "claims": [
+        {
+          "claim": "ToyADMOS (Zenodo record 3351307, NTT) carries the Zenodo licence label 'Other (Non-Commercial)'. The actual terms are in a separate LICENSE.pdf, whose contents could not be checked from the record page. Commercial use therefore appears to be excluded, and the terms for derivatives are not verified.",
+          "quote": "License: see the file named LICENSE.pdf ... Other (Non-Commercial) ... No further description.",
+          "importance": "central"
+        },
+        {
+          "claim": "ToyADMOS contains about 540 hours of normal machine-operating sounds and more than 12,000 anomalous-sound samples. It was recorded with four microphones at a 48 kHz sampling rate.",
+          "quote": "ToyADMOS dataset is a machine operating sounds dataset of approximately 540 hours of normal machine operating sounds and over 12,000 samples of anomalous sounds collected with four microphones at a 48kHz sampling rate",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset has three sub-datasets, each tied to an anomalous-sound-detection task: toy car (product inspection), toy conveyor (fault diagnosis of a fixed machine) and toy train (fault diagnosis of a moving machine).",
+          "quote": "The dataset consists of three sub-dataset: \"toy car\" for product inspection task, \"toy conveyor\" for fault diagnosis for fixed machine task, and \"toy train\" for fault diagnosis for moving machine task.",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset is over 440 GB uncompressed and about 180 GB compressed (about 60 GB per sub-dataset). It ships as 7-Zip split archives of 7–9 parts per sub-dataset. The Zenodo file listing adds up to about 197 GB, which does not match the 180 GB in the description.",
+          "quote": "Since the total size of the ToyADMOS dataset is over 440GB, each sub-dataset is split into 7-9 files by 7-zip (7z-format). The total size of the compressed dataset is approximately 180GB, and that of each sub-dataset is approximately 60GB.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The dataset was released on 30 July 2019 as version 1 (DOI 10.5281/zenodo.3351307). The authors are Koizumi, Saito, Harada, Uematsu and Imoto of NTT. Its reference paper is ToyADMOS, WASPAA 2019.",
+          "quote": "Yuma Koizumi, Shoichiro Saito, Noboru Harada, Hisashi Uematsu and Keisuke Imoto, \"ToyADMOS: A Dataset of Miniature-Machine Operating Sounds for Anomalous Sound Detection,\" in Proc of Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA), 2019.",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "unknown (page footer © 2024)",
+      "claims": [
+        {
+          "claim": "The CWRU Bearing Data Center download page states no licence, terms of use, or citation requirement for the dataset; the only rights notice is a university copyright footer. Commercial use and derivatives therefore cannot be verified from this page.",
+          "quote": "© 2024 Case Western Reserve University",
+          "importance": "central"
+        },
+        {
+          "claim": "The CWRU bearing data files are distributed in MATLAB format.",
+          "quote": "Data files are in Matlab format.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Drive-end bearing experiments were sampled at 12 kHz and at 48 kHz, and fan-end data at 12 kHz.",
+          "quote": "Data was collected at 12,000 samples/second and at 48,000 samples/second for drive end bearing experiments.",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset covers normal bearings and single-point defects at the drive end and the fan end, which suits a fault classification or anomaly-detection label scheme.",
+          "quote": "Data was collected for normal bearings, single-point drive end and fan end defects.",
+          "importance": "central"
+        },
+        {
+          "claim": "Each file contains up to three accelerometer channels (drive end, fan end, base) plus the motor RPM during testing, so the modality is a multi-channel vibration time series.",
+          "quote": "DE - drive end accelerometer data ... FE - fan end accelerometer data ... BA - base accelerometer data ... RPM - rpm during testing",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2012-12-09 (donated to UCI); paper from ESANN 2013; files in the archive are dated 2023-05-22",
+      "claims": [
+        {
+          "claim": "The UCI ML Repository landing page says the UCI HAR dataset is under CC BY 4.0, which would allow commercial use and derivatives with attribution. This is contradicted by the licence text in the dataset's own README (see next claim).",
+          "quote": "This dataset is licensed under a Creative Commons Attribution 4.0 International (CC BY 4.0) license.",
+          "importance": "central"
+        },
+        {
+          "claim": "The README.txt and the 'UCI HAR Dataset.names' file shipped in the official UCI download (both dated 2023-05-22) contain a separate licence clause from the authors. It forbids commercial use, so the landing page's CC BY 4.0 label conflicts with the original licence. Verified by downloading the archive and reading the file. Treat the dataset's commercial usability as disputed or unverified.",
+          "quote": "This dataset is distributed AS-IS and no responsibility implied or explicit can be addressed to the authors or their institutions for its use or misuse. Any commercial use is prohibited.",
+          "importance": "central"
+        },
+        {
+          "claim": "The data comes from 30 volunteers aged 19-48. Each wore a Samsung Galaxy S II on the waist, and its accelerometer and gyroscope were recorded on 3 axes each at 50 Hz. The signals are windowed at 2.56 s (128 samples) with 50% overlap.",
+          "quote": "3-axial linear acceleration and 3-axial angular velocity at a constant rate of 50Hz ... fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window)",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset has 10,299 instances in 6 activity classes. Each window comes with a 561-feature vector of time- and frequency-domain variables. The train/test split is by subject, at 70% and 30% of the volunteers.",
+          "quote": "A 561-feature vector with time and frequency domain variables ... 70% of the volunteers was selected for generating the training data and 30% the test data. (Labels: WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The dataset's DOI is 10.24432/C54S4K. It is distributed as a single ZIP of about 58 MB, and attribution must cite the ESANN 2013 paper.",
+          "quote": "Use of this dataset in publications must be acknowledged by referencing the following publication [1] ... Anguita et al., A Public Domain Dataset for Human Activity Recognition Using Smartphones, ESANN 2013",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2020-12-28 (Zenodo v1; record metadata created/modified 2024-01-05)",
+      "claims": [
+        {
+          "claim": "The ROAD CAN intrusion dataset on Zenodo (DOI 10.5281/zenodo.10462796) is licensed under Creative Commons Attribution 4.0 International, which allows commercial use and derivatives as long as attribution is given. This comes from the Zenodo record page; the original licence text was not checked separately.",
+          "quote": "License: Creative Commons Attribution 4.0 International",
+          "importance": "central"
+        },
+        {
+          "claim": "ROAD contains more than 3.5 hours of CAN data from a single mid-2010s vehicle: 33 attack captures of about 30 minutes in total and 12 ambient captures of about 3 hours in total. The make and model are not disclosed, and the data was obfuscated.",
+          "quote": "33 attack captures totalling about 30m ... 12 ambient captures totalling about 3h ... the make/model of which our organization will not allow us to disclose",
+          "importance": "central"
+        },
+        {
+          "claim": "The raw CAN data is in can-utils candump format, logged with SocketCAN through a Kvaser Leaf Light V2 on the OBD-II port. A signal-translated CSV version (columns Label, ID, Time, Signal-<i>-of-ID) exists for 17 of the 33 attack captures and for all ambient captures. It is distributed as road.zip (556.7 MB).",
+          "quote": "All of the CAN data files are logged using the standard can-utils candump format ... a signal-translated version for 17 of the 33 attack captures",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The attack classes are fuzzing, targeted ID fabrication and masquerade attacks (Correlated Signal, Max Speedometer, Max Engine Coolant Temperature, Reverse Light), and accelerator attacks. Attack captures were recorded on a dynamometer; ambient data was recorded both on the dynamometer and on roads.",
+          "quote": "Attack captures were recorded while the vehicle was driven on a dynamometer. Ambient data was collected both on a dynamometer and on roads.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The dataset comes from Oak Ridge National Laboratory (Verma, Bridges, Iannacone et al.) and is described in the paper arXiv:2012.14600, 'A comprehensive guide to CAN IDS data and introduction of the ROAD dataset' (PLoS ONE 2024).",
+          "quote": "A comprehensive guide to CAN IDS data and introduction of the ROAD dataset, 2020",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2018–2020 (associated papers: PST 2018, Vehicular Communications 2020; page itself undated)",
+      "claims": [
+        {
+          "claim": "The HCRL Car-Hacking dataset's original page states no formal licence. It releases the data 'for academic purposes' and asks users to cite the paper, and it does not address commercial use or derivatives. Commercial usability is therefore unverified or unclear and should not be assumed.",
+          "quote": "For academic purposes, we are happy to release our datasets. ... please cite our paper",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset contains real-vehicle CAN traffic logged through the OBD-II port, with four attack types (DoS, fuzzy, gear spoofing, RPM spoofing) plus an attack-free file, distributed as five downloads via a Dropbox link.",
+          "quote": "CAN traffic was logged through the OBD-II port while the injection attacks ran ... DoS / Fuzzy / spoofing the drive gear / spoofing the RPM gauge / attack-free (normal)",
+          "importance": "central"
+        },
+        {
+          "claim": "Each record has the fields Timestamp, CAN ID (hex), DLC (0–8), DATA[0]–DATA[7] and a Flag. The label is per message: 'T' for injected and 'R' for normal. This makes it an event-stream input for message-level intrusion classification or anomaly detection.",
+          "quote": "Timestamp, CAN ID, DLC, DATA[0~7], Flag (T: injected message, R: normal message)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Each attack dataset has 300 injected intrusions of 3–5 seconds each within 30–40 minutes of CAN traffic. Injection intervals are 0.3 ms for DoS (CAN ID 0000), 0.5 ms for fuzzy and 1 ms for spoofing.",
+          "quote": "DoS: injecting messages of '0000' CAN ID every 0.3 milliseconds ... Fuzzy: random CAN ID and DATA values every 0.5 milliseconds ... Spoofing: RPM/gear-related CAN ID every 1 millisecond",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The dataset's reference papers are Song, Woo and Kim, 'In-vehicle network intrusion detection using deep convolutional neural network' (Vehicular Communications 21, 2020, 100198), and Seo, Song and Kim, 'GIDS: GAN based Intrusion Detection System for In-Vehicle Network' (PST 2018; corrected version arXiv:1907.07377).",
+          "quote": "In-vehicle network intrusion detection using deep convolutional neural network, Vehicular Communications 21 (2020): 100198",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2022-01-28",
+      "claims": [
+        {
+          "claim": "The Mendeley 'Driver Behavior Detection Using Smartphone' dataset (v2, DOI 10.17632/9vr83n7z5j.2) is licensed CC BY 4.0. That licence allows commercial use and derivatives as long as attribution is given. The page shows only the licence label, with no other terms text.",
+          "quote": "CC BY 4.0 ... For all open access content, the Creative Commons licensing terms apply.",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset holds smartphone IMU time series: 3-axis accelerometer (m/s²) and 3-axis gyroscope (°/s), sampled at 50 Hz by default.",
+          "quote": "Sampling Rate: 50 Hz default",
+          "importance": "central"
+        },
+        {
+          "claim": "The label scheme has three driver-behaviour classes for classification: Normal, Aggressive and Risky.",
+          "quote": "Driver Behaviors: Normal, Aggressive, and Risky",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset is small and has little diversity. It covers 3 drivers aged 35–40 in 3 cars (Ford Figo, Maruti Suzuki Swift, Tata Nexon), recorded with 2 smartphones (Redmi 4, MI A3) through the 'Sensor Record' app on real-traffic round trips of about 10–25 km one way. The page gives no sample count, file format or file size.",
+          "quote": "Drivers: 3 different drivers with the ages between 35-40 yrs.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The dataset was published on 28 January 2022 as version 2, contributed by Pawan Wawage (Vishwakarma Institute of Information Technology). Its purpose is driver-behaviour classification.",
+          "quote": "Dataset for driver behavior classification",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2024-01-22 (PLoS ONE 19(1): e0296879); arXiv v1 2020-12-29, v3 2024-02-07; Zenodo record 10462796 v1 dated 2020-12-28",
+      "claims": [
+        {
+          "claim": "ROAD (ORNL) holds just over 3.5 h of CAN data from one vehicle, a mid-2010s model whose make and model are not disclosed. It splits into 12 ambient captures (about 3 h, recorded on a dynamometer and on roads) and 33 attack captures (about 30 min).",
+          "quote": "consists of 33 attack captures totalling about 30m, and 12 ambient captures totalling about 3h. ... All data is from a single vehicle, the make/model of which our organization will not allow us to disclose.",
+          "importance": "central"
+        },
+        {
+          "claim": "ROAD's attacks include real fuzzing and real targeted-ID fabrication whose physical effects on the vehicle were verified. Examples are the accelerator, correlated wheel-speed signal, max speedometer, max coolant and reverse-light attacks. Masquerade attacks were simulated by removing the legitimate target-ID frames from fabrication captures.",
+          "quote": "Using the fabrication captures we produce simulated masquerade attacks by removing the legitimate target ID frames.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Raw logs are in candump (can-utils) format. A signal-translated CSV time-series version, made with the CAN-D method, covers 17 of the 33 attack captures and all ambient captures. That makes ROAD usable both for frame-level and for signal-level (multivariate time-series) IDS models.",
+          "quote": "provide[s] a signal-translated version for 17 of the 33 attack captures and the all ambient captures. (Zenodo: logs recorded with the standard can-utils; 'The translated time series are represented in CSV format.')",
+          "importance": "central"
+        },
+        {
+          "claim": "The dataset is hosted on Zenodo (record 10462796, road.zip, 556.7 MB) under Creative Commons Attribution 4.0 International, so commercial use and derivatives are allowed with attribution. The licence comes from the Zenodo record page, not from the paper itself: the paper states only that the article is under CC BY.",
+          "quote": "Dataset available at: https://zenodo.org/records/10462796 and https://0xsam.com/road/. (Zenodo record licence: 'Creative Commons Attribution 4.0 International')",
+          "importance": "central"
+        },
+        {
+          "claim": "The authors judge the existing public CAN IDS datasets inadequate. They contain only simple real injection or fabrication attacks, and the physical effects of the attacks are not verified. They specifically advise against the HCRL Car-Hacking dataset, partly because its ambient and attack data come in different formats.",
+          "quote": "Current public CAN IDS datasets are limited to real fabrication (simple message injection) attacks ... Given these issues, this dataset does not seem like a good choice, even for testing a simple detector. ... ambient and attack data are in different formats (fixed width format and CSV).",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2024-2026 (spec copyright 2024-2026; NeurIPS 2024 citation; repo README current as of fetch on 2026-10-23)",
+      "claims": [
+        {
+          "claim": "Croissant is an ML dataset metadata format built on top of the schema.org Dataset vocabulary. A single file holds four layers: metadata (including responsible-ML aspects), resources (the raw data files), structure (how the data is arranged into records and fields) and ML semantics (how the data is typically used in ML).",
+          "quote": "Croissant 🥐 is a high-level format for machine learning datasets that combines metadata, resource file descriptions, data structure, and default ML semantics into a single file ... Croissant builds on schema.org, and its Dataset vocabulary, a widely used format to represent datasets on the Web",
+          "importance": "central"
+        },
+        {
+          "claim": "Several major data platforms emit Croissant JSON-LD. Hugging Face and Kaggle embed it in the HTML of their dataset pages and offer it for download, OpenML has a Croissant button, Dataverse has an export addon, and Google Dataset Search crawls and indexes the files. A harvester could therefore read Croissant metadata from these sources directly.",
+          "quote": "Hugging Face: embeds Croissant JSON-LD directly in the HTML of dataset pages ... Datasets Search: crawls and indexes Croissant JSON-LD files",
+          "importance": "central"
+        },
+        {
+          "claim": "CKAN supports Croissant through the ckanext-dcat extension from version 2.3.0. That extension also handles DCAT-AP, so it gives a mapping route between DCAT-AP portals such as data.europa.eu and Croissant.",
+          "quote": "CKAN supports Croissant through ckanext-dcat \"starting from version 2.3.0.\"",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The reference implementation is the Python library mlcroissant (installed with pip install mlcroissant, requires Python 3.10+). TensorFlow Datasets offers a CroissantBuilder that loads Croissant-described data into TensorFlow, JAX and PyTorch.",
+          "quote": "You can try the Croissant implementation, mlcroissant ... Installation (requires Python 3.10+) ... TFDS: has a CroissantBuilder for loading data into TensorFlow, JAX, and PyTorch",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The licences differ by part. The implementation and examples are Apache 2.0, while the specification text is CC BY-ND 4.0 (© 2024-2026 MLCommons). The current spec version is 1.1, and the examples still declare conformsTo croissant/1.0. The README only mentions responsible-ML aspects in the metadata layer and does not describe the RAI extension in detail, so that part could not be verified from this page.",
+          "quote": "Croissant implementation and examples are licensed under Apache 2 ... Croissant specification © 2024-2026 by MLCommons Association and contributors is licensed under CC BY-ND 4.0",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "undated README (copyright 2024-2026; references spec v1.1)",
+      "claims": [
+        {
+          "claim": "Croissant is an ML dataset metadata format with four layers: metadata (including responsible-ML aspects), resources, structure and ML semantics. It builds on the schema.org Dataset vocabulary.",
+          "quote": "a high-level format for machine learning datasets ... Metadata: dataset description, including responsible ML aspects; Resources; Structure; ML semantics (paraphrased list; the page builds on schema.org's Dataset vocabulary)",
+          "importance": "central"
+        },
+        {
+          "claim": "Hugging Face, Kaggle and OpenML expose Croissant metadata for their datasets. Hugging Face embeds JSON-LD and offers it through an API, Kaggle offers an export button and a download URL, and OpenML provides a Croissant button. A harvester could therefore read Croissant JSON-LD from these platforms.",
+          "quote": "Hugging Face: Embeds Croissant JSON-LD in dataset pages and offers it through a tag button and an API ... Kaggle: Embeds JSON-LD in its HTML and offers an export button and a download URL ... OpenML: Provides a Croissant button on its datasets",
+          "importance": "central"
+        },
+        {
+          "claim": "Dataverse has an addon to export Croissant. CKAN supports it through the ckanext-dcat extension from version 2.3.0, which bridges DCAT-based portals and Croissant. TFDS can build datasets from Croissant JSON-LD, and Google Dataset Search indexes Croissant files.",
+          "quote": "CKAN: Supports it via the ckanext-dcat extension, starting from version 2.3.0 ... Dataverse: Offers an addon to export and embed Croissant ... TFDS CroissantBuilder converts JSON-LD files into TFDS datasets",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The Croissant specification is licensed CC BY-ND 4.0, and the mlcroissant implementation and examples are licensed Apache 2.0. The spec link points to version 1.1.",
+          "quote": "The specification is licensed under CC BY-ND 4.0. The implementation and examples are licensed under Apache 2.",
+          "importance": "tangential"
+        },
+        {
+          "claim": "The Croissant README mentions no sensor-specific or time-series fields such as sampling rate, sensor type or channels. Fields like these would need extensions or custom properties (inferred from their absence in the README; not verified against the full spec).",
+          "quote": "Sensor or time-series fields: None are mentioned.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2026-09-16 (schema.org V30.1, development version)",
+      "claims": [
+        {
+          "claim": "schema.org Dataset has a dedicated property, variableMeasured, which can be repeated to list each measured variable. Each variable can be typed as a PropertyValue or a StatisticalVariable. This gives a hook for recording sensor channels or variables, for example accelerometer x/y/z.",
+          "quote": "The variableMeasured property can indicate (repeated as necessary) the variables that are measured in some dataset.",
+          "importance": "central"
+        },
+        {
+          "claim": "schema.org Dataset provides measurementTechnique, a high-level summary for discovery, and its subproperty measurementMethod. Both accept DefinedTerm, MeasurementMethodEnum, Text or URL, so they could record the sensor or measurement technique. The class has no dedicated property for sampling rate, label scheme or splits.",
+          "quote": "A technique, method or technology used in an Observation, StatisticalVariable or Dataset.",
+          "importance": "central"
+        },
+        {
+          "claim": "schema.org Dataset is declared equivalent to dcat:Dataset and is based on the W3C DCAT work. This makes mapping between schema.org markup and DCAT-AP harvesters such as data.europa.eu straightforward.",
+          "quote": "Dataset is equivalent to dcat:Dataset; the class is based on W3C DCAT work, with related ADMS and VoID collaboration (paraphrase of the page's equivalence note)",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Licence and access are covered by properties inherited from CreativeWork: license (CreativeWork or URL), conditionsOfAccess (Text), isAccessibleForFree (Boolean) and usageInfo. There is also sdLicense, which licenses the metadata itself and not the data.",
+          "quote": "A license document that applies to this content, typically indicated by URL.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The Dataset-specific properties also include distribution (DataDownload: a downloadable form at a specific location in a specific format) and includedInDataCatalog (DataCatalog). Temporal and spatial coverage come from CreativeWork, and for datasets the page advises ISO 8601 intervals for temporalCoverage.",
+          "quote": "A downloadable form of this dataset, at a specific location, in a specific format.",
+          "importance": "tangential"
+        }
+      ]
+    }
+  ]
+}

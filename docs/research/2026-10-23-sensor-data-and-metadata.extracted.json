@@ -1,0 +1,591 @@
+{
+  "generated": "2026-10-23",
+  "workflow": "wf_dcdf23dc-64d",
+  "status": "UNVERIFIED: claims extracted from fetched sources by one agent each, before adversarial voting. Only the claims in the matching .claims.json passed voting. Treat everything here as a lead, not a finding.",
+  "note": "The extraction agents did not record the source URL per result; the fetched sources are listed in the .claims.json file.",
+  "extractions": [
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2018-11 (Rev 1.1, BST-MIS-AN005-01; the document header marks specifications as preliminary)",
+      "claims": [
+        {
+          "claim": "The BMI088 accelerometer FIFO is 1024 bytes. Each accelerometer data frame is 7 bytes: a 1-byte header followed by a 6-byte X/Y/Z payload. The header's first 6 bits identify the frame type and its 2 low bits carry INT1/INT2 tag status. Data therefore arrives as a self-describing, variable-type frame stream that the host must parse, not as a fixed array.",
+          "quote": "The accelerometer part of BMI088 has an integrated 1024 byte data FIFO. ... The first byte is a header byte, defining the type of frame. ... Frame length: 7 bytes (1 byte header + 6 bytes payload)",
+          "importance": "central"
+        },
+        {
+          "claim": "The accelerometer FIFO stream carries metadata frames alongside data frames. A skip frame (2 bytes) reports the number of frames lost to overflow, saturating at 0xFF. A sensortime frame (4 bytes, 24-bit sensortime from registers 0x18–0x1A) is emitted only when the FIFO empties during a burst read. A 'FIFO input config' frame marks range, filter or downsampling changes, and a 'sample drop' frame marks samples invalidated after reconfiguration.",
+          "quote": "In the case of FIFO overflows, in both FIFO and STREAM mode, a skip_frame is prepended to the FIFO content ... one byte containing the number of skipped frames. When more than 0xFF frames have been skipped, 0xFF is returned. ... A sensortime frame is only sent if the FIFO becomes empty during the burst read ... Whenever the filter configuration or the range of the accelerometer sensor is changed, a FIFO input config frame is inserted into the FIFO",
+          "importance": "central"
+        },
+        {
+          "claim": "The FIFO has two operating modes. Stop-at-full ('FIFO') mode stops storing new data once the buffer is full, while STREAM mode overwrites the oldest data. Two interrupts are available: watermark (fill level ≥ a user-defined level in FIFO_WTM) and FIFO-full. The accelerometer FIFO input rate can be reduced by a downsampling factor of 2^k, with k = 0…7.",
+          "quote": "STREAM mode works like the FIFO mode with the difference that once the buffer is full, the oldest data in the FIFO will be overwritten with the newest data ... The FIFO watermark is issued when the FIFO fill level is superior or equal to the watermark level defined in register FIFO_WTM ... it can be reduced selecting a down-sampling factor of 2k with k=[0, 1, … 7]",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The BMI088 gyroscope FIFO works differently from the accelerometer FIFO: it holds up to 100 frames of three 16-bit rate words and has no header or sensortime frames. Overflow is signalled only by an overrun flag (register 0x0E bit 7). External events, such as camera frame sync, can be tagged by putting INT3/INT4 into input mode, which overwrites the LSB of the z-axis gyro data and reduces z resolution to 15 bits.",
+          "quote": "The gyroscope part of BMI088 features an integrated FIFO memory capable of storing up to 100 frames of data in FIFO mode. Each frame consists of three 16-bit rate_x,y,z data words ... In this mode, the least significant bit of the z-axis is used as tag-bit, therefore losing its meaning as gyroscope data bit.",
+          "importance": "central"
+        },
+        {
+          "claim": "Bus speed limits the usable gyroscope ODR when the FIFO is used. At 400 kHz I2C every filter mode can be used, at 200 kHz only ODR ≤ 1 kHz is recommended, and at 100 kHz only ODR ≤ 400 Hz. The FIFO also returns a sentinel value when over-read, and partially read gyroscope frames are lost.",
+          "quote": "For an I2C speed of 200 kHz, only modes with an output data rate of 1 KHz and below are recommended. For an I2C speed of 100 kHz, only modes with an output data rate of 400 Hz and below are recommended.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "unreliable",
+      "publishDate": null,
+      "claims": []
+    },
+    {
+      "sourceQuality": "unreliable",
+      "publishDate": null,
+      "claims": []
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2026-07-17",
+      "claims": [
+        {
+          "claim": "In the Linux IIO InvenSense driver, FIFO samples have no per-sample hardware timestamps. The host timestamps each interrupt and reconstructs per-sample timestamps from it. Before this patch, alignment changed only the next timestamp. With a FIFO watermark, where one interrupt delivers a batch of samples, this did not converge because jitter limits the correction.",
+          "quote": "Current interrupt timestamp alignment only change the next coming timestamp. For watermark where we have a batch of samples per interrupt, it doesn't manage to align timestamp since modification is limited because of jitter.",
+          "importance": "central"
+        },
+        {
+          "claim": "The patch has the driver derive the per-sample period from the interrupt timestamps. The period is the time between the last sample timestamp and the current interrupt timestamp, divided by the number of samples in the batch. The result is clamped to bounds set by the chip's jitter, given in per mille. When the interrupt interval is not valid, the driver falls back to the estimated chip period.",
+          "quote": "/* compute new period aligning last timestamp with interrupt timestamp */ new_period = div_s64(ts->it.up - ts->timestamp, sample_nb); /* ensure that period never overflows the jitter */ return clamp(new_period, period_min, period_max);",
+          "importance": "central"
+        },
+        {
+          "claim": "The actual sample period of the chip is estimated at runtime instead of taken from the nominal ODR. This implies that the sensor's internal oscillator period differs from the configured value, i.e. there is clock drift between sensor and host.",
+          "quote": "/* update chip internal period estimation */ new_chip_period = period / ts->mult; inv_update_acc(&ts->chip_period, new_chip_period);",
+          "importance": "supporting"
+        },
+        {
+          "claim": "For the first batch, with no prior timestamp, the driver back-calculates the timestamp of the first sample from the interrupt time: the nominal period times the number of samples is subtracted from the interrupt timestamp. Initial timestamps are therefore theoretical values, not measured ones.",
+          "quote": "/* no previous data, compute theoretical value from interrupt */ if (ts->timestamp == 0) { /* elapsed time: sensor period * sensor samples number */ interval = (int64_t)ts->period * (int64_t)sample_nb; ts->timestamp = timestamp - interval; }",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The timestamping logic is a shared IIO helper module that the InvenSense IMU drivers use (drivers/iio/common/inv_sensors/inv_sensors_timestamp.c). The patch is part 1 of a 2-patch series. Part 2 improves the period measurement by using a longer delay.",
+          "quote": "Next message: Jean-Baptiste Maneyrol via B4 Relay: \"[PATCH 2/2] iio: invensense: improve period measurement by using a longer delay\"",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "unreliable",
+      "publishDate": null,
+      "claims": []
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": null,
+      "claims": [
+        {
+          "claim": "Zephyr's sensor subsystem lets an application stream 6-DoF IMU data in batches straight from the sensor's hardware FIFO. It uses the RTIO-based 'Read and Decode' method: the raw FIFO buffer is fetched first and decoded later.",
+          "quote": "This sample application demonstrates how to stream a six degree of freedom device (rotational and translational) data from FIFO using the RTIO framework based Read and Decode method.",
+          "importance": "central"
+        },
+        {
+          "claim": "In Zephyr, FIFO streaming is started once with sensor_stream(). After that it is interrupt-driven and keeps itself running through the FIFO watermark trigger, rather than the host polling each sample.",
+          "quote": "The streaming is started using the sensor_stream() API and it is self-sustained by the SENSOR_TRIG_FIFO_WATERMARK trigger.",
+          "importance": "central"
+        },
+        {
+          "claim": "With an ST LSM6DSV16X and a FIFO watermark of 64, each decoded batch delivers accelerometer samples. Each sample carries a nanosecond timestamp and an XYZ tuple in physical units (m/s², about 9.9 on the Z axis). Consecutive timestamps are about 66,666,666 ns apart, which means an output data rate of roughly 15 Hz. This 15 Hz figure is derived from the sample output and is not stated on the page.",
+          "quote": "The FIFO watermark is set to 64. ... FIFO count - 64 / XL data for lsm6dsv16x@6b 1680572433340ns (0.373229, -0.009569, 9.909734) / XL data for lsm6dsv16x@6b 1680639100006ns (0.354089, -0.023924, 9.909734)",
+          "importance": "central"
+        },
+        {
+          "claim": "Besides raw accelerometer and gyroscope XYZ, the streamed FIFO channels include on-sensor fusion outputs (game rotation vector, gravity vector), a gyroscope bias estimate (GBIAS XYZ) and die temperature. In other words, the stream carries both metadata and preprocessed outputs.",
+          "quote": "Sample output lines are labeled per channel: XL, GY, TP, ROT, GV, GY GBIAS (accelerometer XYZ, gyroscope XYZ, die temperature, game rotation vector, gravity vector, gyroscope bias XYZ). This quote is the extraction model's paraphrase of the page's channel list, not verbatim text.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The sample supports up to 10 FIFO streaming sensor devices at once. They are configured through devicetree aliases stream0 to stream9.",
+          "quote": "This sample supports up to 10 FIFO streaming devices. Each device needs to be aliased as `stream_N_` where `N` goes from `0` to `9`.",
+          "importance": "tangential"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2020-04 (SBAS502C, revised April 2020; original December 2011)",
+      "claims": [
+        {
+          "claim": "The ADS1291/ADS1292/ADS1292R ECG front ends output 24 bits per channel in binary two's complement format, MSB first, so the host receives raw ADC counts rather than physical units.",
+          "quote": "The ADS1291, ADS1292, and ADS1292R outputs 24 bits of data per channel in binary twos complement format, MSB first.",
+          "importance": "central"
+        },
+        {
+          "claim": "Converting ADS1292 counts to voltage depends on the reference voltage: one LSB equals VREF/(2^23 − 1). The host therefore has to know the VREF configuration, and implicitly the PGA gain, as metadata.",
+          "quote": "The LSB has a weight of VREF / (2^23 – 1).",
+          "importance": "central"
+        },
+        {
+          "claim": "Out-of-range inputs saturate. Positive full scale gives code 7FFFFFh and negative full scale gives 800000h, so clipping shows up as these fixed codes.",
+          "quote": "A positive full-scale input produces an output code of 7FFFFFh and the negative full-scale input produces an output code of 800000h. The output clips at these codes for signals exceeding full-scale.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The ideal code-to-input mapping in Table 10 leaves out noise, linearity, offset and gain error, so real ECG samples deviate from it by these quality parameters, which are specified separately.",
+          "quote": "Table 10 ... Ideal output code versus input signal ... excluding the effects of noise, linearity, offset, and gain error.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2022-05 (SLYS021A, January 2021 – revised May 2022)",
+      "claims": [
+        {
+          "claim": "The TI INA228 digitizes shunt voltage with a 20-bit delta-sigma ADC over a selectable shunt full-scale differential range of ±163.84 mV or ±40.96 mV. It also senses bus voltage from 0 V to 85 V.",
+          "quote": "High-resolution, 20-bit delta-sigma ADC … Shunt full-scale differential range: ±163.84 mV / ±40.96 mV … Bus voltage sense input: 0 V to 85 V",
+          "importance": "central"
+        },
+        {
+          "claim": "The INA228 specifies its current-monitoring quality as maximum offset voltage ±1 µV, offset drift ±0.01 µV/°C, gain error ±0.05%, gain error drift ±20 ppm/°C and CMRR of at least 154 dB.",
+          "quote": "Offset voltage: ±1 µV (maximum) … Offset drift: ±0.01 µV/°C (maximum) … Gain error: ±0.05% (maximum) … Gain error drift: ±20 ppm/°C (maximum) … Common mode rejection: 154 dB (minimum)",
+          "importance": "central"
+        },
+        {
+          "claim": "Derived quantities are specified with coarser full-scale accuracy than the raw current measurement: power is 0.5% of full scale (maximum) over –40°C to +125°C, and energy and charge are 1.0% of full scale (maximum).",
+          "quote": "Power monitoring accuracy: 0.5% full scale, –40°C to +125°C (maximum) … Energy and charge accuracy: 1.0% full scale (maximum)",
+          "importance": "central"
+        },
+        {
+          "claim": "The INA228 sends its data over a high-speed I2C interface of up to 2.94 MHz with 16 pin-selectable addresses. It has a fast alert with 75 µs response time, and its conversion time and averaging are programmable.",
+          "quote": "2.94-MHz high-speed I2C interface with 16 pin-selectable addresses … Fast alert response: 75 μs … Programmable conversion time and averaging",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The INA228 has an integrated die temperature sensor with ±1°C maximum accuracy at 25°C and supports programmable shunt-resistor temperature compensation. This is metadata and compensation input that comes with the electrical measurement.",
+          "quote": "Temperature sensor: ±1°C (maximum at 25°C) … Programmable resistor temperature compensation",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2023-07 (Datenblatt Version 1.5, Juli 2023)",
+      "claims": [
+        {
+          "claim": "Die SCD4x-Daten kommen über I2C (Adresse 0x62) als 16-Bit-Wörter ohne Vorzeichen (MSB zuerst), auf die jeweils eine 8-Bit-CRC folgt. read_measurement (0xec05) liefert drei Wörter: CO2 direkt in ppm, die Temperatur skaliert als T = -45 + 175·word/(2^16-1) und die relative Feuchte als RH = 100·word/(2^16-1).",
+          "quote": "Data sent to and received from the sensor consists of a sequence of 16-bit commands and/or 16-bit words (each to be interpreted as unsigned integer with the most significant byte transmitted first). Each data word is immediately succeeded by an 8-bit CRC. ... CO2 [ppm] = word[0]",
+          "importance": "central"
+        },
+        {
+          "claim": "Es gibt drei Messmodi mit festen Ausgaberaten. Im Periodic Mode wird das Signal alle 5 s aktualisiert, im Low-Power-Periodic Mode etwa alle 30 s. Der SCD41 kann zusätzlich Einzelmessungen auf Anfrage machen (Ausführungszeit 5000 ms). Ein Messwert lässt sich nur einmal pro Update-Intervall auslesen. Ob neue Daten bereitliegen, prüft der Host per Polling mit get_data_ready_status: Sind die unteren 11 Bits 0, liegen keine Daten vor.",
+          "quote": "The I2C master sends a start_periodic_measurement command. The signal update interval is 5 seconds. ... a low power periodic measurement mode with a signal update interval of approximately 30 seconds. ... If the least significant 11 bits of word[0] are: [0 → data not ready] else → data ready for read-out",
+          "importance": "central"
+        },
+        {
+          "claim": "Die Genauigkeit ist abhängig vom Messwert angegeben: SCD40 ±(50 ppm + 5 % des Messwerts) im Bereich 400–2000 ppm, SCD41 ±(50 ppm + 2,5 % des Messwerts) im Bereich 400–1000 ppm. Die Wiederholbarkeit beträgt typisch ±10 ppm. Bei eingeschalteter Selbstkalibrierung (ASC) kommt über fünf Jahre typisch eine Drift von ±(5 ppm + 0,5 % des Messwerts) hinzu, nach Stresstests maximal ±(5 ppm + 2 %). Das zeigt den Unterschied zwischen Genauigkeit und Präzision sowie die Langzeitdrift von Gassensoren.",
+          "quote": "SCD40 CO2 measurement accuracy 400 ppm – 2'000 ppm ±(50 ppm + 5% of reading) ... Repeatability Typical ±10 ppm ... Additional accuracy drift after five years with automatic self-calibration (ASC) Typical, 400 – 2000 ppm ±(5 ppm + 0.5 % of reading)",
+          "importance": "central"
+        },
+        {
+          "claim": "Die Kalibrierung hängt vom Einsatzkontext ab und erzeugt Metadaten. ASC ist standardmäßig an und setzt voraus, dass der Sensor einmal pro Woche Luft mit 400 ppm sieht. Liegt die CO2-Konzentration bei aktivem ASC unter 400 ppm, kann die Genauigkeit leiden. Nach der Montage kann die Genauigkeit vorübergehend schlechter sein und lässt sich frühestens 5 Tage danach per FRC oder ASC wiederherstellen. Die forcierte Rekalibrierung (FRC) gibt den Korrekturwert als word − 0x8000 zurück; 0xffff bedeutet, dass sie fehlgeschlagen ist.",
+          "quote": "For proper function of the ASC algorithm, the SCD4x must be exposed to air with CO2 concentrations of 400 ppm on a weekly basis. ... Accuracy can be fully restored through the forced recalibration (FRC) or ASC algorithms at least 5 days after sensor assembly ... A return value of 0xffff indicates that the FRC has failed.",
+          "importance": "central"
+        },
+        {
+          "claim": "Folgende Metadaten bzw. Kompensationsgrößen lassen sich zur Laufzeit lesen oder setzen: Temperatur-Offset (Standard 4 °C, beeinflusst nur RH/T, nicht CO2), Höhe über Meeresspiegel (Standard 0 m), Umgebungsdruck (70.000–120.000 Pa, Standard 101.300 Pa; überschreibt die Höhe), ASC-Status, Seriennummer sowie ein Selbsttest (perform_self_test, 10 s). Liefert der Selbsttest word[0] ≠ 0, wurde eine Fehlfunktion erkannt.",
+          "quote": "By default, the temperature offset is set to 4 °C. ... Note that the temperature offset does not impact the accuracy of the CO2 output. ... Valid input values are between 70'000 – 120'000 Pa. The default value is 101'300 Pa. ... word[0] = 0 → no malfunction detected; word[0] ≠ 0 → malfunction detected",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "unreliable",
+      "publishDate": null,
+      "claims": []
+    },
+    {
+      "sourceQuality": "unreliable",
+      "publishDate": null,
+      "claims": []
+    },
+    {
+      "sourceQuality": "unreliable",
+      "publishDate": null,
+      "claims": []
+    },
+    {
+      "sourceQuality": "secondary",
+      "publishDate": "2023-04-07 (arXiv 2304.06489v1; MDSOAR/UMBC repository record of the same paper)",
+      "claims": [
+        {
+          "claim": "IMU-based wearable activity-recognition models lose performance under data-distribution heterogeneity. The survey names three causes: sensor placement on different body positions, biases and differences between devices, and personal and environmental diversity.",
+          "quote": "the widespread adoption of these WHAR models is impeded by their degraded performance in the presence of data distribution heterogeneities caused by the sensor placement at different body positions, inherent biases and heterogeneities across devices, and personal and environmental diversities.",
+          "importance": "central"
+        },
+        {
+          "claim": "Even two devices that use the same accelerometer can produce different readings for the same activity. The survey attributes this to measurement range, manufacturer, sensor model and calibration. This argues for recording range, model and calibration state as metadata.",
+          "quote": "if two smartphones use the same accelerometer, the sensor readings may be different due to factors such as measurement ranges, sensor manufacturer, sensor model, and sensor calibration.",
+          "importance": "central"
+        },
+        {
+          "claim": "Readings from the same accelerometer differ with placement location, sensor orientation and body movement (for example wrist versus ankle). Placement and orientation therefore need to be recorded as metadata.",
+          "quote": "This variability can arise from factors such as the sensor placement location, the sensor orientation, and the body movement. For example, the readings from an accelerometer placed on the wrist will be different from the readings of the same accelerometer placed on the ankle",
+          "importance": "central"
+        },
+        {
+          "claim": "The survey lists sampling variations and differing collection protocols across datasets as further sources of distribution heterogeneity, next to user diversity and device placement. It also judges cross-sensor/device heterogeneity to be harder than cross-person or cross-position heterogeneity.",
+          "quote": "distribution heterogeneity, such as user diversity, behavior, device placement variation, data sampling variations, and different data collection protocols for different datasets ... it is a very challenging task compared to cross-person and cross-position heterogeneity.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Semi-supervised domain-adaptation methods cited in the survey reach only about 40–60% on DSADS and PAMAP. The authors speculate that pseudo-label noise causes this. One method using 10% labelled target data reaches 92.1% on PAMAP. These figures come from the cited works and were not re-verified by the survey.",
+          "quote": "[34, 30, 54] performance on the DSADS and PAMAP dataset ranges between 4060%. We speculate that as these approaches generate pseudo-label for the target domain data, incorrect label predictions on the target domain sample might have contributed to negative learning ... achieves 92.1% accuracy on PAMAP dataset.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2015-11-01",
+      "claims": [
+        {
+          "claim": "Human activity recognition (HAR) built on motion sensors performs substantially worse when deployed across many devices than in reported research results, because training and test devices differ in hardware and operating-system characteristics. This is evidence of domain shift between sensor units. (Source: the peer-reviewed abstract. The ACM full text is closed access and returned 403, so the claim could not be checked against the full text.)",
+          "quote": "when deployed at a large-scale, e.g., on multiple devices, the performance of a HAR system is often significantly lower than in reported research results. This is due to variations in training and test device hardware and their operating system characteristics among others.",
+          "importance": "central"
+        },
+        {
+          "claim": "The study measured sensor-, device- and workload-specific heterogeneities on 36 smartphones and smartwatches: 13 device models from 4 manufacturers, with 9 users.",
+          "quote": "we systematically investigate sensor-, device- and workload-specific heterogeneities using 36 smartphones and smartwatches, consisting of 13 different device models from four manufacturers. Furthermore, we conduct experiments with nine users",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Heterogeneity in on-device sensors and in how they are handled (sampling and OS pipeline) significantly impairs HAR. How much it impairs varies by device and by recognition technique (features and classifier).",
+          "quote": "Our results indicate that on-device sensor and sensor handling heterogeneities impair HAR performances significantly. Moreover, the impairments vary significantly across devices and depends on the type of recognition technique used.",
+          "importance": "central"
+        },
+        {
+          "claim": "The authors propose a clustering-based mitigation technique, meant for large-scale HAR deployments in which device heterogeneity is unavoidable.",
+          "quote": "propose a novel clustering-based mitigation technique suitable for large-scale deployment of HAR, where heterogeneity of devices and their usage scenarios are intrinsic.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "The associated HHAR dataset (UCI) records accelerometer samples together with several timestamps (creation/sensor time and arrival time) and device/model metadata per sample. Sensors were sampled at each device's maximum rate, not at a fixed common rate. This shows the metadata needed to assess timing and device heterogeneity. (Source: the UCI dataset page, not the paper itself.)",
+          "quote": "'Index', 'Arrival_Time', 'Creation_Time', 'x', 'y', 'z', 'User', 'Model', 'Device', 'gt' ... sampled at the highest frequency the respective device allows",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2014-10 (IEEE Pervasive Computing, Oct–Dec 2014, DOI 10.1109/MPRV.2014.73; Kunze & Lukowicz)",
+      "claims": [
+        {
+          "claim": "In a gym experiment with Xsens IMUs placed on the upper leg/upper arm, accelerometer-only activity recognition reached 100% (locomotion) and 96% (arm exercises) when trained and tested at the same location, but dropped to 63% and 24% when tested on a different location within the same body part; training on two locations improved this only slightly (61% and 31%).",
+          "quote": "we achieved 100 percent recognition for the locomotion scenario and 96 percent for arm exercises. However, when testing and training on a different location, the performance dropped to 63 and 24 percent, respectively (see Table 1). Training the system on two different locations improved the recognition rate, but only slightly, to 61 and 31 percent.",
+          "importance": "central"
+        },
+        {
+          "claim": "Table 1 shows that for displaced sensors, acceleration accuracy falls from 100% (same location) to 33% (trained on another location), gyroscope from 65% to 43%, while a combined scheme (acceleration features for translation-dominated, gyroscope for rotation-dominated body parts) recovers to 78% (85% when trained on two locations).",
+          "quote": "Acceleration 100% 33% 35% / Gyroscope 65% 43% 44% / Combined† — 78% 85% ... †Mixes acceleration features for translation and gyroscope from rotation-dominated body parts",
+          "importance": "central"
+        },
+        {
+          "claim": "Gyroscope signals are the same for all points of a rigid body segment (invariant to within-body displacement), whereas accelerometer signals are placement-dependent; the gravity component of acceleration is displacement-invariant but depends on sensor orientation.",
+          "quote": "The gyroscope signal is the same for all points within the body, but the acceleration signal is placement dependent. ... a component related to gravity that's effectively identical at all places on an object and is thus invariant to displacement within body parts. It does, however, depend on sensor orientation.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "For sound-based recognition with a phone, training and testing at the same location gave 99%, but training with the device in hand ('clean') and testing in pockets dropped to about 60% frame-by-frame (≈70% majority vote); training on multiple pocket types restored 80–90% frame-by-frame and 100% majority vote — i.e., clothing absorption causes domain shift in microphone data.",
+          "quote": "If we trained and tested the device at the same location, the recognition results were 99 percent ... then the performance went down to around 60 percent on a frame-by-frame basis, and around 70 percent for the majority decision ... performance can be improved to between 80 and 90 percent on a frame-by-frame basis and 100 percent for the majority decision.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "In a cited multimodal study (motion, sound, light; shoulder, wrist, hip; eight activities), classifiers trained and tested on different locations had up to 20% worse recall and precision than location-matched classifiers, while a classifier trained on all three locations was only a few percent worse than location-specific ones.",
+          "quote": "The classifiers trained and tested on different locations had up to 20 percent worse recall and precision than the ones trained and tested on the same location. A classifier trained on all three locations was only a few percent worse than the location-specific classifiers.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2025-11-17 (last source update; 'latest' docs generated 2026-10-22)",
+      "claims": [
+        {
+          "claim": "In Zephyr's read-and-decode sensor API, sensor_read() puts sensor-specific encoded raw data into a buffer the caller supplies. A separate decoder later turns it into fixed-point q31_t vectors per channel, so acquisition and conversion to physical values are separate steps.",
+          "quote": "sensor_read() and similar functions acquire sensor encoded data into a buffer provided by the caller ... then decodes the sensor specific encoded data into fixed point q31_t values as vectors per channel.",
+          "importance": "central"
+        },
+        {
+          "claim": "Zephyr reads sensors asynchronously by default through Real Time I/O (RTIO). Getting the full benefit needs RTIO-compliant access to the sensor bus, such as an RTIO-enabled SPI or I2C driver.",
+          "quote": "Reading is by default asynchronous in its implementation and takes advantage of Real Time I/O (RTIO) ... requires Real Time I/O (RTIO) compliant communication access to the sensor.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Zephyr handles sensor FIFOs by wiring FIFO triggers to read data into mempool-allocated buffers. Triggers become enqueued events, not callbacks, and a stream configuration states which triggers to capture and whether data comes with the event.",
+          "quote": "Sensor FIFOs supported by wiring up FIFO triggers to read data into mempool allocated buffers. ... Triggers result in enqueued events, not callbacks. ... A stream specifies the set of triggers to capture and if data should be captured with the event.",
+          "importance": "central"
+        },
+        {
+          "claim": "Under this API, one FIFO read can hold several frames. The host asks the decoder for the frame count, for example accelerometer frames via get_frame_count(), and decodes the frames one by one with a frame iterator.",
+          "quote": "when data comes from a FIFO",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Zephyr addresses a sensor channel by type plus index, for example SENSOR_CHAN_AMBIENT_TEMP index 0 or 1. The documentation names better support for multiple channels of the same type as an advantage over the older Fetch and Get API. The page also calls the read and decode APIs 'quickly stabilizing', so they are not yet fully stable.",
+          "quote": "Multiple sensor channels of the same type are better supported.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "undated; the page is the generated API documentation for Zephyr 4.5.0-rc3 (Doxygen 1.16.1)",
+      "claims": [
+        {
+          "claim": "In Zephyr's decoded sensor data format, every reading block starts with a common header. The header holds one absolute 64-bit base timestamp in nanoseconds, derived from the kernel uptime clock (a host-side timestamp, not sensor time), and a count of readings. The second part of this was verified in the source header file in Zephyr's GitHub repository, not on the Doxygen page.",
+          "quote": "The closest timestamp for when the first frame was generated as attained by :c:func:`k_uptime_ticks`. ... uint64_t base_timestamp_ns; ... The number of elements in the 'readings' array. This must be at least 1 ... uint16_t reading_count;",
+          "importance": "central"
+        },
+        {
+          "claim": "Each individual reading carries only a 32-bit timestamp_delta relative to the header's base timestamp. Batched data from a FIFO is therefore represented as one base time plus a delta per sample. The field names appear on the Doxygen page through the print macros; the type was confirmed in the source.",
+          "quote": "struct sensor_three_axis_sample_data { uint32_t timestamp_delta; ... (macros use header.base_timestamp_ns and readings[i].timestamp_delta)",
+          "importance": "central"
+        },
+        {
+          "claim": "Zephyr stores scalar and three-axis sensor values as fixed-point q31_t numbers with a per-block int8 'shift' exponent, not as floats or raw counts. Physical units are fixed per channel, for example lux for light and degrees Celsius for temperature.",
+          "quote": "struct sensor_q31_data { struct sensor_data_header header; int8_t shift; ... q31_t light; /**< Unit: lux */ ... q31_t temperature; /**< Unit: degrees Celsius */",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Zephyr groups decoded sensor data by data shape, not by sensor type. The types are three-axis (e.g. SENSOR_CHAN_ACCEL_XYZ), scalar q31, game rotation vector (x,y,z,w), single byte (e.g. proximity with an is_near bit), uint64 count-like values, and occurrence/event-only data for triggers.",
+          "quote": "sensor_three_axis_data: \"Data for a sensor channel which reports on three axes.\" ... sensor_occurrence_data: \"Data from a sensor where we only care about an event occurring.\" ... sensor_uint64_data: \"Data from a sensor that produces a count like value.\"",
+          "importance": "central"
+        },
+        {
+          "claim": "The standard Zephyr decoded data structs have no field for accuracy, calibration status or quality. Only the timestamp, the reading count, the shift and the values are carried. This is unlike the Android sensor HAL accuracy field. Checked in the source header file in Zephyr's GitHub repository, not on the Doxygen page.",
+          "quote": "Not present on the page: reading_count, is_accurate ... (source: sensor_data_header contains only base_timestamp_ns and reading_count)",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "Unknown; text read is Rev. A of the ADI datasheet (34 pages). The given URL returned HTTP 503, so the content came from a text mirror at radiolocman.com (di=130625). Search results say the current ADI revision is Rev. C, which was not read.",
+      "claims": [
+        {
+          "claim": "The ADIS16470 gyroscope has a ±2000°/s range and a sensitivity of 10 LSB/°/s in 16-bit format (655,360 LSB/°/s in 32-bit format). Its datasheet quality figures are: in-run bias stability 8°/hr (1σ), angle random walk 0.34°/√hr, rate noise density 0.008°/s/√Hz rms, nonlinearity ±0.25 %FS, axis-to-axis misalignment ±0.1°, sensitivity error over −10…+75 °C of ±0.25 %, and 3 dB bandwidth 550 Hz.",
+          "quote": "GYROSCOPES Dynamic Range ±2000 °/sec Sensitivity 16-bit format 10 LSB/°/sec 32-bit format 655,360 LSB/°/sec Error over Temperature −10°C ≤ TC ≤ +75°C ±0.25 % Misalignment Axis to axis ±0.1 Degrees Nonlinearity1 Full scale (FS) = 2000°/sec ±0.25 %FS Bias In Run Stability 1 σ 8 °/hr Angular Random Walk 1 σ 0.34 °/√hr ... Rate Noise Density 1 σ, f = 10 Hz to 40 Hz 0.008 °/sec/√Hz rms 3 dB Bandwidth 550 Hz",
+          "importance": "central"
+        },
+        {
+          "claim": "The ADIS16470 accelerometer has a ±40 g range and a sensitivity of 800 LSB/g in 16-bit format. Its nonlinearity depends on the full-scale span: 0.02 %FS at ±10 g, 0.4 %FS at ±20 g and 1.5 %FS at ±40 g. In-run bias stability is 13 µg and velocity random walk is 0.037 m/s/√hr.",
+          "quote": "Dynamic Range ±40 g Sensitivity 16-bit format 800 LSB/g 32-bit format 52,428,800 LSB/g ... Nonlinearity Best fit straight line, FS = ±10 g 0.02 % FS Best fit straight line, FS = ±20 g 0.4 % FS Best fit straight line, FS = ±40 g 1.5 % FS Bias In Run Stability 1 σ 13 µg Velocity Random Walk 1 σ 0.037 m/sec/√Hr",
+          "importance": "central"
+        },
+        {
+          "claim": "Each unit is calibrated at the factory over −10 °C to +75 °C for sensitivity, bias, alignment, the effect of linear acceleration on gyro bias, and point of percussion. On demand, the device can run a sensor self-test (14 ms), a flash-memory self-test and a restore of the factory calibration.",
+          "quote": "The factory calibration characterizes each sensor for sensitivity, bias, alignment, linear acceleration (gyroscope bias), and point of percussion (accelerometer location). ... Calibration temperature range: −10°C to +75°C ... On demand self test of inertial sensors ... On demand self test of flash memory",
+          "importance": "central"
+        },
+        {
+          "claim": "Data arrive over SPI. The internal sample rate is 2000 SPS with an initial clock accuracy of 3 %. A data-ready pin and a decimation filter are available, and there are four external sync modes: direct, pulse, scaled and output. A burst read returns DIAG_STAT, gyroscope and accelerometer data for three axes each, TEMP_OUT, DATA_CNTR and a checksum. That gives the host metadata it can check: a sample counter and an integrity checksum.",
+          "quote": "CONVERSION RATE 2000 SPS Initial Clock Accuracy 3 % ... the burst read response includes the following registers and checksum value: DIAG_STAT, X_GYRO_OUT, Y_GYRO_OUT, Z_GYRO_OUT, X_ACCL_OUT, Y_ACCL_OUT, Z_ACCL_OUT, TEMP_OUT, DATA_CNTR, and checksum.",
+          "importance": "central"
+        },
+        {
+          "claim": "The DIAG_STAT register reports health flags at runtime: clock error (sync mismatch), memory failure, sensor failure after self-test, standby when VDD is below 2.8 V, SPI communication error, flash update failure and data path overrun. These are per-sample status metadata that can be used to judge whether data are valid.",
+          "quote": "7 Clock error. ... 6 Memory failure. ... 5 Sensor failure. A 1 indicates failure of at least one sensor, at the conclusion of the self test ... 4 Standby mode. A 1 indicates that the voltage across VDD and GND is <2.8 V ... 3 SPI communication error. ... 2 Flash memory update failure. ... 1 Data path overrun. A 1 indicates that one of the data paths have experienced an overrun condition.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": null,
+      "claims": [
+        {
+          "claim": "The Memfault SDK collects built-in device-health metrics automatically, with no application code. These heartbeat metrics are aggregated once per heartbeat interval, which defaults to one hour, so they are coarse periodic summaries and not sample-level telemetry.",
+          "quote": "The Memfault SDK automatically collects a number of metrics without any additional code. ... default interval is 1 hour",
+          "importance": "central"
+        },
+        {
+          "claim": "The core metrics always collected are the heartbeat window length (MemfaultSdkMetric_IntervalMs), the count of unexpected reboots, operational_hours and operational_crashfree_hours. A non-zero reboot count signals unexpected resets.",
+          "quote": "non-zero values indicate unexpected reboots",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Memfault's built-in set has no general metrics for sensor data quality. The nearest device-physical metrics are CPU temperature (thermal_cpu_c, in °C ÷10) and battery metrics (battery_soc_pct, battery_soc_pct_drop, and battery_discharge_duration_ms, which excludes charging time). Sensor-level observability therefore needs custom metrics.",
+          "quote": "Excludes time spent charging",
+          "importance": "central"
+        },
+        {
+          "claim": "Log-integrity metrics count log lines that were dropped (overwritten before being read or sent) next to the lines recorded. This makes gaps in device log data observable. uptime_s is defined as monotonic since the last power-on reset.",
+          "quote": "Monotonically increasing since last POR",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Platform metric sets include CPU usage (cpu_usage_pct scaled ÷100), heap and stack high-water marks, connectivity (Wi-Fi/BLE RSSI, connected time, disconnect counts) and nRF91 LTE metrics. They also include location session metrics such as ncs_loc_accuracy_cm and ncs_loc_search_time_ms, which expose GNSS/cellular/Wi-Fi positioning quality as metadata.",
+          "quote": "Only one connection is tracked at a time for metrics purposes.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": null,
+      "claims": [
+        {
+          "claim": "Memfault MCU metrics are aggregated into periodic 'heartbeat' snapshots whose default interval is one hour (3600 s), and Memfault advises against sending data more than once per hour per device. Device telemetry is therefore coarse-grained aggregates, not raw sensor streams.",
+          "quote": "Avoid sending data more than once per hour per device.",
+          "importance": "central"
+        },
+        {
+          "claim": "The Memfault SDK metric data model supports only signed and unsigned 32-bit integers, timers (duration in ms) and fixed-length strings. It has no native boolean or float type. Floats come from integer metrics plus a backend 'scale value' that divides the received values.",
+          "quote": "Memfault will scale down received metric values by the scale value when the data is received.",
+          "importance": "central"
+        },
+        {
+          "claim": "Metric updates happen in RAM with negligible overhead. Sampled values are collected in memfault_metrics_heartbeat_collect_data(), which runs at the end of each heartbeat interval.",
+          "quote": "The updates occur in RAM, so there is negligible overhead introduced.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "From SDK 0.42.0 on, integer metrics that were not set during an interval are serialized as CBOR null and no data point is recorded. Earlier versions sent 0. A timer that did not run always reports 0. This affects how gaps and missing values look in the observability data.",
+          "quote": "serialized as a CBOR `null` value, and no data point is recorded",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Besides fixed heartbeats, Memfault supports session metrics. Their time window is bound to a specific event, controlled with MEMFAULT_METRICS_SESSION_START/END/RESET, and namespaced by session key.",
+          "quote": "Session metrics are similar to Heartbeats, but differ in how the window of time is set.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2018-08",
+      "claims": [
+        {
+          "claim": "SenML deliberately does not carry static metadata about devices or sensors (e.g. model, calibration, placement). That metadata has to be transported out of band, so SenML alone cannot tell whether a recording is usable for ML.",
+          "quote": "does not carry significant static metadata about the device, object, or sensors. ... Instead, it is assumed that this metadata is carried out of band.",
+          "importance": "central"
+        },
+        {
+          "claim": "SenML records combine a name, a unit, exactly one value (v/vs/vb/vd, or only a sum) and a time. Base fields (bn, bt, bu, bv, bs, bver) are added or prepended to every entry in a pack to compress series.",
+          "quote": "Base Name: \"This is a string that is prepended to the names found in the entries.\" ... \"Exactly one Value field MUST appear unless there is a Sum field, in which case it is allowed to have no Value field.\"",
+          "importance": "central"
+        },
+        {
+          "claim": "SenML time values below 2^28 are relative to the current time, and values at or above 2^28 are absolute Unix-epoch seconds. Negative values mean seconds in the past, so timestamps can be relative to the receiver's notion of 'now'.",
+          "quote": "Values less than 268,435,456 (2**28) represent time relative to the current time. ... Values greater than or equal to 2**28 represent an absolute time relative to the Unix epoch",
+          "importance": "supporting"
+        },
+        {
+          "claim": "SenML defines an Update Time field (ut) that serves as a health and observability signal for detecting failed sensors or communication paths.",
+          "quote": "This can be used to detect the failure of sensors or the communications path from the sensor.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Units come from an IANA 'SenML Units' registry and use unprefixed SI units; scaling prefixes such as 'k' are not recommended. The same data model is serialised as JSON, CBOR, XML or EXI, each with its own media type.",
+          "quote": "Use of System of Units (SI) prefixes such as \"k\" before the unit is not recommended. ... Instead, one can represent the value using scientific notation such as 1.2e3.",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": "2017-10-19",
+      "claims": [
+        {
+          "claim": "SOSA models a measurement as an Observation: the act of carrying out a Procedure to estimate the value of a property of a FeatureOfInterest. It links to the Sensor (madeBySensor), the observed property (observedProperty) and a Result (hasResult). This gives the minimal provenance metadata for each data point.",
+          "quote": "Act of carrying out an (Observation) Procedure to estimate or calculate a value of a property of a FeatureOfInterest",
+          "importance": "central"
+        },
+        {
+          "claim": "SOSA separates two timestamps. resultTime is the instant the observation was completed. phenomenonTime is when the observed phenomenon applied, and the two need not be the same. This matches the gap between the sensor's own sample time and a host or delivery timestamp.",
+          "quote": "The result time is the instant of time when the Observation, Actuation or Sampling activity was completed.",
+          "importance": "central"
+        },
+        {
+          "claim": "The SSN System Capabilities module defines a SystemCapability that holds measurement properties such as accuracy, range and precision. These properties are qualified by environmental Conditions through inCondition.",
+          "quote": "Describes normal measurement, actuation, sampling properties such as accuracy, range, precision, etc.",
+          "importance": "central"
+        },
+        {
+          "claim": "SSN defines separate quality classes: Accuracy, Precision, Resolution, Latency, Frequency, MeasurementRange, Drift, Sensitivity, Selectivity, DetectionLimit and ResponseTime. Drift is defined as a continuous or incremental change in the reported values over time while the property stays unchanged.",
+          "quote": "a continuous or incremental change in the reported values of Observations over time for an unchanging Property",
+          "importance": "central"
+        },
+        {
+          "claim": "SSN also describes the deployment context. A Platform hosts Sensors and other Platforms, and a Deployment describes the Systems deployed for a purpose, possibly on a Platform. It also defines OperatingRange, SurvivalRange, BatteryLifetime and OperatingPowerRange. Together these cover placement and mounting metadata.",
+          "quote": "an entity that hosts other entities, particularly Sensors, Actuators, Samplers, and other Platforms",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "primary",
+      "publishDate": null,
+      "claims": [
+        {
+          "claim": "The ROS 2 sensor_msgs/Imu message prescribes SI units for inertial data: acceleration in m/s^2 (not g) and angular rate in rad/s, so the counts-to-physical scaling has to happen in the driver before publishing. Note: docs.ros.org returned an Anubis bot-block page, so the content was verified from the canonical source file ros2/common_interfaces (jazzy branch) sensor_msgs/msg/Imu.msg.",
+          "quote": "Accelerations should be in m/s^2 (not in g's), and rotational velocity should be in rad/sec",
+          "importance": "supporting"
+        },
+        {
+          "claim": "Each Imu quantity (orientation, angular velocity, linear acceleration) has its own 3x3 covariance matrix, stored as float64[9] in row-major order. If only datasheet variances are known, they go on the diagonal. This is a standardized way to carry per-sample quality metadata.",
+          "quote": "If the covariance of the measurement is known, it should be filled in (if all you know is the variance of each measurement, e.g. from the datasheet, just put those along the diagonal)",
+          "importance": "central"
+        },
+        {
+          "claim": "A covariance matrix of all zeros means 'covariance unknown'. Before the data can be used, a covariance must be assumed or taken from another source, so missing quality metadata is explicitly representable.",
+          "quote": "A covariance matrix of all zeros will be interpreted as \"covariance unknown\", and to use the data a covariance will have to be assumed or gotten from some other source",
+          "importance": "central"
+        },
+        {
+          "claim": "If a data element is not provided (e.g. an IMU without orientation estimation), element 0 of the associated covariance matrix is set to -1, and consumers must check for this and ignore that estimate.",
+          "quote": "please set element 0 of the associated covariance matrix to -1 ... please check for a value of -1 in the first element of each covariance matrix, and disregard the associated estimate.",
+          "importance": "central"
+        },
+        {
+          "claim": "Timing and spatial reference metadata travel in a std_msgs/Header (timestamp and frame_id) at the top of the Imu message. The message itself defines no fields for sensor model, configuration (range, ODR, filters) or calibration state.",
+          "quote": "std_msgs/Header header\n\ngeometry_msgs/Quaternion orientation\nfloat64[9] orientation_covariance # Row major about x, y, z axes",
+          "importance": "supporting"
+        }
+      ]
+    },
+    {
+      "sourceQuality": "secondary",
+      "publishDate": "Updated Aug 19, 2026 (no original publication date given)",
+      "claims": [
+        {
+          "claim": "In IEEE 1451.4 the first 64 bits of the transducer TEDS form the Basic TEDS, a fixed identity record: Manufacturer ID (14 bits, 17–16381), Model Number (15 bits), Version Letter (5 bits, A–Z), Version Number (6 bits) and Serial Number (24 bits).",
+          "quote": "The first 64 bits of the transducer TEDS is the Basic TEDS.",
+          "importance": "central"
+        },
+        {
+          "claim": "IEEE 1451.4 defines standard transducer templates with IDs 25–39 that cover analog sensor types, among them 25 IEPE accelerometers and force transducers, 27 microphones with built-in preamplifiers, 33 bridge sensors, 35 strain gages, 36 thermocouples, 37 RTDs and 38 thermistors. Two-bit selectors in the TEDS data show which section follows (transducer template, optional calibration template, user area).",
+          "quote": "Two-bit selectors in the TEDS data indicate the following section.",
+          "importance": "central"
+        },
+        {
+          "claim": "IEEE 1451.4 has three calibration templates: ID 40 is a calibration table of input/output data pairs within the template's min/max range, ID 41 a multi-segment, multi-polynomial calibration curve, and ID 42 a frequency-response table. This lets a sensor carry its individual calibration with it.",
+          "quote": "The IEEE standard includes three standard templates designated as calibration templates that you can use in conjunction with one of the standard transducer templates",
+          "importance": "central"
+        },
+        {
+          "claim": "TEDS usually sits in an EEPROM in the sensor, together with a checksum. As an alternative, a Virtual TEDS can be kept as a separate file that can be downloaded from the internet.",
+          "quote": "Second, a Virtual TEDS can exist as a separate file, downloadable from the internet.",
+          "importance": "supporting"
+        },
+        {
+          "claim": "To save memory, TEDS encodes non-integer values in compact custom data types: ConRes (linear mapping of an interval) and ConRelRes (logarithmic mapping). Dates are coded as days since 1 January 1998.",
+          "quote": "ConRes and ConRelRes provide a method of coding non-integer values with minimal bit usage",
+          "importance": "supporting"
+        }
+      ]
+    }
+  ]
+}

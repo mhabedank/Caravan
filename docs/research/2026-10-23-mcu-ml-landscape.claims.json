@@ -1,0 +1,287 @@
+{
+  "generated": "2026-10-23",
+  "method": "deep-research workflow wf_a02a77b7-212: 106 agents, 119 claims extracted, 25 verified by three adversarial votes (22 confirmed, 3 refuted); synthesis written in German",
+  "result": {
+    "question": "Research question (write the final report in German): What are the typical applications of machine learning on microcontrollers (Cortex-M0 to M7, ESP32/ESP32-S3, RISC-V MCUs, MCUs with NPUs such as Arm Ethos-U55/U65 or the MAX78000) and on small SoCs (Cortex-A class with an NPU, for example NXP i.MX 8M Plus / i.MX 93), and which public data exists for training models for those applications? The scope is domain-agnostic: industry, health and wearables, smart home, agriculture and environment, audio, vision, automotive and mobility, energy and batteries. Mobility is only one of several domains and must not dominate.\n\nPart A — applications: For each application class name the input modality (IMU or vibration time series, audio, image, radar, event streams such as CAN bus frames, tabular or scalar sensor values), the output or task type (classification, regression, anomaly detection with an autoencoder, object detection or grid output such as FOMO, keyword spotting, multi-input or multi-output models), typical model families and sizes (parameters, flash and RAM, int8), and the typical hardware class. Name reference points: the MLPerf Tiny tasks, vendor model zoos (ST, NXP eIQ, Arm, Espressif, Edge Impulse, Silicon Labs), and established TinyML papers and surveys. Note where an application realistically needs a small SoC rather than an MCU.\n\nPart B — data landscape: For each application class, list the important public datasets with their size, sensor or modality, sampling rate or resolution, label scheme, format, and licence, and say explicitly whether commercial use and derivatives are allowed. Include benchmark datasets (Speech Commands, Visual Wake Words, CIFAR-10, ToyADMOS/MIMII/DCASE, CWRU bearing, UCI HAR, WISDM, PAMAP2, PhysioNet ECG, NASA and CALCE battery data, the HCRL Car-Hacking and ROAD CAN datasets, and road-condition or driving-behaviour IMU sets) and check what each actually permits. Also list the repositories and aggregators where this kind of data lives (UCI ML Repository, Kaggle, Hugging Face, Zenodo, PhysioNet, the DCASE challenges, MLCommons, TensorFlow Datasets, Edge Impulse public projects, IEEE DataPort, Papers with Code) and whether each has an API.\n\nPart C — gap against an existing catalog: We have a metadata-only resource index, built for language and encoder models. Its modalities are text, audio, video, image, graphic and structured_data; structured_data has genres including time_series and sensor_data. Its harvesters cover data.europa.eu, Hugging Face, the Mobility Database, OpenAlex, Podcast Index, Wikimedia Commons and Zenodo. Each entry records language, licence (with evidence), publisher, access, and so on. Find out which metadata fields a sensor or ML-on-MCU dataset needs in order to decide whether it can be used: sensor type, channels, sampling rate, duration or sample count, label scheme and granularity, recording device or placement, splits, synthetic or real, anonymisation. Check which existing metadata standards cover these fields (for example the Croissant ML metadata format, DCAT-AP, schema.org Dataset, Datasheets for Datasets), and which additional harvesters or sources would be worthwhile.\n\nVerify licence claims particularly carefully, using the original licence page. Clearly mark wherever something could not be verified.",
+    "summary": "Typische ML-Anwendungen auf Mikrocontrollern sind gut abgegrenzt. Das zeigen MLPerf Tiny v0.5 mit Keyword Spotting, Visual Wake Words, Bildklassifikation und Anomalieerkennung auf Maschinengeräuschen sowie die Model Zoos von ST (STM32) und Arm (MLEK). Die Zoos teilen die Anwendungen nach Modalität ein: Vision (Klassifikation, Objekt- und Personendetektion, Pose, Segmentierung, Re-ID, Gesichtsdetektion), Audio (KWS, Ereigniserkennung, Rauschunterdrückung, ASR) und Zeitreihen (Aktivitätserkennung, Handposen, Lichtbogenerkennung AFCI). Die Referenzmodelle sind int8 und klein: KWS-DS-CNN mit 38,6K Parametern bzw. 52,5 KB, VWW-MobileNetV1 mit 325 KB, Detektoren mit 0,47–1,2M Parametern bei 53–511 kB Peak-SRAM. Für Objekterkennung reichen auf MCUs Spezialarchitekturen wie FOMO oder µYOLO bei 96×96- bis 128×128-Eingaben. Kleine SoCs (i.MX 8M Plus mit 2,3 TOPS, i.MX 93 mit Ethos-U65) bringen gegenüber der eigenen CPU 6–11× Beschleunigung, aber nur bei NPU-kompatiblen Operatoren und Quantisierung. Bei den Daten ist die Lizenzlage sehr uneinheitlich. MIMII (CC BY-SA 4.0) erlaubt kommerzielle Nutzung und Ableitungen mit Share-Alike. ToyADMOS, ein Kernbenchmark von MLPerf Tiny, ist dagegen nur für interne Evaluation lizenziert und verbietet Weitergabe und Modifikation. Viele angefragte Datensätze (CWRU, UCI HAR, WISDM, PAMAP2, PhysioNet, NASA/CALCE, HCRL/ROAD) sowie der gesamte Teil C (Metadatenstandards wie Croissant und DCAT-AP, zusätzliche Harvester) sind durch die verifizierten Belege nicht abgedeckt und müssen separat geprüft werden.",
+    "findings": [
+      {
+        "claim": "MLPerf Tiny v0.5 (2021) legt vier MCU-Referenzaufgaben fest, jeweils mit Datensatz, int8-TFLite-Modell und Qualitätsziel. (1) Keyword Spotting: Speech Commands v2, 49×10-MFCC-Eingabe, DS-CNN mit 38,6K Parametern bzw. 52,5 KB, Ziel 90 % Top-1, 12 Klassen (10 Wörter, 'unknown', 'silence'), sprecherdisjunkte Splits. (2) Visual Wake Words: Person/keine Person auf 96×96 aus MS-COCO 2014, MobileNetV1 mit 325 KB, 80 % Top-1. (3) Bildklassifikation: CIFAR-10 in 32×32, ResNet mit 96 KB, 85 %. (4) Anomalieerkennung: ToyADMOS, 5×128-Eingabe, vollverbundener Autoencoder mit 270 KB, AUC 0,85. Die Referenzimplementierungen laufen mit TFLite Micro auf einem STM32 NUCLEO-L4R5ZI (Cortex-M4F) und sind quelloffen (github.com/mlcommons/tiny). Vor- und Nachverarbeitung wie die Feature-Extraktion werden in v0.5 nicht mitgemessen.",
+        "confidence": "high",
+        "sources": [
+          "https://arxiv.org/pdf/2106.07597",
+          "https://github.com/mlcommons/tiny"
+        ],
+        "evidence": "Tabelle 1 und Abschnitt 3 des Primärpapiers (NeurIPS 2021 Datasets & Benchmarks) stimmen wörtlich überein; alle Abstimmungen 3-0. Der TFDS-Katalog bestätigt unabhängig 12 Klassen und die Splits 85.511 / 10.102 / 4.890. Spätere Runden ab v1.x, darunter v1.3 aus 2025 mit Streaming-Wakeword, haben Aufgaben ergänzt. Die vier Aufgaben sind daher nicht die aktuelle Gesamt-Suite.",
+        "vote": "3-0 (drei Claims zusammengeführt)"
+      },
+      {
+        "claim": "Hersteller-Model-Zoos zeigen, welche Anwendungsklassen typisch sind. Der STM32 Model Zoo (online v4.0, auf GitHub v4.1) gliedert sich in drei Bereiche. Computer Vision umfasst Bildklassifikation, Objektdetektion, Pose, semantische und Instanzsegmentierung, Tiefe, Style Transfer, Re-ID und Gesichtsdetektion. Audio umfasst Audio-Event-Detection und Speech Enhancement. Zeitreihen umfassen Human Activity Recognition, Handposenerkennung und Arc Fault Detection (AFCI). Der Zoo unterstützt die Neural-ART-NPU des STM32N6 (Cortex-M55 + NPU), also eine MCU mit NPU. Das Arm ML Embedded Evaluation Kit liefert Referenz-Use-Cases für Cortex-M mit Ethos-U55/U65/U85 (Corstone-300 bis 320). Dazu gehören Bildklassifikation (MobileNetV2), KWS (MicroNet), ASR (Wav2Letter, Conformer über ExecuTorch), Anomalieerkennung auf Maschinengeräuschen (MicroNet), Visual Wake Word (MicroNet, 128×128 int8), Rauschunterdrückung (RNNoise) und Gesichtsdetektion (Yolo-Fastest).",
+        "confidence": "high",
+        "sources": [
+          "https://stm32ai.st.com/model-zoo/",
+          "https://github.com/STMicroelectronics/stm32ai-modelzoo",
+          "https://gitlab.arm.com/artificial-intelligence/ethos-u/ml-embedded-evaluation-kit (README.md, main; ehemals git.mlplatform.org)"
+        ],
+        "evidence": "Primäre Herstellerseiten wurden direkt abgerufen; alle Abstimmungen 3-0. Die alte URL git.mlplatform.org leitet per 302 auf gitlab.arm.com um. ExecuTorch wird auf U55/U65 nur teilweise unterstützt. Modelle von NXP eIQ, Espressif, Silicon Labs und Edge Impulse sind in den verifizierten Claims nicht enthalten.",
+        "vote": "3-0 (drei Claims zusammengeführt)"
+      },
+      {
+        "claim": "Objekterkennung auf MCUs ist mit Spezialarchitekturen machbar. FOMO von Edge Impulse ist ein MobileNetV2-Trunk, der standardmäßig bei block_6_expand_relu abgeschnitten wird. Es liefert keine Bounding Boxes, sondern eine Zentroid-Heatmap mit 1/8 der Eingabeauflösung, z. B. 12×12 bei 96×96 Eingabe. Objekte mit überlappenden Zentroiden sind bei der jeweiligen Rasterauflösung nicht trennbar; der Schnittpunkt lässt sich im Expert Mode verschieben. Herstellerangaben: etwa 30 fps auf der Arduino Nicla Vision (Cortex-M7, 480 MHz) bei rund 245 KB RAM mit 96×96 Graustufen und Alpha 0,35. Etwa 10 fps auf einem Cortex-M4F mit 80 MHz bei unter 100 KB RAM mit Alpha 0,1. RAM-Minimum 256 KB für 64×64 inklusive Puffer, Empfehlung ≥ 512 KB für 96×96.",
+        "confidence": "medium",
+        "sources": [
+          "https://docs.edgeimpulse.com/docs/edge-impulse-studio/learning-blocks/object-detection/fomo-object-detection-for-constrained-devices"
+        ],
+        "evidence": "Alle Zahlen stammen ausschließlich vom Hersteller, es gibt keine unabhängigen Benchmarks. Die zitierte /nordic/-URL liefert 404; der Inhalt steht unter dem /docs/-Pfad. Dieselbe Seite nennt an anderer Stelle etwa 15 fps auf 480-MHz-Zielen ohne Beschleuniger. 30 fps ist also ein Best Case. Abstimmungen 3-0.",
+        "vote": "3-0 (drei Claims zusammengeführt)"
+      },
+      {
+        "claim": "Typische Ressourcenbudgets für TinyML-Vision liegen bei int8 und einigen hundert kB SRAM. MCUNetV2 mit patchbasierter Inferenz erreicht über 90 % VWW-Genauigkeit bei höchstens 32 kB Peak-SRAM; das ist ein Laborergebnis von 2021, Flash wird separat gezählt. MCU-Objektdetektoren auf Pascal VOC (8 Bit) liegen bei 0,47–1,2M Parametern, 53–511 kB Peak-SRAM und 51–75 % mAP. Beispiele: MCUNetV2-YOLOv3 auf STM32F412 mit 0,47M Parametern, 247 kB und 64,6 %; XiNet-YOLOv7-S auf STM32H743 mit 53 kB und 54,0 %. µYOLO läuft mit Pruning und 8-Bit-PTQ auf einem OpenMV H7 R2 (Cortex-M7, 480 MHz, ohne Beschleuniger) mit etwa 3,5 FPS bei 128×128 RGB, unter 800 KB Flash und unter 350 KB RAM. Beispiel-Hardware: MAX78000 (Cortex-M4F mit 100 MHz, CNN-Beschleuniger, 128 KB SRAM, 512 KB Flash), STM32H743 (M7, 1 MB SRAM, 2 MB Flash), STM32N6 (M55 + NPU, 800 MHz, 4,2 MB SRAM).",
+        "confidence": "medium",
+        "sources": [
+          "https://arxiv.org/html/2403.19076v2",
+          "https://arxiv.org/abs/2110.15352",
+          "https://arxiv.org/pdf/2508.08352",
+          "https://arxiv.org/pdf/2408.15865"
+        ],
+        "evidence": "Primärpapiere bzw. Surveys; alle Abstimmungen 3-0. Die Survey-Zahlen aus 2508.08352 (2025, Preprint, Tabellen 4 und 8) sind sekundär kompiliert und enthalten weder Latenz- noch Flash-Werte. µYOLO ist ein nicht begutachteter WIP-Preprint. Die Survey-Aussage 'MCUs typischerweise unter 1 MB Speicher' widerspricht der eigenen Tabelle und ist keine harte Grenze. Zwei verwandte Claims wurden widerlegt: '<256 kB SRAM typisch' mit 1-2 und die µYOLO-Auflösungs- bzw. RAM-Grenzwerte mit 0-3.",
+        "vote": "3-0 (vier Claims zusammengeführt)"
+      },
+      {
+        "claim": "Die Grenze zwischen MCU und kleinem SoC lässt sich grob am NPU-Durchsatz ziehen, sie verschwimmt aber. Das i.MX 8M Plus (4× Cortex-A53, Cortex-M7) hat eine VeriSilicon-NPU mit 2,3 TOPS (Peak, int8, Herstellerangabe). Die Arm Ethos-U55 ist ein Co-Prozessor für Cortex-M mit 32–256 MACs/Zyklus bzw. etwa 0,1–0,5 TOPS, gegenüber 1150 MACs/Zyklus beim 8M Plus. Das ist rund eine Größenordnung Unterschied. Heute sind vor allem Cortex-M55/M85 die Hosts, etwa in Alif Ensemble, Himax WE2 und Infineon PSoC Edge. Das i.MX 93, ein Cortex-A55-SoC, nutzt mit der Ethos-U65 eine microNPU mit etwa 0,5 TOPS. MCUs wie der STM32N6 mit etwa 0,6 TOPS verkleinern den Abstand.",
+        "confidence": "medium",
+        "sources": [
+          "https://nxp.com/company/about-nxp/smarter-world-blog/BL-ML-ACCELERATION-RACE-TO-THE-TOP-AND-BOTTOM",
+          "https://gitlab.arm.com/artificial-intelligence/ethos-u/ml-embedded-evaluation-kit"
+        ],
+        "evidence": "Herstellerblog von NXP aus 2020; ein Verifier bekam 403, ein anderer konnte die Seite abrufen. Die Abgrenzung über den Durchsatz ist eine Interpretation, die Abstimmung über den U55-Vergleich lag bei 2-1. Die TOPS-Werte sind Peak-Marketingzahlen.",
+        "vote": "3-0 und 2-1 (zwei Claims zusammengeführt)"
+      },
+      {
+        "claim": "Was eine NPU in kleinen SoCs real bringt, hängt stark von Operatorabdeckung und Quantisierung ab. Auf dem i.MX 93 liefert die Ethos-U65 für unterstützte int8-Vision-Modelle 6–11× Speedup gegenüber der A55-CPU (TFLite ruy/gemmlowp). Gemessen wurde mit Mainline-Linux 6.19-rc1 und Mesa Teflon im Jahr 2026, überwiegend an Klassifikations-CNNs. Unter den Detektoren lief nur SSD MobileNet V2 zuverlässig. Auf dem i.MX 8M Plus lief dagegen ein TinyYOLOv3-Kennzeichendetektor auf der NPU langsamer als auf der CPU (1,18 Hz gegen 1,99 Hz), Stand 2022 mit NNAPI-Delegate. Der Hauptnutzen war dort die CPU-Entlastung: unter 20 % statt über 200 % CPU-Last. Für Detektion mit hoher Auflösung, mehrstufige Pipelines (z. B. Detektion plus OCR) und Linux-Stacks ist realistisch ein SoC nötig.",
+        "confidence": "medium",
+        "sources": [
+          "https://www.linaro.org/blog/direct-kernel-access-to-ethos-u65-npu-on-i-mx9-benchmarks-using-latest-kernel-and-mesa-support/",
+          "https://revistas.tec.ac.cr/index.php/tec_marcha/article/download/6487/6313?inline=1"
+        ],
+        "evidence": "Beide Quellen sind Einzelfallstudien (Linaro-Blog und ein kurzes Konferenzpapier von RidgeRun); Abstimmungen 3-0. Mit neueren NXP-Stacks (VX-Delegate) berichtet Toradex etwa 12× NPU-Speedup für YOLOv5/v8; das wurde hier nicht verifiziert. Der spezifische Claim, dass die U65 nur per-Tensor-int8 unterstütze und dabei still auf die CPU zurückfalle, wurde mit 0-3 widerlegt, als Hinweis aber im Linaro-Text erwähnt.",
+        "vote": "3-0 (drei Claims zusammengeführt)"
+      },
+      {
+        "claim": "MIMII (Hitachi, Zenodo 3384388, Version 'public 1.0') ist ein Referenzdatensatz für akustische Anomalieerkennung an Industriemaschinen. Er enthält Ventile, Pumpen, Lüfter und Linearschienen mit den Modell-IDs 00/02/04/06, aufgenommen mit einem 8-Kanal-Mikrofonarray bei 16 kHz und 16 Bit. Fabrikhintergrundrauschen ist mit SNR 6, 0 und −6 dB beigemischt. Lizenz laut Originalseite und API: CC BY-SA 4.0. Kommerzielle Nutzung und Ableitungen sind erlaubt, verlangt werden Namensnennung und Share-Alike für Ableitungen; zusätzliche Einschränkungen gibt es nicht.",
+        "confidence": "high",
+        "sources": [
+          "https://zenodo.org/records/3384388",
+          "https://zenodo.org/api/records/3384388"
+        ],
+        "evidence": "Die Zenodo-REST-API liefert license.id = cc-by-sa-4.0; die Beschreibung bestätigt das wörtlich. Abstimmungen 3-0. MIMII DUE, MIMII DG und die DCASE-Task-2-Releases sind eigene Zenodo-Records, deren Lizenzen separat geprüft werden müssen.",
+        "vote": "3-0 (zwei Claims zusammengeführt)"
+      },
+      {
+        "claim": "ToyADMOS (NTT, Zenodo 3351307), der Datensatz hinter der MLPerf-Tiny-Anomalieaufgabe, ist faktisch nicht kommerziell nutzbar. Zenodo führt die Lizenz als 'Other (Non-Commercial)' (other-nc). Die maßgebliche LICENSE.pdf ist NTTs 'Software License Agreement for Evaluation'. Sie erlaubt nur interne Nutzung zum Testen und Evaluieren der Methoden aus dem Paper (§1). Sie verbietet Verkauf, Weitergabe, Offenlegung und das Modifizieren oder Übersetzen (§4(b)) sowie Unterlizenzierung (§8), ist kündbar mit Löschpflicht (§3) und unterliegt japanischem Recht (§9). Ableitungen sind damit ausdrücklich verboten. Wie sich das auf trainierte Modelle auswirkt, ist unklar, weil die Lizenz für 'Software' formuliert ist.",
+        "confidence": "high",
+        "sources": [
+          "https://zenodo.org/records/3351307",
+          "https://zenodo.org/api/records/3351307",
+          "https://zenodo.org/records/3351307/files/LICENSE.pdf"
+        ],
+        "evidence": "Ein Verifier hat die LICENSE.pdf heruntergeladen und gelesen. Die ursprüngliche Einschätzung 'Derivate nicht verifiziert' ist damit überholt, Derivate sind verboten. Abstimmung 3-0. Folge: Die Referenzaufgabe eines zentralen TinyML-Benchmarks stützt sich auf Daten, mit denen sich keine kommerziellen Modelle trainieren lassen.",
+        "vote": "3-0"
+      },
+      {
+        "claim": "Speech Commands v2 (105.829 Äußerungen, 2.618 Sprecher) wird im MLPerf-Tiny-Paper als 'Creative Commons BY' und im Arm-Kit als CC BY 4.0 geführt. Beides sind Sekundärangaben; eine Original-Lizenzseite des Datensatzes wurde nicht geprüft. Die Lizenzlabels im Arm-Kit (Code Apache 2.0; ASR-Samples aus LibriSpeech/OpenSLR 12 als CC BY 4.0; Noise-Reduction-Samples aus Edinburgh DataShare 10283/2791 als CC BY 4.0; Pexels-Bilder als 'CC BY 1.0') betreffen nur die mitgelieferten Beispieldateien. Das Label 'CC BY 1.0' für Pexels ist zweifelhaft, weil Pexels eine eigene Pexels License verwendet.",
+        "confidence": "low",
+        "sources": [
+          "https://arxiv.org/pdf/2106.07597",
+          "https://gitlab.arm.com/artificial-intelligence/ethos-u/ml-embedded-evaluation-kit (README.md)"
+        ],
+        "evidence": "Die Abstimmungen lagen zwar bei 3-0, betrafen aber nur, was die Quellen sagen, nicht die tatsächliche Lizenz. Weder arXiv 1804.03209 (Warden) noch TFDS nennen die Datensatzlizenz. Der Lizenzstatus ist daher als NICHT VERIFIZIERT zu markieren.",
+        "vote": "3-0 (zwei Claims zusammengeführt; Lizenz unverifiziert)"
+      }
+    ],
+    "caveats": "Abdeckung: Die 22 verifizierten Claims beantworten die Forschungsfrage nur teilweise. Teil A ist für Vision, Audio/KWS und Industrie-Akustik gut belegt. Für IMU/HAR, Vibration, Biosignale/EKG, Batterie/Energie, Landwirtschaft/Umwelt, Radar und CAN-Bus/Automotive gibt es kaum oder keine verifizierten Belege; ST erwähnt nur HAR, Handposen und AFCI. Teil B ist nur für MIMII und ToyADMOS lizenzseitig belastbar geprüft. Speech Commands ist bloß sekundär belegt. CIFAR-10, VWW/COCO, CWRU, UCI HAR, WISDM, PAMAP2, PhysioNet-EKG, NASA/CALCE-Batteriedaten, HCRL Car-Hacking, ROAD und Straßenzustands- bzw. Fahrverhaltens-IMU-Sets wurden NICHT verifiziert. Das gilt ebenso für die Aggregatoren und ihre APIs (UCI, Kaggle, HF, Zenodo, PhysioNet, DCASE, MLCommons, TFDS, Edge Impulse, IEEE DataPort, Papers with Code); belegt ist nur die Zenodo-REST-API. Teil C (Metadatenfelder für Sensordatensätze, Abdeckung durch Croissant, DCAT-AP, schema.org und Datasheets for Datasets, zusätzliche Harvester) ist durch die verifizierten Claims gar nicht abgedeckt und muss gesondert recherchiert werden. Quellenqualität: FOMO-Zahlen, TOPS-Angaben und Model-Zoo-Inhalte sind Herstellerangaben. µYOLO und das Objektdetektions-Survey sind nicht begutachtete Preprints. Die i.MX-Benchmarks sind Einzelfallstudien mit unterschiedlichen Software-Stacks (2022 NNAPI, 2026 Mesa Teflon). Zeitbezug: MLPerf Tiny v0.5 stammt von 2021; inzwischen gibt es v1.3 mit Streaming-Wakeword und teilweiser Einbeziehung der Vorverarbeitung. Der NXP-Blog ist von 2020 und nennt die heutigen Ethos-U55-Hosts M55/M85 nicht. Der STM32-Zoo liegt auf GitHub bereits in v4.1 vor. Mehrere zitierte URLs sind verschoben, nämlich git.mlplatform.org und Edge Impulse /nordic/. Drei Claims wurden widerlegt und sollten nicht verwendet werden: '<256 kB SRAM typisch', die µYOLO-Auflösungsgrenzen als MCU/SoC-Grenze und die pauschale Aussage 'U65 nur per-Tensor-int8'. Mobility ist in den Belegen kaum vertreten (nur der Smart-Parking-Fall); für Automotive und CAN fehlen verifizierte Daten vollständig.",
+    "openQuestions": [
+      "Welche Lizenzen gelten laut Originalseite für die übrigen Kerndatensätze (Speech Commands, CWRU, UCI HAR, WISDM, PAMAP2, PhysioNet-EKG mit PhysioNet-Credentialed- und ODC-Lizenzen, NASA/CALCE, HCRL Car-Hacking, ROAD, DCASE-Task-2-Releases)? Erlauben sie kommerzielle Nutzung und Ableitungen?",
+      "Wie weit decken Croissant (inkl. RAI-Erweiterung), DCAT-AP, schema.org Dataset und Datasheets for Datasets sensorspezifische Felder ab, etwa Sensortyp, Kanäle, Abtastrate, Dauer bzw. Sample-Anzahl, Label-Granularität, Gerät bzw. Platzierung, Splits, synthetisch oder real und Anonymisierung? Welche Felder müsste der bestehende Katalog unter structured_data/sensor_data ergänzen?",
+      "Welche zusätzlichen Harvester lohnen sich für ML-on-MCU-Daten, z. B. UCI-ML-Repository-API, PhysioNet, IEEE DataPort, Kaggle-API, TFDS-Katalog, Hugging-Face-Croissant-Endpunkte, Edge-Impulse-Public-Projects? Und welche davon liefern Lizenzangaben maschinenlesbar mit Belegen?",
+      "Welche aktuellen MLPerf-Tiny-Aufgaben (v1.x) und Modelle aus NXP eIQ, Espressif ESP-DL, Silicon Labs und Edge Impulse decken Zeitreihen, Biosignale, Batterie und CAN ab, und welche Datensätze nutzen sie?"
+    ],
+    "refuted": [
+      {
+        "claim": "Typical MCUs targeted by TinyML have less than 256 kB of SRAM and read-only flash. The reference board STM32F746 (Cortex-M7) has 320 KB SRAM and 1 MB flash. MCUs have about 3 orders of magnitude less memory than mobile phones and 5–6 orders less than cloud GPUs.",
+        "vote": "1-2",
+        "source": "https://arxiv.org/html/2403.19076v2"
+      },
+      {
+        "claim": "Input resolution is the main factor that limits MCU object detection: at 256x256 the model needs 1.01 MB RAM and at 448x448 it needs 3.97 MB, so it cannot be deployed on the OpenMV H7. At 88x88 it needs 133 KB flash and 152 KB RAM and runs at 8.4 FPS. This points to where the MCU vs. SoC/NPU boundary lies for vision detection.",
+        "vote": "0-3",
+        "source": "https://arxiv.org/pdf/2408.15865"
+      },
+      {
+        "claim": "The Ethos-U65 NPU on the i.MX93 only accelerates INT8/UINT8 models with per-tensor quantization. Per-channel quantized models often fall back to the CPU, and float models do not run on the NPU at all. The fallback is silent.",
+        "vote": "0-3",
+        "source": "https://www.linaro.org/blog/direct-kernel-access-to-ethos-u65-npu-on-i-mx9-benchmarks-using-latest-kernel-and-mesa-support/"
+      }
+    ],
+    "unverified": [],
+    "sources": [
+      {
+        "url": "https://arxiv.org/pdf/2106.07597",
+        "quality": "primary",
+        "angle": "Anwendungen und Benchmarks (MLPerf Tiny, Modell-Zoos)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://stm32ai.st.com/model-zoo/",
+        "quality": "primary",
+        "angle": "Anwendungen und Benchmarks (MLPerf Tiny, Modell-Zoos)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://arxiv.org/html/2403.19076v2",
+        "quality": "primary",
+        "angle": "Anwendungen und Benchmarks (MLPerf Tiny, Modell-Zoos)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://git.mlplatform.org/ml/ethos-u/ml-embedded-evaluation-kit.git/tree/Readme.md",
+        "quality": "primary",
+        "angle": "Anwendungen und Benchmarks (MLPerf Tiny, Modell-Zoos)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://arxiv.org/pdf/2506.18927",
+        "quality": "secondary",
+        "angle": "Anwendungen und Benchmarks (MLPerf Tiny, Modell-Zoos)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://docs.edgeimpulse.com/nordic/edge-impulse-studio/learning-blocks/object-detection/fomo-object-detection-for-constrained-devices",
+        "quality": "primary",
+        "angle": "Anwendungen und Benchmarks (MLPerf Tiny, Modell-Zoos)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://nxp.com/company/about-nxp/smarter-world-blog/BL-ML-ACCELERATION-RACE-TO-THE-TOP-AND-BOTTOM",
+        "quality": "primary",
+        "angle": "MCU vs. small SoC (NPU) – where the boundary lies",
+        "claimCount": 5
+      },
+      {
+        "url": "https://developer.arm.com/community/arm-community-blogs/b/ai-blog/posts/ml-based-embedded-computer-vision",
+        "quality": "blog",
+        "angle": "MCU vs. small SoC (NPU) – where the boundary lies",
+        "claimCount": 5
+      },
+      {
+        "url": "https://arxiv.org/pdf/2508.08352",
+        "quality": "primary",
+        "angle": "MCU vs. small SoC (NPU) – where the boundary lies",
+        "claimCount": 5
+      },
+      {
+        "url": "https://arxiv.org/pdf/2408.15865",
+        "quality": "primary",
+        "angle": "MCU vs. small SoC (NPU) – where the boundary lies",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.linaro.org/blog/direct-kernel-access-to-ethos-u65-npu-on-i-mx9-benchmarks-using-latest-kernel-and-mesa-support/",
+        "quality": "primary",
+        "angle": "MCU vs. small SoC (NPU) – where the boundary lies",
+        "claimCount": 4
+      },
+      {
+        "url": "https://revistas.tec.ac.cr/index.php/tec_marcha/article/download/6487/6313?inline=1",
+        "quality": "primary",
+        "angle": "MCU vs. small SoC (NPU) – where the boundary lies",
+        "claimCount": 5
+      },
+      {
+        "url": "https://zenodo.org/records/3384388",
+        "quality": "primary",
+        "angle": "Sensor datasets and their licences (domain-agnostic)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://zenodo.org/records/3351307",
+        "quality": "primary",
+        "angle": "Sensor datasets and their licences (domain-agnostic)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://research.google/blog/launching-the-speech-commands-dataset/",
+        "quality": "primary",
+        "angle": "Sensor datasets and their licences (domain-agnostic)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones",
+        "quality": "primary",
+        "angle": "Sensor datasets and their licences (domain-agnostic)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://engineering.case.edu/bearingdatacenter/download-data-file",
+        "quality": "primary",
+        "angle": "Sensor datasets and their licences (domain-agnostic)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://zenodo.org/records/10462796",
+        "quality": "primary",
+        "angle": "Mobility/automotive datasets: CAN bus and IMU",
+        "claimCount": 5
+      },
+      {
+        "url": "https://ocslab.hksecurity.net/Datasets/car-hacking-dataset",
+        "quality": "primary",
+        "angle": "Mobility/automotive datasets: CAN bus and IMU",
+        "claimCount": 5
+      },
+      {
+        "url": "https://arxiv.org/pdf/2012.14600",
+        "quality": "primary",
+        "angle": "Mobility/automotive datasets: CAN bus and IMU",
+        "claimCount": 5
+      },
+      {
+        "url": "https://data.mendeley.com/datasets/9vr83n7z5j/2",
+        "quality": "primary",
+        "angle": "Mobility/automotive datasets: CAN bus and IMU",
+        "claimCount": 5
+      },
+      {
+        "url": "https://github.com/mlcommons/croissant",
+        "quality": "primary",
+        "angle": "Metadata standards and harvesters for sensor datasets",
+        "claimCount": 5
+      },
+      {
+        "url": "https://cdn.jsdelivr.net/gh/mlcommons/croissant@main/README.md",
+        "quality": "primary",
+        "angle": "Metadata standards and harvesters for sensor datasets",
+        "claimCount": 5
+      },
+      {
+        "url": "https://schema.org/Dataset",
+        "quality": "primary",
+        "angle": "Metadata standards and harvesters for sensor datasets",
+        "claimCount": 5
+      }
+    ],
+    "stats": {
+      "angles": 5,
+      "sourcesFetched": 24,
+      "claimsExtracted": 119,
+      "claimsVerified": 25,
+      "confirmed": 22,
+      "killed": 3,
+      "unverified": 0,
+      "afterSynthesis": 9,
+      "urlDupes": 0,
+      "budgetDropped": 6,
+      "agentCalls": 106
+    }
+  }
+}

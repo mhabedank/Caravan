@@ -1,0 +1,290 @@
+{
+  "generated": "2026-10-23",
+  "method": "deep-research workflow wf_dcdf23dc-64d: 106 agents; synthesis written in German",
+  "result": {
+    "question": "Research question (write the final report in German): Which sensors are used with microcontrollers and small embedded SoCs, what do their data look like, how are the data delivered, and in what quality? Include the observability of embedded devices and their sensors, that is, the metadata that comes with the data. Classify everything into a coherent framework. The scope is domain-agnostic: industry, health and wearables, smart home, agriculture and environment, audio, vision, automotive and mobility, energy.\n\n1. Sensor landscape: Cover the main classes, each with representative current parts and their datasheet facts: inertial (accelerometer, gyroscope, magnetometer, IMU with on-chip fusion, e.g. Bosch BMI270/BNO085, ST LSM6DSV with its machine-learning core, TDK ICM-42688), audio (PDM/I2S MEMS microphones, sound level), vision (always-on cameras such as HM01B0, OV2640, event cameras), depth and distance (ToF single and multizone such as VL53L5CX, ultrasonic, LiDAR), radar (raw FMCW such as Infineon BGT60 versus processed point clouds such as TI IWR6843), thermal (MLX90640, Grid-EYE), environment and gas (BME688, SCD4x CO2, PM sensors such as SPS30), biosignal (PPG such as MAX30102/MAX86150, ECG front ends such as ADS1292/MAX30003, EDA), electrical (current, voltage and power monitors such as INA228; ADCs), mechanical (strain, load cells with HX711, pressure, vibration and piezo), position (GNSS such as u-blox UBX-NAV-PVT and NMEA), and vehicle buses (CAN/CAN FD frames, DBC signal decoding, LIN). The interim survey already has BMI270, PDM microphones, HM01B0, OV2640, VL53L5CX, MLX90640, BGT60TR13C, IWR6843, BME688, u-blox NAV-PVT and CAN frames. Verify and extend it rather than repeat it.\n\n2. What the data look like: For each class state the raw output form, data type and bit width, units and scaling (counts and full-scale range versus physical units), channels and axes, sampling rate or output data rate, regular versus event-driven, frames and 2D arrays, compressed forms such as JPEG, variable-length sets such as point clouds or scan lists, and slow multi-step scans such as heater profiles.\n\n3. How the data arrive: interfaces (I2C, SPI, I3C, UART, PDM, I2S, DCMI/CSI, CAN); FIFO batching and watermarks; interrupts; timestamps (on-sensor sensortime versus host timestamps, synchronisation across sensors, jitter, drift); data-ready versus polling; dropped samples and overruns; on-sensor preprocessing such as fusion, step counters, ST's MLC/FSM, Bosch BSEC, and decimation; and what the host must compute before a model can use the data (PDM decimation, radar FFT, thermal calibration from EEPROM, JPEG decode, CAN signal decoding).\n\n4. Quality: the datasheet quality parameters per class (noise density, offset and bias, bias instability, sensitivity tolerance, temperature drift, nonlinearity, cross-axis sensitivity, SNR, dynamic range, accuracy versus precision, NETD, ranging accuracy, CEP and DOP for GNSS, gas sensor drift and burn-in), calibration (factory, runtime, self-test), ageing, and how quality propagates into ML (label noise, domain shift between sensor units, sensor-to-sensor variance, mounting and placement).\n\n5. Observability and metadata: what metadata sensors and devices expose at runtime, such as accuracy and status fields (BNO085 calibration accuracy, GNSS hAcc/sAcc/fix type, VL53L5CX target status per zone, BSEC accuracy flags), self-test results, temperature compensation inputs, and health counters. Cover the embedded-observability tooling (Memfault, Zephyr sensor API and logging, OpenTelemetry for embedded or MCU devices, Golioth, Interrupt/Memfault practices), and the standards for describing sensors and their metadata: IEEE 1451 TEDS, OGC SensorThings API, W3C SSN/SOSA, IETF SenML, Linux IIO, Android sensor HAL with its accuracy field, ROS sensor_msgs with covariance fields, ASAM MDF4 for vehicle measurement data, and CANopen device profiles. Say which metadata fields are needed to judge whether a recording can be used for ML: sensor model and firmware, configuration (range, ODR, filters), calibration state, placement and orientation, timestamps and clock source, and gaps.\n\n6. Classification: propose a classification of sensors along these axes: modality, data shape (scalar, vector series, 2D frame, set, event), timing (periodic or event-driven, rate), host processing needed, quality dimensions, and metadata needed. Map each class onto them.\n\nUse datasheets and vendor documentation as primary sources, plus the standards documents. Mark vendor marketing figures as such, and clearly mark everything that could not be verified.",
+    "summary": "Die verifizierten Belege zeigen ein klares Muster. Sensoren für Mikrocontroller und kleine SoCs liefern fast immer Rohzählwerte mit fester Bitbreite, zum Beispiel 24 Bit Zweierkomplement beim EKG-Frontend ADS1292, 20 Bit beim Strommonitor INA228 und 16-Bit-Wörter mit CRC beim CO2-Sensor SCD4x. Physikalische Einheiten entstehen erst, wenn der Host Konfigurations-Metadaten anwendet: VREF, PGA-Verstärkung, Messbereich und Skalierungsformeln. Die Daten kommen per I2C oder SPI, entweder abgefragt (Polling mit Data-Ready-Status, etwa beim SCD4x alle 5 bzw. ~30 s) oder in FIFO-Batches mit Watermark-Interrupt. Diese FIFO-Ströme können selbstbeschreibend sein und Metadaten-Frames mitliefern: Skip- und Overflow-Zähler, Sensortime, Konfigurationswechsel und verworfene Samples beim BMI088-Accelerometer, Sample-Zähler und Prüfsumme im Burst-Read des ADIS16470. Ebenso können sie fast metadatenfrei sein und Überläufe nur über ein Overrun-Flag melden, wie der Gyro-FIFO des BMI088. Die Qualität beschreiben Datenblätter über Offset, Drift, Verstärkungsfehler, Rauschdichte, Bias-Instabilität, Nichtlinearität und Querachsen-Ausrichtung. Abgeleitete Größen sind dabei gröber spezifiziert (INA228: Leistung 0,5 % FS, Energie 1 % FS). Bei Gassensoren muss man zwischen Genauigkeit und Wiederholbarkeit unterscheiden und Langzeitdrift sowie kontextabhängige Selbstkalibrierung (ASC/FRC) beachten. Für ML zeigen Studien, dass Unterschiede zwischen Geräten (Hardware, Abtastung, OS-Pipeline) und kleine Verschiebungen der Platzierung die Erkennungsleistung deutlich senken. Für die ML-Tauglichkeit einer Aufnahme braucht man deshalb mindestens: Sensormodell und Firmware, Konfiguration (Bereich, ODR, Filter, Referenz), Kalibrierzustand, Platzierung, Zeitstempelquelle und Lücken- bzw. Überlaufinformationen. Zu großen Teilen der Ausgangsfrage hat keine Aussage die Verifikation überstanden: Kamera, Audio, ToF, Radar, Thermal, PPG, GNSS, CAN sowie Standards wie SenML, SSN/SOSA, IEEE 1451 und MDF4. Diese Teile sind unbelegt und müssen gesondert geprüft werden.",
+    "findings": [
+      {
+        "claim": "Biosignal-Frontends liefern Rohzählwerte, keine Volt. Der ADS1291/ADS1292/ADS1292R gibt je Kanal 24 Bit im Zweierkomplement aus, MSB zuerst. 1 LSB entspricht VREF/(2^23−1). Bei Vollausschlag clippt der Wert bei 7FFFFFh bzw. 800000h. Jedem Lesezugriff ist ein 24-Bit-Statuswort vorangestellt (1100 + LOFF_STAT + GPIO). Beim ADS1292R ergibt das 72 Bit pro Lesevorgang. Um Spannungen zu berechnen, muss der Host die VREF-Konfiguration kennen (intern 2,42 V oder 4,033 V, alternativ extern) und implizit auch die PGA-Verstärkung. Das sind Pflicht-Metadaten jeder Aufnahme. Die Lead-off-Bits im Statuswort sind Laufzeit-Qualitätsmetadaten über den Elektrodenkontakt.",
+        "confidence": "high",
+        "sources": [
+          "https://www.ti.com/document-viewer/ADS1292/datasheet/data-format-sbas4598878"
+        ],
+        "evidence": "Primäres TI-Datenblatt (SBAS502C), Abschnitte Data Format 8.3.8 und Data Retrieval 8.5.1.5, Wortlaut geprüft, beide Aussagen mit 3-0 bestätigt. Die PGA-Abhängigkeit (Eingangs-LSB = VREF/(Gain·(2^23−1))) stammt aus dem PGA-Abschnitt. Diesen hat der Prüfer aus dem Gedächtnis ergänzt; auf der abgerufenen Seite war er nicht sichtbar."
+      },
+      {
+        "claim": "Strom-, Spannungs- und Leistungsmonitore am Beispiel TI INA228: Ein 20-Bit-Delta-Sigma-ADC misst die Shunt-Spannung mit wählbarem Vollausschlag ±163,84 mV bzw. ±40,96 mV (Bit ADCRANGE) und die Busspannung von 0 bis 85 V. Datenblattwerte zur Qualität (Maximalwerte): Offset ±1 µV, Offsetdrift ±0,01 µV/°C, Verstärkungsfehler ±0,05 %, Drift des Verstärkungsfehlers ±20 ppm/°C, CMRR mindestens 154 dB. Abgeleitete Größen sind lockerer spezifiziert: Leistung 0,5 % FS (−40 bis +125 °C), Energie und Ladung 1,0 % FS. Wer Energie- oder Ladungswerte als ML-Feature oder Label nutzt, arbeitet also mit einem deutlich größeren Fehlerband als bei der Rohstrommessung. Der ADCRANGE-Wert gehört als Metadatum zu jeder Aufnahme.",
+        "confidence": "high",
+        "sources": [
+          "https://ti.com/document-viewer/INA228/datasheet",
+          "https://www.ti.com/product/INA228"
+        ],
+        "evidence": "Drei Aussagen, alle 3-0, gegen die TI-Produktseite und das Datenblatt geprüft; die Zahlen stimmen exakt. Einschränkung: Es handelt sich um die Maximalwerte aus der Feature-Liste der Titelseite. Die Bedingungen aus der Electrical-Characteristics-Tabelle wurden nicht Zeile für Zeile geprüft. Das Wort 'gröber' ist eine Interpretation, weil Verstärkungsfehler und Full-Scale-Genauigkeit unterschiedliche Metriken sind."
+      },
+      {
+        "claim": "Langsame Umweltsensoren mit Polling am Beispiel Sensirion SCD4x (CO2): I2C-Adresse 0x62. Übertragen werden 16-Bit-Wörter ohne Vorzeichen (MSB zuerst), jedes gefolgt von einer 8-Bit-CRC. read_measurement (0xec05) liefert drei Wörter: CO2 in ppm = word[0], T = −45 + 175·word/(2^16−1), RH = 100·word/(2^16−1). Es gibt drei Betriebsarten. Im Periodic Mode wird alle 5 s aktualisiert, im Low-Power-Periodic Mode etwa alle 30 s. Nur der SCD41 bietet zusätzlich Single Shot auf Anforderung (0x219d, 5000 ms) und eine reine RH/T-Messung (0x2196, 50 ms). Jeder Messwert lässt sich nur einmal auslesen, weil das Lesen den Puffer leert. Ohne neue Daten antwortet der Sensor mit NACK. Ob Daten bereitliegen, zeigt get_data_ready_status (0xe4b8): Sind die unteren 11 Bits 0, liegen keine Daten vor. Die Daten sind also skalare, reguläre, sehr niederfrequente Zeitreihen, die der Host per Polling abholt.",
+        "confidence": "high",
+        "sources": [
+          "https://cdn.sparkfun.com/assets/9/7/5/7/0/Sensirion_SCD4x_Datasheet.pdf"
+        ],
+        "evidence": "Sensirion-Datenblatt v1.5 (Juli 2023, SparkFun-Spiegel), Wortlaut der Abschnitte 3.2, 3.5, 3.8 und 3.10 sowie Tabelle 8 geprüft. Das Rechenbeispiel (0x01f4 → 500 ppm, 0x6667 → 25 °C) wurde nachvollzogen. Beide Aussagen 3-0."
+      },
+      {
+        "claim": "Qualität und Kalibrierung von Gassensoren am Beispiel SCD4x. Die Genauigkeit hängt vom Messwert ab: SCD40 ±(50 ppm + 5 % vom Messwert) im Bereich 400–2000 ppm, SCD41 ±(50 ppm + 2,5 %) im Bereich 400–1000 ppm, mit weiteren Bändern bis 5000 ppm. Die Wiederholbarkeit liegt typisch bei ±10 ppm; Präzision und Richtigkeit fallen also deutlich auseinander. Mit aktiver Selbstkalibrierung (ASC) kommt über 5 Jahre typisch eine Drift von ±(5 ppm + 0,5 %) hinzu, nach Stresstests maximal ±(5 ppm + 2 %). ASC ist ab Werk aktiv und setzt voraus, dass der Sensor wöchentlich 400-ppm-Luft sieht. Werte unter 400 ppm bei aktivem ASC können die Genauigkeit verschlechtern. Transport und Montage verschlechtern die Genauigkeit vorübergehend; frühestens 5 Tage danach lässt sie sich per FRC oder ASC wiederherstellen. FRC gibt eine Korrektur von word − 0x8000 ppm zurück, 0xffff bedeutet einen Fehlschlag. Der ASC-Status, die FRC-Korrektur und das Montagedatum sind damit Kalibrier-Metadaten, die man zur Laufzeit auslesen bzw. erfassen kann und die über die Datenqualität entscheiden.",
+        "confidence": "high",
+        "sources": [
+          "https://cdn.sparkfun.com/assets/9/7/5/7/0/Sensirion_SCD4x_Datasheet.pdf"
+        ],
+        "evidence": "Datenblatt v1.5, Tabelle 1, Fußnoten 1, 2 und 4 sowie Abschnitte 3.7, 3.7.1 und 3.7.2, Wortlaut geprüft, 3-0. Alle Werte sind Herstellerangaben, gemessen gegen Referenzgas mit ±2 % Toleranz. Neuere Datenblattrevisionen (z. B. mit konfigurierbarer ASC-Periode) wurden nicht geprüft."
+      },
+      {
+        "claim": "Die FIFO-Formate von IMUs unterscheiden sich stark, selbst innerhalb eines Bausteins (Bosch BMI088). Der Accelerometer-FIFO (1024 Byte) liefert einen selbstbeschreibenden Frame-Strom mit variablem Frame-Typ. Ein Daten-Frame hat 7 Byte: 1 Header-Byte (6 Bit Typ, 2 Bit INT1/INT2-Tag) und 6 Byte XYZ. Daneben gibt es Metadaten-Frames: einen Skip-Frame (2 Byte, Zahl der durch Überlauf verlorenen Frames, sättigt bei 0xFF), einen Sensortime-Frame (4 Byte, 24-Bit-Sensortime aus 0x18–0x1A, nur wenn der FIFO beim Burst-Read leer wird), einen Input-Config-Frame (bei Änderung von Bereich, Filter oder Downsampling) und einen Sample-Drop-Frame (nach Umkonfiguration möglicherweise ungültige Samples). Der Gyro-FIFO desselben Bausteins speichert dagegen bis zu 100 Frames aus drei 16-Bit-Wörtern, ohne Header und ohne Sensortime. Ein Überlauf zeigt nur das Overrun-Flag (0x0E Bit 7) an. Externe Ereignisse wie Kamera-Frame-Sync lassen sich über INT3/INT4 im Input-Modus markieren; der Tag überschreibt das LSB der Z-Achse, die dadurch nur noch 15 Bit Auflösung hat. Der Host braucht deshalb sensorspezifische Parser. Lücken, Konfigurationswechsel und Zeitbasis sind nur dann rekonstruierbar, wenn der Sensor sie mitliefert.",
+        "confidence": "high",
+        "sources": [
+          "https://www.bosch-sensortec.com/media/boschsensortec/downloads/application_notes_1/bst-mis-an005.pdf"
+        ],
+        "evidence": "Bosch-Application-Note BST-MIS-AN005-01 Rev 1.1 (November 2018), Text extrahiert, Abschnitte 3, 3.2.1–3.2.5, 4, 4.1.2 und 4.3. Drei Aussagen, alle 3-0. Einschränkungen: Das Format gilt nur für den BMI08x und darf nicht auf BMI270 oder andere Bosch-Teile übertragen werden. Der Gyro-FIFO hat zusätzlich Full- und Watermark-Interrupts; nur das Overrun-Flag zeigt aber tatsächlichen Datenverlust an. Das Dokument ist als 'preliminary' markiert."
+      },
+      {
+        "claim": "Qualitätsparameter einer Präzisions-IMU am Beispiel ADI ADIS16470 (Typwerte, 1σ, 25 °C). Gyroskop: ±2000 °/s, 10 LSB/(°/s) im 16-Bit-Format bzw. 655.360 LSB/(°/s) im 32-Bit-Format, In-Run-Bias-Stabilität 8 °/h, ARW 0,34 °/√h, Rauschdichte 0,008 °/s/√Hz rms, Nichtlinearität ±0,25 % FS, Fehlausrichtung zwischen den Achsen ±0,1°, Empfindlichkeitsfehler über −10…+75 °C ±0,25 %, Bandbreite 550 Hz. Accelerometer: ±40 g, 800 LSB/g (16 Bit), Nichtlinearität abhängig vom Bereich (0,02 % FS bei ±10 g, 0,4 % bei ±20 g, 1,5 % bei ±40 g), Bias-Stabilität 13 µg, VRW 0,037 m/s/√h, Rauschdichte 100 µg/√Hz. Jedes Exemplar wird ab Werk über −10…+75 °C kalibriert, und zwar auf Empfindlichkeit, Bias, Ausrichtung, den Einfluss linearer Beschleunigung auf den Gyro-Bias und den Point of Percussion. Auf Anforderung stehen ein Sensor-Selbsttest (14 ms bei internem 2-kHz-Takt; DIAG_STAT meldet das Ergebnis), ein Flash-Test (32 ms) und das Wiederherstellen der Werkskalibrierung (142 ms) zur Verfügung. Die Werte zeigen das typische Qualitätsvokabular für Inertialsensoren und dass Qualität vom gewählten Messbereich abhängt.",
+        "confidence": "high",
+        "sources": [
+          "https://wcm-cce.cldnet.analog.com/media/en/technical-documentation/data-sheets/ADIS16470.pdf"
+        ],
+        "evidence": "Spezifikationstabelle 1 des ADI-Datenblatts; drei Aussagen, alle 3-0. analog.com war nicht erreichbar (503). Geprüft wurde über einen Spiegel (radiolocman, Rev. C) und eine zwischengespeicherte PDF-Extraktion. Alle Werte sind Typwerte und keine garantierten Grenzen. Bias-Stabilität und ARW sind Allan-Varianz-Werte unter Laborbedingungen."
+      },
+      {
+        "claim": "Bei Präzisions-IMUs kann der Host Lieferweg und Integrität über Metadaten prüfen (ADIS16470). Die Schnittstelle ist SPI. Der interne Takt liegt bei nominal 2000 SPS mit 3 % Anfangsgenauigkeit. Es gibt einen Data-Ready-Pin, einen Dezimationsfilter (DEC_RATE, 0x64) und vier externe Sync-Modi (Direct, Pulse, Scaled, Output). Ein Burst-Read liefert DIAG_STAT, je drei Achsen Gyro und Accel, TEMP_OUT, DATA_CNTR und eine Prüfsumme. Mit dem Sample-Zähler lassen sich Lücken erkennen, mit der Prüfsumme Übertragungsfehler, und DIAG_STAT liefert Gesundheitsbits. Einschränkungen: Im Scaled-Sync-Modus steht statt DATA_CNTR ein TIME_STMP. Die Prüfsumme ist nur eine einfache Bytesumme und keine CRC. Der Burst-Read enthält nur die 16-Bit-Wörter.",
+        "confidence": "medium",
+        "sources": [
+          "https://wcm-cce.cldnet.analog.com/media/en/technical-documentation/data-sheets/ADIS16470.pdf"
+        ],
+        "evidence": "Abstimmung 2-1. Der zustimmende Prüfer hat alle Teilaussagen im extrahierten Datenblatttext gefunden (Spezifikationstabelle, MSC_CTRL, Burst-Read-Abschnitt). Die Gegenstimme ist nicht dokumentiert. Die Ausnahme für den Scaled-Sync-Modus fehlte in der ursprünglichen Aussage."
+      },
+      {
+        "claim": "Bei FIFO-Batching rekonstruiert der Host die Zeitstempel. Der Zephyr-Sensor-Stack startet das Streaming einmalig mit sensor_stream(). Danach hält es sich selbst über den Trigger SENSOR_TRIG_FIFO_WATERMARK am Laufen, im Beispiel mit 64 Samples pro Batch. Das Prinzip ist 'Read and Decode' auf Basis von RTIO: sensor_read() holt zunächst den rohen, sensor-codierten FIFO-Puffer, sensor_decode() wandelt ihn später, separat oder auf einem anderen Prozessor in Festkommawerte pro Kanal um (Accel, Gyro, Die-Temperatur, Rotations- und Schwerkraftvektor, Gyro-Bias). Im Linux-IIO-Helfer für InvenSense-IMUs leitet ein Patch (v1, Juli 2026) die Sample-Periode aus Interrupt-Zeitstempeln ab: (Interrupt-Zeitstempel − letzter Sample-Zeitstempel) / Anzahl der Samples. Das Ergebnis wird auf die in Promille angegebene Chip-Jitter-Toleranz begrenzt. Ist das Interrupt-Intervall ungültig, fällt der Treiber auf die geschätzte Chip-Periode zurück. Zeitstempel in solchen Pipelines sind also oft rekonstruierte Host-Zeit und keine Sensorzeit. Die Zeitstempelquelle ist deshalb ein notwendiges Metadatum.",
+        "confidence": "medium",
+        "sources": [
+          "https://docs.zephyrproject.org/latest/samples/sensor/6dof_fifo_stream/README.html",
+          "https://lkml.iu.edu/2607.2/03571.html"
+        ],
+        "evidence": "Die Zephyr-Aussagen sind mit 3-0 gegen die offizielle Doku (latest, v4.5.0-rc3) geprüft. Es handelt sich um ein Sample-README und nicht um die normative API-Referenz; die Funktion setzt RTIO-fähige Treiber voraus (z. B. LSM6DSV16X, LIS2DUX12). Die IIO-Aussage ist 3-0 gegen den Patch-Code auf LKML geprüft, der Patch ist aber nicht als gemergt bestätigt. Eine verwandte, weitergehende Aussage zur Konvergenz der alten Logik wurde mit 0-3 widerlegt, ebenso eine abgeleitete Aussage zu Zeitstempelabständen im Zephyr-Beispiel (1-2)."
+      },
+      {
+        "claim": "Unterschiede zwischen Geräten verschieben die Datenverteilung. In einer Studie mit 36 Smartphones und Smartwatches (13 Modelle, 4 Hersteller, 9 Nutzer) verschlechterten Unterschiede bei den Sensoren und bei ihrer Verarbeitung (Abtastung, OS-Pipeline) die Aktivitätserkennung (HAR) deutlich. Breit ausgerollt, lag die Leistung klar unter den berichteten Forschungsergebnissen. Wie groß die Einbußen sind, hängt vom Gerät und vom Verfahren ab (Features und Klassifikator). Für Aufnahmen folgt daraus: Gerätemodell, Sensortyp, Firmware bzw. OS und die tatsächliche Abtastcharakteristik sind Pflicht-Metadaten, wenn man Daten aus verschiedenen Geräten mischen oder einen Domain Shift bewerten will.",
+        "confidence": "medium",
+        "sources": [
+          "https://www.doi.org/10.1145/2809695.2809718"
+        ],
+        "evidence": "Stisen et al., ACM SenSys 2015, peer-reviewed. Abstract wörtlich geprüft, beide Aussagen 3-0. Der Volltext war nicht zugänglich (403). Die Studie behandelt Smartphones und Smartwatches mit OS-verwalteten Sensorstacks und keine reinen MCU-Systeme; die Übertragung auf Embedded-Systeme ist eine Extrapolation. Der zugehörige UCI-Datensatz HHAR ist der Standard-Benchmark für dieses Problem."
+      },
+      {
+        "claim": "Platzierung ist ein Qualitätsfaktor. In einem kleinen Gym-Experiment (Kunze & Lukowicz 2014) mit Xsens-IMUs, die um wenige Zentimeter innerhalb desselben Körperteils versetzt wurden, fiel die Erkennungsrate mit Beschleunigungsmerkmalen laut Tabelle 1 von 100 % (Training und Test an derselben Stelle) auf 33 % (Test an anderer Stelle), mit Gyroskop-Merkmalen von 65 % auf 43 %. Ein regelbasiertes kombiniertes Schema, das bei translationsdominierten Bewegungen Beschleunigung und bei rotationsdominierten Bewegungen das Gyroskop nutzt, holte 78 % zurück, mit zwei Trainingspositionen 85 %. Montageort und Orientierung gehören damit zu den Metadaten einer Aufnahme.",
+        "confidence": "low",
+        "sources": [
+          "https://www-live.dfki.de/fileadmin/user_upload/import/7846_Sensor_Placement_Variations_in_Wearable_Activity_Recognition.pdf"
+        ],
+        "evidence": "Die Werte sind 3-0 gegen Tabelle 1 der Primärquelle (IEEE Pervasive Computing 2014) geprüft, der Prüfer war sich aber nur mittel sicher. Der Fließtext des Papers nennt abweichende Zahlen (63 %/24 %). Eine darauf gestützte Aussage wurde mit 0-3 widerlegt. Es gab nur 2 Probanden und nur Gym-Übungen. Die Zahlen taugen als Illustration, nicht als Benchmark."
+      },
+      {
+        "claim": "Synthese der verifizierten Fälle, nicht eigenständig verifiziert. Ein Ordnungsrahmen mit sechs Achsen ist tragfähig. (1) Modalität. (2) Datenform: Skalar (SCD4x, INA228), Vektor-Zeitreihe (IMU, EKG), selbstbeschreibender Frame-Strom (BMI088-Accel-FIFO). (3) Timing: langsam und abgefragt (5–30 s, SCD4x), regulär hochfrequent (2 kHz, ADIS16470), Batches per Watermark (Zephyr-FIFO-Streaming). (4) Nötige Host-Verarbeitung: Skalierung über VREF/PGA bzw. Formeln, CRC- und Prüfsummenkontrolle, FIFO-Parsing, Zeitstempelrekonstruktion. (5) Qualitätsdimensionen: Offset, Drift, Verstärkungsfehler, Rauschen, Nichtlinearität, Genauigkeit gegenüber Wiederholbarkeit, Langzeitdrift, Fehler abgeleiteter Größen. (6) Benötigte Metadaten. Für die ML-Tauglichkeit ergibt sich daraus folgender Mindestsatz an Metadaten: Sensormodell, Firmware und Revision; Konfiguration (Bereich, ODR, Filter bzw. Dezimation, Referenz und Verstärkung); Kalibrierzustand (Werkskalibrierung, ASC/FRC, Selbsttest-Ergebnis); Montageort und Orientierung; Zeitstempelquelle (Sensortime oder rekonstruierte Host-Zeit) und Takttoleranz; Lücken-, Überlauf- und Integritätsinformationen (Skip-Frames, Overrun-Flag, Sample-Zähler, CRC bzw. Prüfsumme); Statusbits (Lead-off, DIAG_STAT).",
+        "confidence": "low",
+        "sources": [
+          "https://www.ti.com/document-viewer/ADS1292/datasheet/data-format-sbas4598878",
+          "https://ti.com/document-viewer/INA228/datasheet",
+          "https://cdn.sparkfun.com/assets/9/7/5/7/0/Sensirion_SCD4x_Datasheet.pdf",
+          "https://www.bosch-sensortec.com/media/boschsensortec/downloads/application_notes_1/bst-mis-an005.pdf",
+          "https://wcm-cce.cldnet.analog.com/media/en/technical-documentation/data-sheets/ADIS16470.pdf",
+          "https://docs.zephyrproject.org/latest/samples/sensor/6dof_fifo_stream/README.html",
+          "https://www.doi.org/10.1145/2809695.2809718"
+        ],
+        "evidence": "Abgeleitet aus den oben bestätigten Einzelbefunden. Die Struktur des Rahmens ist eine eigene Synthese und wurde nicht adversarial geprüft. Klassen ohne verifizierte Belege (Kamera, Audio, ToF, Radar, Thermal, PPG, GNSS, CAN) sind darin nur als Platzhalter enthalten."
+      }
+    ],
+    "caveats": "Die Abdeckung ist lückenhaft. Nur 22 Aussagen haben die Verifikation überstanden, und sie betreffen vor allem ADS1292, INA228, SCD4x, BMI088, ADIS16470, das Zephyr- bzw. Linux-IIO-Streaming und zwei HAR-Studien. Ein großer Teil der Ausgangsfrage ist in dieser Synthese nicht belegt. Das betrifft mehrere Sensorklassen: Audio (PDM/I2S), Vision (HM01B0, OV2640, Event-Kameras), ToF (VL53L5CX mit Target-Status je Zone), Radar (BGT60, IWR6843), Thermal (MLX90640, Grid-EYE), BME688/BSEC, PPG, GNSS (UBX-NAV-PVT mit hAcc/sAcc), CAN/DBC sowie BNO085, LSM6DSV mit MLC und ICM-42688. Es betrifft auch die Observability-Werkzeuge (Memfault, Golioth, OpenTelemetry für MCUs) und alle Metadatenstandards (IEEE 1451 TEDS, OGC SensorThings, W3C SSN/SOSA, SenML, Linux IIO, das Accuracy-Feld der Android-HAL, ROS-Kovarianzen, ASAM MDF4, CANopen). Die Zwischenrecherche hat einige dieser Teile erwähnt; sie sind hier aber nicht verifiziert. Zum Alter der Quellen: Die BMI08x-Application-Note stammt von 2018 und ist als 'preliminary' markiert. Das SCD4x-Datenblatt ist v1.5 von 2023; neuere Revisionen wurden nicht geprüft. Die Zephyr-Doku ist 'latest' (v4.5.0-rc3) und kann sich ändern. Der InvenSense-IIO-Patch vom Juli 2026 ist nicht als gemergt bestätigt. Das ADIS16470-Datenblatt war direkt bei analog.com nicht erreichbar und wurde über Spiegel und Cache geprüft. Alle Datenblattwerte sind Herstellerangaben, oft Typwerte (1σ, 25 °C) und keine garantierten Grenzen; unabhängige Messungen liegen nicht vor. Die HAR-Studien (2014/2015) beruhen auf Smartphones bzw. kleinen Laborstudien. Bei Stisen et al. wurde nur der Abstract geprüft, und Kunze & Lukowicz widersprechen sich zwischen Tabelle und Fließtext. Widerlegt wurden: eine Aussage zur Konvergenz der alten InvenSense-Zeitstempellogik, eine aus Beispielausgaben abgeleitete ODR von 15 Hz im Zephyr-Sample und die Fließtextzahlen 63 %/24 % der Platzierungsstudie. Der Klassifikationsrahmen ist eine eigene Synthese und nicht unabhängig verifiziert.",
+    "openQuestions": [
+      "Wie lassen sich die gerätespezifischen Metadaten (Skip-Frames, Overrun-Flags, DATA_CNTR, DIAG_STAT, Lead-off-Bits, ASC/FRC-Status) verlustfrei auf Standardformate wie IETF SenML, W3C SSN/SOSA, IEEE 1451 TEDS oder ASAM MDF4 abbilden, und welche Felder fehlen dort?",
+      "Wie synchronisiert man mehrere Sensoren mit unterschiedlichen Zeitbasen (On-Sensor-Sensortime, Host-Interrupt-Zeitstempel, externe Sync-Modi) in der Praxis auf MCUs, und wie groß sind die resultierenden Jitter- und Driftfehler im Vergleich zu den Datenblattangaben?",
+      "Welche Laufzeit-Genauigkeits- und Statusfelder liefern die nicht verifizierten Klassen tatsächlich (BNO085-Kalibriergenauigkeit, GNSS hAcc/sAcc/fixType, VL53L5CX-Target-Status, BSEC-Accuracy), und wie zuverlässig sind sie als Qualitätsindikator für ML?",
+      "Wie stark wirken Streuung zwischen Exemplaren gleichen Typs und Kalibrierzustand (nicht nur Unterschiede zwischen Gerätemodellen) auf Embedded-ML-Modelle ohne OS-Pipeline, und welche Embedded-Observability-Werkzeuge (Memfault, Zephyr-Logging, OpenTelemetry für MCUs) können diese Metadaten im Feld erfassen?"
+    ],
+    "refuted": [
+      {
+        "claim": "In the Linux IIO InvenSense driver, FIFO samples have no per-sample hardware timestamps. The host timestamps each interrupt and reconstructs per-sample timestamps from it. Before this patch, alignment changed only the next timestamp. With a FIFO watermark, where one interrupt delivers a batch of samples, this did not converge because jitter limits the correction.",
+        "vote": "0-3",
+        "source": "https://lkml.iu.edu/2607.2/03571.html"
+      },
+      {
+        "claim": "With an ST LSM6DSV16X and a FIFO watermark of 64, each decoded batch delivers accelerometer samples. Each sample carries a nanosecond timestamp and an XYZ tuple in physical units (m/s², about 9.9 on the Z axis). Consecutive timestamps are about 66,666,666 ns apart, which means an output data rate of roughly 15 Hz. This 15 Hz figure is derived from the sample output and is not stated on the page.",
+        "vote": "1-2",
+        "source": "https://docs.zephyrproject.org/latest/samples/sensor/6dof_fifo_stream/README.html"
+      },
+      {
+        "claim": "In a gym experiment with Xsens IMUs placed on the upper leg/upper arm, accelerometer-only activity recognition reached 100% (locomotion) and 96% (arm exercises) when trained and tested at the same location, but dropped to 63% and 24% when tested on a different location within the same body part; training on two locations improved this only slightly (61% and 31%).",
+        "vote": "0-3",
+        "source": "https://www-live.dfki.de/fileadmin/user_upload/import/7846_Sensor_Placement_Variations_in_Wearable_Activity_Recognition.pdf"
+      }
+    ],
+    "unverified": [],
+    "sources": [
+      {
+        "url": "https://www.ti.com/document-viewer/ADS1292/datasheet/data-format-sbas4598878",
+        "quality": "primary",
+        "angle": "Sensor-Datenformate aus Datenblättern (nicht abgedeckte Klassen)",
+        "claimCount": 4
+      },
+      {
+        "url": "https://ti.com/document-viewer/INA228/datasheet",
+        "quality": "primary",
+        "angle": "Sensor-Datenformate aus Datenblättern (nicht abgedeckte Klassen)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.mouser.com/datasheet/2/256/maximintegratedproducts_MAX30102 DS-1179649.pdf",
+        "quality": "unreliable",
+        "angle": "Sensor-Datenformate aus Datenblättern (nicht abgedeckte Klassen)",
+        "claimCount": 0
+      },
+      {
+        "url": "https://cdn.sparkfun.com/assets/9/7/5/7/0/Sensirion_SCD4x_Datasheet.pdf",
+        "quality": "primary",
+        "angle": "Sensor-Datenformate aus Datenblättern (nicht abgedeckte Klassen)",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.st.com/resource/en/application_note/an6119-lsm6dsv320x-6axis-imu-with-ai-highg-accelerometer-and-embedded-sensor-fusion-for-highend-applications-car-crash-detection-stmicroelectronics.pdf",
+        "quality": "unreliable",
+        "angle": "Sensor-Datenformate aus Datenblättern (nicht abgedeckte Klassen)",
+        "claimCount": 0
+      },
+      {
+        "url": "https://manualmachine.com/avia/hx711/28020542-datasheet/",
+        "quality": "unreliable",
+        "angle": "Sensor-Datenformate aus Datenblättern (nicht abgedeckte Klassen)",
+        "claimCount": 0
+      },
+      {
+        "url": "https://www.bosch-sensortec.com/media/boschsensortec/downloads/application_notes_1/bst-mis-an005.pdf",
+        "quality": "primary",
+        "angle": "Datentransport, FIFO, Zeitstempel und Synchronisation",
+        "claimCount": 5
+      },
+      {
+        "url": "https://invensense.tdk.com/wp-content/uploads/2023/05/an-000324_icm-42607x-and-icm-42670x-fifo-usage.pdf",
+        "quality": "unreliable",
+        "angle": "Datentransport, FIFO, Zeitstempel und Synchronisation",
+        "claimCount": 0
+      },
+      {
+        "url": "https://adm.invensense.tdk.com/how-synchronize-both-frequency-and-phase-icm-4268x-devices-using-external-clock-sources",
+        "quality": "unreliable",
+        "angle": "Datentransport, FIFO, Zeitstempel und Synchronisation",
+        "claimCount": 0
+      },
+      {
+        "url": "https://lkml.iu.edu/2607.2/03571.html",
+        "quality": "primary",
+        "angle": "Datentransport, FIFO, Zeitstempel und Synchronisation",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.alldatasheet.net/html-pdf/1447360/STMICROELECTRONICS/LSM6DSV/93227/41/LSM6DSV.html",
+        "quality": "unreliable",
+        "angle": "Datentransport, FIFO, Zeitstempel und Synchronisation",
+        "claimCount": 0
+      },
+      {
+        "url": "https://docs.zephyrproject.org/latest/samples/sensor/6dof_fifo_stream/README.html",
+        "quality": "primary",
+        "angle": "Datentransport, FIFO, Zeitstempel und Synchronisation",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.doi.org/10.1145/2809695.2809718",
+        "quality": "primary",
+        "angle": "Qualitätsparameter, Kalibrierung und Auswirkungen auf ML",
+        "claimCount": 5
+      },
+      {
+        "url": "https://mdsoar.org/handle/11603/27921",
+        "quality": "secondary",
+        "angle": "Qualitätsparameter, Kalibrierung und Auswirkungen auf ML",
+        "claimCount": 5
+      },
+      {
+        "url": "https://wcm-cce.cldnet.analog.com/media/en/technical-documentation/data-sheets/ADIS16470.pdf",
+        "quality": "primary",
+        "angle": "Qualitätsparameter, Kalibrierung und Auswirkungen auf ML",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www-live.dfki.de/fileadmin/user_upload/import/7846_Sensor_Placement_Variations_in_Wearable_Activity_Recognition.pdf",
+        "quality": "primary",
+        "angle": "Qualitätsparameter, Kalibrierung und Auswirkungen auf ML",
+        "claimCount": 5
+      },
+      {
+        "url": "https://docs.zephyrproject.org/latest/hardware/peripherals/sensor/read_and_decode.html",
+        "quality": "primary",
+        "angle": "Embedded-Observability und Laufzeit-Metadaten",
+        "claimCount": 5
+      },
+      {
+        "url": "https://docs.zephyrproject.org/latest/doxygen/html/sensor__data__types_8h.html",
+        "quality": "primary",
+        "angle": "Embedded-Observability und Laufzeit-Metadaten",
+        "claimCount": 5
+      },
+      {
+        "url": "https://docs.memfault.com/docs/mcu/mcu-builtin-metrics",
+        "quality": "primary",
+        "angle": "Embedded-Observability und Laufzeit-Metadaten",
+        "claimCount": 5
+      },
+      {
+        "url": "https://docs.memfault.com/docs/mcu/metrics-api",
+        "quality": "primary",
+        "angle": "Embedded-Observability und Laufzeit-Metadaten",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.rfc-editor.org/rfc/rfc8428",
+        "quality": "primary",
+        "angle": "Standards zur Beschreibung von Sensoren und Metadaten",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.w3.org/TR/2017/REC-vocab-ssn-20171019/",
+        "quality": "primary",
+        "angle": "Standards zur Beschreibung von Sensoren und Metadaten",
+        "claimCount": 5
+      },
+      {
+        "url": "https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html",
+        "quality": "primary",
+        "angle": "Standards zur Beschreibung von Sensoren und Metadaten",
+        "claimCount": 5
+      },
+      {
+        "url": "https://www.ni.com/en/support/documentation/supplemental/06/ieee-1451-4-sensor-templates-overview.html",
+        "quality": "secondary",
+        "angle": "Standards zur Beschreibung von Sensoren und Metadaten",
+        "claimCount": 5
+      }
+    ],
+    "stats": {
+      "angles": 5,
+      "sourcesFetched": 24,
+      "claimsExtracted": 89,
+      "claimsVerified": 25,
+      "confirmed": 22,
+      "killed": 3,
+      "unverified": 0,
+      "afterSynthesis": 11,
+      "urlDupes": 0,
+      "budgetDropped": 6,
+      "agentCalls": 106
+    }
+  }
+}
