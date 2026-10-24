@@ -23,6 +23,7 @@ def test_the_resolved_manifest_has_no_implicit_values(tmp_path, capsys) -> None:
         "val": 0.15,
         "test": 0.15,
         "stratified": True,
+        "column": None,
     }
     assert data["export"]["formats"] == ["flatbuffer", "c_array"]
     assert data["export"]["quantization"] == "int8"

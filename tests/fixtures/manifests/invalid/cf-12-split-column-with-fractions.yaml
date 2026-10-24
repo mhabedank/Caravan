@@ -1,0 +1,28 @@
+# Invalid on purpose. A fixed split takes its parts from the data; fractions beside it would be
+# ignored, so they are refused (feature 007, FR-018).
+# Expected: CF-12 at dataset.split
+apiVersion: caravan/v0.1
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden: [8]
+inputs:
+  - name: frames
+    kind: series
+    window: 32
+outputs:
+  - name: verdict
+    kind: class
+    accuracy_drop_max: 0.02
+dataset:
+  source: datasets/example/
+  split:
+    column: split
+    train: 0.8
+    val: 0.1
+    test: 0.1
+  representative_samples: 100
+export:
+  targets: [stm32h743]

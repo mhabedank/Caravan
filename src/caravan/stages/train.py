@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from caravan.data.reader_bridge import assemble_samples
-from caravan.data.windows import SPLIT_NAMES, plan_split, plan_windows
+from caravan.data.windows import plan_windows, split_for
 from caravan.manifest.errors import RULE_TRAINING_DIVERGED, run_rule_error
 from caravan.stages._framework import framework_record
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
@@ -107,15 +107,8 @@ def stage(context: StageContext) -> StageFunction:
         keras.utils.set_random_seed(seed)
 
         records = context.records()
-        window_plan = plan_windows(records.labels, inputs["inputs[0].window"])
-        split_spec = inputs["dataset.split"]
-        split = plan_split(
-            window_plan,
-            {name: float(split_spec[name]) for name in SPLIT_NAMES},
-            stratified=bool(split_spec["stratified"]),
-            seed=seed,
-            labels=labels,
-        )
+        window_plan = plan_windows(records.labels, inputs["inputs[0].window"], parts=records.parts)
+        split = split_for(window_plan, inputs["dataset.split"], seed=seed, labels=labels)
         features, targets = assemble_samples(records, window_plan, labels)
 
         # The build stage's artifacts are already in the run directory, whether this run
@@ -263,6 +256,9 @@ def _write_measurements(
             "records_dropped_remainder": window_plan.dropped_remainder,
             "split": split.counts,
             "split_per_label": split.per_label_counts,
+            # Feature 007: where the split came from, and what a fixed split threw away.
+            "split_source": split.source,
+            "windows_discarded_mixed_split": window_plan.discarded_mixed_split,
         },
         "training": {
             **framework_record(),

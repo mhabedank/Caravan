@@ -35,7 +35,13 @@ from caravan.manifest.errors import (
 from caravan.manifest.load import load_manifest
 from caravan.manifest.resolve import merge_derived, resolve
 from caravan.manifest.resolve import render as render_manifest
-from caravan.run.paths import RESOLVED_MANIFEST_NAME, create_run_directory, file_digest
+from caravan.run.framework_log import captured, mentioned
+from caravan.run.paths import (
+    FRAMEWORK_LOG_NAME,
+    RESOLVED_MANIFEST_NAME,
+    create_run_directory,
+    file_digest,
+)
 from caravan.run.report import (
     OUTCOME_ERROR,
     ConfusionMatrix,
@@ -196,6 +202,14 @@ def data_line(schema: dict[str, Any]) -> str:
     )
 
 
+def _print_framework_log(name: str, stage: str, log_path: Path | None) -> None:
+    """Which stage stopped, and where the framework's output of that run was kept (FR-009)."""
+    print(f"{name}: stage {stage} failed", file=sys.stderr)
+    line = mentioned(log_path)
+    if line is not None:
+        print(line, file=sys.stderr)
+
+
 def run_pipeline(
     args: argparse.Namespace,
     command: str,
@@ -253,69 +267,81 @@ def run_pipeline(
     outcomes: list[StageOutcome] = []
     context: StageContext | None = None
     dataset: Any = None
+    # The framework's own output goes to the run directory, not the console (feature 007, research
+    # R1). `running` names the stage for a failure message, including an internal error's.
+    log_path = None if args.framework_output else run_dir / FRAMEWORK_LOG_NAME
+    running = "data"
     try:
-        from caravan.data.fingerprint import resolve_dataset
+        with captured(log_path):
+            from caravan.data.fingerprint import resolve_dataset
 
-        dataset = resolve_dataset(manifest.dataset.source, path.parent)
-        declared_columns = manifest.inputs[0].columns
-        context = StageContext(
-            dataset=dataset,
-            run_dir=run_dir,
-            run_id=run_dir.name,
-            input_columns=None if declared_columns is None else tuple(declared_columns),
-            output_column=manifest.outputs[0].column,
-        )
+            dataset = resolve_dataset(manifest.dataset.source, path.parent)
+            declared_columns = manifest.inputs[0].columns
+            context = StageContext(
+                dataset=dataset,
+                run_dir=run_dir,
+                run_id=run_dir.name,
+                input_columns=None if declared_columns is None else tuple(declared_columns),
+                output_column=manifest.outputs[0].column,
+                split_column=manifest.dataset.split.column,
+            )
 
-        # The data stage reads the declarations as written; every later stage reads them with what
-        # the data said merged in, so the derived values are part of their keys (research R3).
-        keys: dict[str, str] = {}
-        result = run_stage(
-            data_stage.SPEC,
-            data_stage.stage(context),
-            resolved=resolved,
-            run_dir=run_dir,
-            cache_dir=cache_dir,
-            dataset_version=dataset.version,
-            fresh=args.fresh,
-            run_id=run_dir.name,
-        )
-        keys[data_stage.SPEC.name] = result.key
-        outcomes.append(result)
-        schema = data_stage.load_schema(run_dir)
-        resolved = merge_derived(
-            resolved, input_columns=schema["input_columns"], labels=schema["labels"]
-        )
-        (run_dir / RESOLVED_MANIFEST_NAME).write_text(dump_mapping(resolved), encoding="utf-8")
-        report.data = schema
-
-        # The fit check runs right after the build, before any training (Principle V): every verb
-        # that builds also checks, and none of them can skip it.
-        sequence: list[StagePlan] = []
-        for plan in stages:
-            sequence.append(plan)
-            if plan.spec.name == "build":
-                sequence.append(StagePlan(spec=fit_stage.SPEC, make=fit_stage.stage))
-
-        for plan in sequence:
+            # The data stage reads the declarations as written; every later stage reads them with
+            # what the data said merged in, so the derived values are part of their keys (research
+            # R3).
+            keys: dict[str, str] = {}
+            running = data_stage.SPEC.name
             result = run_stage(
-                plan.spec,
-                plan.make(context),
+                data_stage.SPEC,
+                data_stage.stage(context),
                 resolved=resolved,
                 run_dir=run_dir,
                 cache_dir=cache_dir,
                 dataset_version=dataset.version,
-                upstream_key=keys.get(plan.spec.upstream or ""),
                 fresh=args.fresh,
                 run_id=run_dir.name,
             )
-            keys[plan.spec.name] = result.key
+            keys[data_stage.SPEC.name] = result.key
             outcomes.append(result)
+            schema = data_stage.load_schema(run_dir)
+            resolved = merge_derived(
+                resolved, input_columns=schema["input_columns"], labels=schema["labels"]
+            )
+            (run_dir / RESOLVED_MANIFEST_NAME).write_text(dump_mapping(resolved), encoding="utf-8")
+            report.data = schema
+
+            # The fit check runs right after the build, before any training (Principle V): every
+            # verb that builds also checks, and none of them can skip it.
+            sequence: list[StagePlan] = []
+            for plan in stages:
+                sequence.append(plan)
+                if plan.spec.name == "build":
+                    sequence.append(StagePlan(spec=fit_stage.SPEC, make=fit_stage.stage))
+
+            for plan in sequence:
+                running = plan.spec.name
+                result = run_stage(
+                    plan.spec,
+                    plan.make(context),
+                    resolved=resolved,
+                    run_dir=run_dir,
+                    cache_dir=cache_dir,
+                    dataset_version=dataset.version,
+                    upstream_key=keys.get(plan.spec.upstream or ""),
+                    fresh=args.fresh,
+                    run_id=run_dir.name,
+                )
+                keys[plan.spec.name] = result.key
+                outcomes.append(result)
 
     except (RunRuleFailure, EnvironmentIncomplete) as failure:
         report.stages = tuple(outcomes)
+        if log_path is not None and log_path.exists():
+            report.artifacts = {**report.artifacts, "framework_log": FRAMEWORK_LOG_NAME}
         if isinstance(failure, EnvironmentIncomplete):
             # Only reachable if the environment changed under us between the check above and here.
             print(f"{name}: {failure.message}", file=sys.stderr)
+            _print_framework_log(name, running, log_path)
             report.outcome = OUTCOME_ERROR
             write_report(run_dir, report)
             return EXIT_ENVIRONMENT
@@ -340,7 +366,13 @@ def run_pipeline(
             _print_findings(name, (finding,))
             _print_diagnostic(report)
             print(f"{name}: the run did not finish", file=sys.stderr)
+            _print_framework_log(name, running, log_path)
         return EXIT_RULE
+    except Exception:
+        # A defect, reported by `main` with exit code 3. The descriptors are already restored; what
+        # this adds is where it happened and where the framework's side of it was kept (FR-009).
+        _print_framework_log(name, running, log_path)
+        raise
 
     measured = _artifact(run_dir, METRICS_NAME)
     report.stages = tuple(outcomes)
@@ -376,6 +408,8 @@ def run_pipeline(
         "resolved_manifest": RESOLVED_MANIFEST_NAME,
         **{Path(artifact).stem: artifact for stage in outcomes for artifact in stage.artifacts},
     }
+    if log_path is not None and log_path.exists():
+        report.artifacts["framework_log"] = FRAMEWORK_LOG_NAME
     write_report(run_dir, report)
 
     if args.json:

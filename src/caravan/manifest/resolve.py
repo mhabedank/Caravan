@@ -61,12 +61,7 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
         ],
         "dataset": {
             "source": manifest.dataset.source,
-            "split": {
-                "train": manifest.dataset.split.train,
-                "val": manifest.dataset.split.val,
-                "test": manifest.dataset.split.test,
-                "stratified": manifest.dataset.split.stratified,
-            },
+            "split": _split(manifest),
             "representative_samples": manifest.dataset.representative_samples,
         },
         "train": {
@@ -103,3 +98,21 @@ def merge_derived(
 def render(manifest: Manifest, *, templates: TemplateRegistry | None = None) -> str:
     """The resolved manifest as YAML text, byte-identical across runs."""
     return dump_mapping(resolve(manifest, templates=templates))
+
+
+def _split(manifest: Manifest) -> dict[str, Any]:
+    """The split in the form it was written: fractions with ``column: null``, or the column alone.
+
+    ``column`` is always present, because the data stage reads it to leave the split column out of
+    the derived inputs; a fraction is read only by the stages that draw by it (feature 007).
+    """
+    split = manifest.dataset.split
+    if split.column is not None:
+        return {"column": split.column}
+    return {
+        "train": split.train,
+        "val": split.val,
+        "test": split.test,
+        "stratified": split.stratified,
+        "column": None,
+    }

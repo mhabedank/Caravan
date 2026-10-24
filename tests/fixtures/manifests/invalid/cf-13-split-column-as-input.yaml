@@ -1,0 +1,26 @@
+# Invalid on purpose. The split column says where a record belongs; as an input it would teach the
+# model which part it is in (feature 007, FR-018).
+# Expected: CF-13 at dataset.split.column
+apiVersion: caravan/v0.1
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden: [8]
+inputs:
+  - name: frames
+    kind: series
+    columns: [can_id, split]
+    window: 32
+outputs:
+  - name: verdict
+    kind: class
+    accuracy_drop_max: 0.02
+dataset:
+  source: datasets/example/
+  split:
+    column: split
+  representative_samples: 100
+export:
+  targets: [stm32h743]

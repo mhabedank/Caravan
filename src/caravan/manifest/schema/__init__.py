@@ -18,6 +18,7 @@ from caravan.manifest.errors import (
     RULE_COLUMN_BOTH_WAYS,
     RULE_DECLARATION_NAME,
     RULE_DECLARATIONS_IMPLEMENTED,
+    RULE_SPLIT_COLUMN_DECLARED,
     RULE_TEMPLATE_PARAMETERS,
     RULE_UNKNOWN_BOARD,
     RULE_UNKNOWN_TEMPLATE,
@@ -150,6 +151,31 @@ class Manifest(BaseModel):
                     "model would be trained on its own answer",
                     found=both,
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _split_column_is_neither_input_nor_output(self) -> Manifest:
+        # CF-13 (feature 007). A model given the column that says which part a sample is in would
+        # learn the split, and a split column that is the answer would split by class.
+        column = self.dataset.split.column
+        if column is None:
+            return self
+        if any(output.column == column for output in self.outputs):
+            rule_error(
+                RULE_SPLIT_COLUMN_DECLARED,
+                "dataset.split.column",
+                f"column {column} is the output's answer and cannot also say where a record "
+                "belongs",
+                found=column,
+            )
+        if any(column in (declared.columns or ()) for declared in self.inputs):
+            rule_error(
+                RULE_SPLIT_COLUMN_DECLARED,
+                "dataset.split.column",
+                f"column {column} is listed as an input; the column that says where a record "
+                "belongs must not be something the model learns from",
+                found=column,
+            )
         return self
 
     # --- template resolution: T-1, then T-2, then CF-6 ---------------------------------------

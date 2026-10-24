@@ -21,17 +21,39 @@ architecture search. See `.specify/memory/constitution.md`.
 
 ## Status
 
-Early. Five of the pipeline's verbs exist: `validate` and `render` (feature 001), `build` and
-`train` (002), and `quantize` (003) — the first stage with a budget that decides whether a run
-produces an artifact at all. The core still loads no machine-learning framework.
+**0.1.0rc1, the first release candidate.** Every stage from manifest to C array exists: `validate`,
+`render`, `build`, `train`, `quantize` and `export`, with `templates` and `boards` to list what is
+registered. Two templates, `mlp` and `conv1d`, and three boards, `s32k144`, `stm32h743` and `esp32`.
+`build` checks the model against the boards' flash and RAM before any training, and `export` writes
+an interface contract a firmware author binds by. 0.1.0 follows once the zoo's `pace-cnn` has been
+rebuilt with this candidate (`docs/releases/0.1.0.md` says what is in it and what is not).
+
+Not on the package index. Each version is installed from its GitHub release.
+
+## Try it
+
+`docs/try-it.md` goes from an empty directory to an exported model in one sequence of commands.
+With a checkout, the example manifest validates on any supported Python:
+
+```bash
+# step: readme
+caravan validate examples/picket-mlp.yaml
+caravan render examples/picket-mlp.yaml --stdout
+```
 
 ## Install
 
+From the release, in a virtual environment:
+
 ```bash
-pip install caravan-ml                      # the command is `caravan`
-pip install "caravan-ml[verify]"            # plus reading and running exported models
-pip install "caravan-ml[train,verify]"      # plus training and converting, on Python 3.13
+pip install "caravan-ml @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc1/caravan_ml-0.1.0rc1-py3-none-any.whl"
+pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc1/caravan_ml-0.1.0rc1-py3-none-any.whl"
 ```
+
+The first line is the core: `validate` and `render`, on Python 3.13 to 3.15. The second adds
+training and converting (Python 3.13) and reading exported models (3.13 and 3.14). To build from
+the tagged source instead:
+`pip install "caravan-ml[train,verify] @ git+https://github.com/mhabedank/Caravan@v0.1.0rc1"`.
 
 The default installation has two runtime dependencies, weighs about 9 MiB and pulls no
 machine-learning framework, because checking and resolving a manifest does not need one.
@@ -110,7 +132,8 @@ A dataset is raw, record-level delimited text. The output names the column holdi
 (`label` unless it says otherwise), and the class names are read from it, sorted, unless the
 manifest pins their order; the input reads every other column unless it names its own. Caravan does
 the windowing, and a window whose records disagree about the label is discarded and counted rather
-than labelled. `specs/002-build-and-train/contracts/dataset.md` and
+than labelled. The split is drawn by fractions, or, with `dataset.split: {column: split}`, named by
+the data record by record, so a subject or a recording never ends up on both sides. `specs/002-build-and-train/contracts/dataset.md` and
 `specs/006-declared-io/contracts/manifest.md` are the whole contract.
 
 `quantize` converts the trained model and then **judges** it: three accuracies on the test split —

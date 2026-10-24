@@ -27,6 +27,9 @@ MAX_RUNS_PER_SECOND = 100
 
 REPORT_NAME = "report.json"
 RESOLVED_MANIFEST_NAME = "resolved-manifest.yaml"
+#: What the training framework, the converter and their libraries printed while stages ran
+#: (feature 007). Kept rather than discarded, so a failure inside the framework keeps its cause.
+FRAMEWORK_LOG_NAME = "framework.log"
 
 
 class RunDirectoryError(Exception):
