@@ -121,6 +121,42 @@ want to look at.*
   came from the tutorial running each stage as its own command; `caravan export` alone runs them
   all into one directory.
 
+### D7. Typed columns, Ludwig-style, with the preprocessing brought along (2026-10-24)
+
+After working through the example of 0.1.0rc1:
+
+> "für mich macht das mit dem Input und Output jetzt immer noch nicht so richtig Sinn … in Input
+> steht einfach nur Frames und in Output steht einfach nur Attack. Es sind nicht mal richtig
+> Spaltennamen benannt. Das funktioniert ja in Ludwig komplett anders … unsere YAML-Datei [muss]
+> schon sagen, welche Spalten Input und welche Output sind und welche wir ignorieren können. Und
+> ich verstehe auch nicht, warum Kind series ist. Also was ist mit dem Datentypen?"
+
+*The input and output still make no sense to me: the input says only "frames", the output only
+"attack", no column is named. Ludwig works entirely differently. The YAML file must say which
+columns are input, which are output and which we ignore. And why is the kind "series", and what
+about data types?*
+
+> "je nachdem, was wir für einen Typen hatten, war ja auch Logik da, wie der zu verarbeiten ist …
+> Und diese Logik, die muss ja auch dann letzten Endes durch uns abgedeckt werden, weil ich möchte
+> natürlich, dass der Nutzer nicht noch extra Aufwand hat, alles drumherum zu schreiben … für jeden
+> Typen, den wir haben, müssen wir halt auch die Logik mitbringen, wie diese Werte einkommen, wie
+> die verarbeitet werden, damit sie nachher im Netz dann letzten Endes auch eine Zahl sind."
+
+*Each type came with logic for how to process it. That logic must be covered by us, so that the
+user does not have to write anything around the model: for every type we bring the logic of how
+values come in and are processed until they are a number in the network, an int8 or whatever.*
+
+- Decided: inputs and outputs name their columns, Ludwig-style, each with a type; each type
+  brings its preprocessing, fitted on the training data and shipped with the model.
+- Decided: the device half of the preprocessing runs, ideally, inside the model on TFLite Micro.
+  Research first establishes what TFLM can and cannot do there ("Idealerweise durch TFLM, aber
+  recherchiere vorher, damit wir wissen, was die Rahmenbedingungen und Grenzen sind").
+- Decided: 0.1.0 waits for this ("Erst Typen, dann 0.1.0"). `v0.1.0rc1` stays the version to try.
+- Context, recorded honestly: D4 already asked for "inputs and outputs declared, Ludwig-style,
+  with a type each". Feature 006 implemented a narrower form — a declared model tensor with columns
+  derived and a tensor kind, no type per column — and the example hid even the columns. D7 is D4
+  carried through.
+
 ## Raised by the owner, direction given, details open
 
 ### R1. `topic` and `task`

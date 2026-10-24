@@ -4,7 +4,11 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: Draft. **Updated 2026-10-24**: `v0.1.0rc1` was released and the `pace-cnn` port ran
+with it (research R10 and the official run). The owner then decided that `v0.1.0` waits for typed,
+Ludwig-style columns with their preprocessing (decision D7 in
+`docs/design/2026-10-23-owner-decisions.md`); that is the next feature, and the remaining tasks of
+this one (T038–T043) resume after it.
 
 **Input**: User description: "lass uns 0.1.0 abschließen" — after the owner asked whether there is a
 version to test and try by hand. There is not: the package says `0.1.0.dev1`, nothing is tagged,
