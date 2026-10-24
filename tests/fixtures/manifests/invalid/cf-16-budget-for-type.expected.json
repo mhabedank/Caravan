@@ -1,0 +1,4 @@
+{
+  "rule": "CF-16",
+  "path": "output_features[0].mae_increase_max"
+}

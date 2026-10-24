@@ -1,4 +1,4 @@
 {
   "rule": "CF-4",
-  "path": "dataset.representative_samples"
+  "path": "export.representative_samples"
 }

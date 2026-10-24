@@ -1,40 +1,40 @@
 # The pilot with a split the data decides (feature 007, FR-017): every record's `split` column says
-# train, val or test. `data/` is written by the tests from the committed synthetic fixture
+# train, validation or test. `data/` is written by the tests from the committed synthetic fixture
 # (tests/support.py, write_split_dataset), so no second dataset is committed.
-apiVersion: caravan/v0.1
+apiVersion: caravan/v0.2
 
 model:
   name: picket-mlp
-  version: 0.1.0
+  version: 0.2.0
   template: mlp
   params:
     hidden: [32, 16]
     dropout: 0.1
 
-inputs:
-  - name: frames
-    kind: series
-    window: 64
+input_features:
+  - name: can_id
+    type: category
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
 
-outputs:
-  - name: attack
-    kind: class
-    labels: [normal, dos, fuzzy, replay]
+output_features:
+  - name: label
+    type: category
     accuracy_drop_max: 0.02
 
-dataset:
-  source: data/
-  split:
-    column: split
-  representative_samples: 500
+preprocessing:
+  window_size: 64
+  split: {type: fixed, column: split}
 
-train:
-  epochs: 50
-  batch: 256
-  optimizer: adam
-  early_stopping: true
+dataset: data/
+
+trainer: {epochs: 50, batch_size: 256, learning_rate: 0.001, early_stop: 5}
+random_seed: 42
 
 export:
   quantization: int8
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
+  representative_samples: 500

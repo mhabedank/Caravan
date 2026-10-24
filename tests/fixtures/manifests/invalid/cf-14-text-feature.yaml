@@ -1,0 +1,27 @@
+# Invalid on purpose. A text feature: Ludwig has the type, but it has no path to a microcontroller
+# in this build (feature 008, research R12).
+# Expected: CF-14 at input_features[1].type
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+- name: note
+  type: text
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

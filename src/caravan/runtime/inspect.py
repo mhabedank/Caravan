@@ -16,8 +16,16 @@ from pathlib import Path
 from typing import Any
 
 #: Types that make a model an integer model. Biases are int32 in a fully int8 graph, which is
-#: why int32 belongs here and why "all tensors are int8" would be the wrong test.
-INTEGER_DTYPES = frozenset({"int8", "int16", "int32", "int64", "uint8"})
+#: why int32 belongs here and why "all tensors are int8" would be the wrong test. ``bool`` is the
+#: result of the EQUAL a category's one-hot compares with (feature 008, research R3): one byte, no
+#: floating point.
+INTEGER_DTYPES = frozenset({"int8", "int16", "int32", "int64", "uint8", "bool"})
+
+#: What a model's boundary may carry since feature 008 (research R5): an input is the raw value the
+#: firmware passes — float32 for a number, int32 for a code — and is followed by the converter's
+#: QUANTIZE; an output is float32 after its DEQUANTIZE. An int8 boundary is still integer.
+BOUNDARY_INPUT_DTYPES = frozenset({"float32", "int32", "int8"})
+BOUNDARY_OUTPUT_DTYPES = frozenset({"float32", "int8"})
 
 
 @dataclass(frozen=True)
@@ -29,6 +37,7 @@ class TensorRecord:
     shape: tuple[int, ...]
     scale: float | None = None
     zero_point: int | None = None
+    index: int | None = None
 
     @property
     def is_integer(self) -> bool:
@@ -48,9 +57,21 @@ class ModelInspection:
 
     path: Path
     size_bytes: int
-    input: TensorRecord
-    output: TensorRecord
+    inputs: tuple[TensorRecord, ...]
+    outputs: tuple[TensorRecord, ...]
     tensors: tuple[TensorRecord, ...]
+    #: Indices of the tensors whose every consumer is a QUANTIZE: the conversion of a raw value
+    #: into int8, such as a category's one-hot (feature 008, research R5).
+    into_quantize: frozenset[int] = frozenset()
+
+    @property
+    def input(self) -> TensorRecord:
+        """The first input, for a model that has one."""
+        return self.inputs[0]
+
+    @property
+    def output(self) -> TensorRecord:
+        return self.outputs[0]
 
     @property
     def dtype_counts(self) -> dict[str, int]:
@@ -59,21 +80,44 @@ class ModelInspection:
             counts[tensor.dtype] = counts.get(tensor.dtype, 0) + 1
         return dict(sorted(counts.items()))
 
+    def _boundary(self) -> dict[int, frozenset[str]]:
+        allowed: dict[int, frozenset[str]] = {}
+        for tensor in self.inputs:
+            if tensor.index is not None:
+                allowed[tensor.index] = BOUNDARY_INPUT_DTYPES
+        for tensor in self.outputs:
+            if tensor.index is not None:
+                allowed[tensor.index] = BOUNDARY_OUTPUT_DTYPES
+        return allowed
+
+    def floating_tensors(self) -> tuple[str, ...]:
+        """Tensors that make the model not integer: inside it, anything but an integer type; at its
+        boundary, anything but the raw types a firmware passes and receives (research R5)."""
+        boundary = self._boundary()
+        out: list[str] = []
+        for tensor in self.tensors:
+            permitted = boundary.get(tensor.index) if tensor.index is not None else None
+            if permitted is not None:
+                if tensor.dtype not in permitted:
+                    out.append(tensor.name)
+            elif tensor.index in self.into_quantize and tensor.dtype == "float32":
+                continue  # a raw value on its way into int8, like a model input
+            elif not tensor.is_integer:
+                out.append(tensor.name)
+        return tuple(out)
+
     @property
     def fully_integer(self) -> bool:
         """Computed from the tensor records, never from the setting that was requested."""
-        return all(tensor.is_integer for tensor in self.tensors)
-
-    def floating_tensors(self) -> tuple[str, ...]:
-        return tuple(tensor.name for tensor in self.tensors if not tensor.is_integer)
+        return not self.floating_tensors()
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "size_bytes": self.size_bytes,
             "fully_integer": self.fully_integer,
             "dtype_counts": self.dtype_counts,
-            "input": self.input.as_dict(),
-            "output": self.output.as_dict(),
+            "inputs": [tensor.as_dict() for tensor in self.inputs],
+            "outputs": [tensor.as_dict() for tensor in self.outputs],
             "tensors": [tensor.as_dict() for tensor in self.tensors],
         }
 
@@ -94,7 +138,24 @@ def _record(detail: dict[str, Any]) -> TensorRecord:
         shape=tuple(int(size) for size in detail["shape"]),
         scale=scale,
         zero_point=zero,
+        index=int(detail["index"]) if "index" in detail else None,
     )
+
+
+def _into_quantize(path: Path) -> frozenset[int]:
+    """Tensors every consumer of which is a QUANTIZE, read from the file's graph."""
+    from ai_edge_litert import schema_py_generated as schema
+
+    model = schema.Model.GetRootAsModel(bytearray(path.read_bytes()), 0)
+    graph = model.Subgraphs(0)
+    quantize = schema.BuiltinOperator.QUANTIZE
+    consumers: dict[int, set[int]] = {}
+    for node in range(graph.OperatorsLength()):
+        operator = graph.Operators(node)
+        code = model.OperatorCodes(operator.OpcodeIndex()).BuiltinCode()
+        for tensor in operator.InputsAsNumpy():
+            consumers.setdefault(int(tensor), set()).add(int(code))
+    return frozenset(index for index, codes in consumers.items() if codes == {quantize})
 
 
 def inspect_model(path: Path) -> ModelInspection:
@@ -108,9 +169,10 @@ def inspect_model(path: Path) -> ModelInspection:
     interpreter.allocate_tensors()
 
     return ModelInspection(
+        into_quantize=_into_quantize(path),
         path=path,
         size_bytes=path.stat().st_size,
-        input=_record(interpreter.get_input_details()[0]),
-        output=_record(interpreter.get_output_details()[0]),
+        inputs=tuple(_record(detail) for detail in interpreter.get_input_details()),
+        outputs=tuple(_record(detail) for detail in interpreter.get_output_details()),
         tensors=tuple(_record(detail) for detail in interpreter.get_tensor_details()),
     )

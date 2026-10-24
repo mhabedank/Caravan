@@ -1,6 +1,6 @@
-# Invalid on purpose. A new-form manifest that still carries the compliance section.
+# Invalid on purpose. A manifest that still carries the compliance section.
 # Expected: no rule identifier at compliance; the message says the field was removed and why (FR-001)
-apiVersion: caravan/v0.1
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
@@ -8,19 +8,19 @@ model:
   params:
     hidden:
     - 8
-inputs:
-- name: frames
-  kind: series
-  window: 32
-outputs:
+input_features:
+- name: reading
+  type: number
+output_features:
 - name: verdict
-  kind: class
+  type: category
   accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
 export:
+  representative_samples: 100
   targets:
   - stm32h743
 compliance:
-  eu_ai_act_class: minimal-risk
+  risk_class: limited

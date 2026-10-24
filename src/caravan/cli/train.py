@@ -39,6 +39,13 @@ def _summary(name: str, _run_dir: Path, measured: dict[str, Any]) -> None:
             + (f"  f1_macro {f1['value']:.3f}" if f1 is not None else ""),
             file=sys.stderr,
         )
+    mae = by_name.get(("mae", "test"))
+    if mae is not None:
+        print(
+            f"    test, {mae['samples']} windows, dataset {mae['dataset_version'][:18]}…  "
+            f"mean absolute error {mae['value']:.3f}",
+            file=sys.stderr,
+        )
     per_class = by_name.get(("recall_per_class", "test"))
     if per_class is not None:
         recalls = "  ".join(f"{label} {value:.3f}" for label, value in per_class["value"].items())

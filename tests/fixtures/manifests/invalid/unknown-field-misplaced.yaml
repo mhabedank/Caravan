@@ -1,25 +1,25 @@
 # Invalid on purpose. A field that exists in the schema but sits at the wrong level.
-# Expected: no rule identifier at model.window
-apiVersion: caravan/v0.1
+# Expected: no rule identifier at model.window_size
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
   template: mlp
+  window_size: 32
   params:
     hidden:
     - 8
-  window: 32
-inputs:
-- name: frames
-  kind: series
-  window: 32
-outputs:
+input_features:
+- name: reading
+  type: number
+output_features:
 - name: verdict
-  kind: class
+  type: category
   accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
 export:
+  representative_samples: 100
   targets:
   - stm32h743

@@ -1,6 +1,6 @@
 # Invalid on purpose. Names a target board that does not exist.
 # Expected: B-1 at export.targets[0]
-apiVersion: caravan/v0.1
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
@@ -8,17 +8,17 @@ model:
   params:
     hidden:
     - 8
-inputs:
-- name: frames
-  kind: series
-  window: 32
-outputs:
+input_features:
+- name: reading
+  type: number
+output_features:
 - name: verdict
-  kind: class
+  type: category
   accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
 export:
+  representative_samples: 100
   targets:
   - s32k145

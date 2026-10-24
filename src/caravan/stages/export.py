@@ -75,12 +75,16 @@ SPEC = StageSpec(
         "export.formats",
         "export.targets",
         "export.quantization",
-        # For the interface contract (feature 006): which model, what goes in, what comes out.
-        "inputs[0].name",
-        "inputs[0].columns",
-        "inputs[0].window",
-        "outputs[0].name",
-        "outputs[0].labels",
+        # For the interface contract (features 006, 008): which model, every input with what was
+        # fitted for it, and what the output means. Never the budget: the quantize stage's key
+        # already moves with it, and this stage's through its upstream.
+        "input_features",
+        "output_features[0].name",
+        "output_features[0].type",
+        "output_features[0].preprocessing",
+        "output_features[0].threshold?",
+        "output_features[0].clip?",
+        "preprocessing.window_size",
     ),
     reads_dataset=False,
     upstream="quantize",
@@ -173,38 +177,44 @@ def stage(context: StageContext) -> StageFunction:
         exported = ExportSet(formats=formats, graph=graph)
         exported.artifacts.append(record_artifact(out_dir, MODEL, format="flatbuffer"))
 
-        # The interface contract: every number read from the file, never from the manifest.
-        input_name = inputs["inputs[0].name"]
-        output_name = inputs["outputs[0].name"]
+        # The interface contract: every position read from the file, never from the manifest.
+        features = inputs["input_features"]
+        output = {
+            "name": inputs["output_features[0].name"],
+            "type": inputs["output_features[0].type"],
+            "preprocessing": inputs["output_features[0].preprocessing"],
+            "threshold": inputs.get("output_features[0].threshold"),
+            "clip": inputs.get("output_features[0].clip"),
+        }
         bindings = [
             binding.as_dict()
-            for binding in read_bindings(model_path, inputs=[input_name], outputs=[output_name])
+            for binding in read_bindings(
+                model_path,
+                inputs=[feature["name"] for feature in features],
+                outputs=[output["name"]],
+            )
         ]
         model_identity = {"name": inputs["model.name"], "version": inputs["model.version"]}
-        declared_input = {
-            "name": input_name,
-            "columns": inputs["inputs[0].columns"],
-            "window": inputs["inputs[0].window"],
-        }
-        declared_output = {"name": output_name, "labels": inputs["outputs[0].labels"]}
         (out_dir / INTERFACE).write_text(
-            interface.interface_document(model_identity, bindings, declared_input, declared_output),
+            interface.interface_document(
+                model_identity, bindings, features, output, inputs["preprocessing.window_size"]
+            ),
             encoding="utf-8",
         )
         exported.artifacts.append(record_artifact(out_dir, INTERFACE, format="interface"))
 
         array_name = c_array.array_name(MODEL_STEM)
         (out_dir / ARRAY_SOURCE).write_text(
-            c_array.source(
-                MODEL_STEM, blob, interface.source_additions(array_name, declared_output)
-            ),
+            c_array.source(MODEL_STEM, blob, interface.source_additions(array_name, output)),
             encoding="utf-8",
         )
         (out_dir / ARRAY_HEADER).write_text(
             c_array.header(
                 MODEL_STEM,
                 len(blob),
-                interface.header_additions(array_name, model_identity, bindings, declared_output),
+                interface.header_additions(
+                    array_name, model_identity, bindings, features, output
+                ),
             ),
             encoding="utf-8",
         )
@@ -214,6 +224,8 @@ def stage(context: StageContext) -> StageFunction:
         (out_dir / RESOLVER).write_text(resolver.generate(graph.operators), encoding="utf-8")
         exported.artifacts.append(record_artifact(out_dir, RESOLVER, format="resolver"))
 
+        input_bindings = [binding for binding in bindings if binding["role"] == "input"]
+        output_binding = next(binding for binding in bindings if binding["role"] == "output")
         registry = default_registry()
         verdicts: list[Any] = []
         for target in targets:
@@ -234,8 +246,8 @@ def stage(context: StageContext) -> StageFunction:
                     array_name=c_array.array_name(MODEL_STEM),
                     accelerated=accelerated,
                     operators_total=len(graph.operators),
-                    input_name=input_name,
-                    output_name=output_name,
+                    inputs=input_bindings,
+                    output=output_binding,
                 ),
                 encoding="utf-8",
             )

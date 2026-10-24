@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from caravan.data.reader_bridge import assemble_samples
+from caravan.data.reader_bridge import assemble_samples, select
 from caravan.data.windows import plan_windows, split_for
 from caravan.env import (
     EnvironmentIncomplete,
@@ -36,6 +36,7 @@ from caravan.manifest.errors import (
 )
 from caravan.stages._framework import framework_record
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
+from caravan.stages.data import split_labels
 from caravan.stages.train import TRAINED_MODEL
 
 QUANTIZED_MODEL = "model/quantized.tflite"
@@ -60,16 +61,21 @@ SPEC = StageSpec(
     name="quantize",
     reads=(
         "export.quantization",
-        "dataset.representative_samples",
-        "dataset.split",
-        "inputs[0].columns",
-        "inputs[0].window",
-        "outputs[0].name",
-        "outputs[0].labels",
+        "export.representative_samples",
+        "preprocessing.window_size",
+        "preprocessing.split",
+        "input_features",
+        "output_features[0].name",
+        "output_features[0].type",
+        "output_features[0].preprocessing",
+        # The device decision of a binary output, which its gate measures accuracy at.
+        "output_features[0].threshold?",
         # The one stage that reads the budget (feature 006 FR-031): changing it re-runs this stage
-        # and the export, and never a build or a training.
-        "outputs[0].accuracy_drop_max",
-        "train.seed",
+        # and the export, and never a build or a training. Which one is stated depends on the
+        # output type (CF-16).
+        "output_features[0].accuracy_drop_max?",
+        "output_features[0].mae_increase_max?",
+        "random_seed",
     ),
     reads_dataset=True,
     upstream="train",
@@ -119,13 +125,19 @@ def plan_calibration(
 
 @dataclass(frozen=True)
 class GateOutcome:
-    """The three accuracies, the two differences, and the verdict (contracts/gate.md)."""
+    """The three measurements, the two differences, and the verdict (contracts/gate.md).
+
+    ``metric`` is ``accuracy`` for a ``category`` or ``binary`` output and ``mae`` for a ``number``
+    (feature 008, research R5). The change the gate judges is always "how much worse quantization
+    made it": accuracy lost, or mean absolute error gained, in the column's unit.
+    """
 
     trained: float
     converted: float
     quantized: float
     threshold: float
     samples: int
+    metric: str = "accuracy"
 
     @property
     def conversion_drop(self) -> float:
@@ -136,29 +148,44 @@ class GateOutcome:
         return self.converted - self.quantized
 
     @property
+    def change(self) -> float:
+        """How much worse quantization made the measurement; negative when it made it better."""
+        if self.metric == "mae":
+            return self.quantized - self.converted
+        return self.quantization_drop
+
+    @property
     def resolution(self) -> float:
-        """The smallest difference this split can express. Recorded with the verdict."""
+        """The smallest accuracy difference this split can express. Recorded with the verdict."""
         return 1.0 / self.samples if self.samples else math.inf
 
     @property
     def passed(self) -> bool:
         """The verdict, computed from the numbers exactly as the report records them.
 
-        ``<=``: a drop equal to the threshold passes. The author wrote the number they accept, and
-        a number you accept is one you accept. A negative drop — the quantized model scoring
-        higher — passes too, and is reported as negative rather than clamped.
+        ``<=``: a change equal to the threshold passes. The author wrote the number they accept,
+        and a number you accept is one you accept. A negative change — the quantized model doing
+        better — passes too, and is reported as negative rather than clamped.
 
         The rounding is not cosmetic. ``0.90 - 0.88`` is ``0.020000000000000018`` in binary
         floating point, so an unrounded comparison would fail a run whose report says the drop was
-        ``0.020000`` and the threshold ``0.02`` — the document would contradict its own verdict,
-        and a reader recomputing it would get the other answer. Judging the numbers as recorded
-        makes the record and the decision the same thing.
+        ``0.020000`` and the threshold ``0.02`` — the document would contradict its own verdict.
+        Judging the numbers as recorded makes the record and the decision the same thing.
         """
-        return round(self.quantization_drop, RECORDED_PRECISION) <= round(
-            self.threshold, RECORDED_PRECISION
-        )
+        return round(self.change, RECORDED_PRECISION) <= round(self.threshold, RECORDED_PRECISION)
 
     def as_dict(self) -> dict[str, Any]:
+        if self.metric == "mae":
+            return {
+                "trained": round(self.trained, RECORDED_PRECISION),
+                "converted": round(self.converted, RECORDED_PRECISION),
+                "quantized": round(self.quantized, RECORDED_PRECISION),
+                "conversion_increase": round(self.converted - self.trained, RECORDED_PRECISION),
+                "mae_increase": round(self.change, RECORDED_PRECISION),
+                "threshold": self.threshold,
+                "verdict": "pass" if self.passed else "fail",
+                "samples": self.samples,
+            }
         return {
             "trained": round(self.trained, RECORDED_PRECISION),
             "converted": round(self.converted, RECORDED_PRECISION),
@@ -171,7 +198,24 @@ class GateOutcome:
             "resolution": round(self.resolution, RECORDED_PRECISION),
         }
 
+    def gate(self) -> dict[str, Any]:
+        """The common shape of every gate: what was measured, how it moved, against what budget."""
+        return {
+            "metric": self.metric,
+            "trained": round(self.trained, RECORDED_PRECISION),
+            "quantized": round(self.quantized, RECORDED_PRECISION),
+            "change": round(self.change, RECORDED_PRECISION),
+            "budget": self.threshold,
+            "verdict": "pass" if self.passed else "fail",
+            "samples": self.samples,
+        }
+
     def summary(self) -> str:
+        if self.metric == "mae":
+            return (
+                f"quantization raised the mean absolute error by {self.change:.3f}, "
+                f"accepted {self.threshold:.3f}"
+            )
         return f"quantization cost {self.quantization_drop:.3f}, accepted {self.threshold:.3f}"
 
 
@@ -192,6 +236,9 @@ def load_trained(run_dir: Path) -> Any:
     """
     import keras
 
+    # The preprocessing layers are registered on import; a model that carries them loads only then.
+    import caravan.templates.builders.preprocessing  # noqa: F401
+
     path = run_dir / TRAINED_MODEL
     try:
         return keras.saving.load_model(path)
@@ -207,12 +254,36 @@ def load_trained(run_dir: Path) -> Any:
         )
 
 
-def _keras_accuracy(model: Any, features: Any, targets: Any, output: str) -> float:
+def score(output: dict[str, Any], raw: Any, targets: Any) -> float:
+    """The gate's measurement of one set of raw outputs: accuracy, or the mean absolute error."""
     import numpy as np
 
-    # The trained model returns a dict keyed by the declared output (build stage, rewiring).
-    predicted = np.argmax(model.predict(features, verbose=0)[output], axis=1)
+    if output["type"] == "number":
+        return float(np.mean(np.abs(raw.reshape(-1) - targets)))
+    if output["type"] == "category":
+        predicted = np.argmax(raw, axis=1)
+    else:
+        predicted = (raw.reshape(-1) >= float(output["threshold"])).astype(np.int64)
+        targets = targets.astype(np.int64)
     return float((predicted == targets).sum() / len(targets))
+
+
+def output_of(inputs: StageInputs) -> dict[str, Any]:
+    """The output feature with its budget, from the projection."""
+    kind = inputs["output_features[0].type"]
+    budget = (
+        inputs["output_features[0].mae_increase_max"]
+        if kind == "number"
+        else inputs["output_features[0].accuracy_drop_max"]
+    )
+    return {
+        "name": inputs["output_features[0].name"],
+        "type": kind,
+        "preprocessing": inputs["output_features[0].preprocessing"],
+        "threshold": inputs.get("output_features[0].threshold") or 0.5,
+        "budget": float(budget),
+        "metric": "mae" if kind == "number" else "accuracy",
+    }
 
 
 def stage(context: StageContext) -> StageFunction:
@@ -223,20 +294,27 @@ def stage(context: StageContext) -> StageFunction:
 
         from caravan.convert.tflite import convert
         from caravan.runtime.inspect import inspect_model
-        from caravan.runtime.measure import measure
+        from caravan.runtime.measure import run_model
 
         setting = inputs["export.quantization"]
-        labels = tuple(inputs["outputs[0].labels"])
-        output = inputs["outputs[0].name"]
-        seed = int(inputs["train.seed"])
-        threshold = float(inputs["outputs[0].accuracy_drop_max"])
+        output = output_of(inputs)
+        seed = int(inputs["random_seed"])
 
         records = context.records()
-        window_plan = plan_windows(records.labels, inputs["inputs[0].window"], parts=records.parts)
-        split = split_for(window_plan, inputs["dataset.split"], seed=seed, labels=labels)
-        features, targets = assemble_samples(records, window_plan, labels)
+        window_plan = plan_windows(
+            records.labels, inputs["preprocessing.window_size"], parts=records.parts
+        )
+        split = split_for(
+            window_plan,
+            inputs["preprocessing.split"],
+            seed=seed,
+            labels=split_labels(output["type"], window_plan.labels),
+        )
+        features, targets = assemble_samples(
+            records, window_plan, inputs["input_features"], output
+        )
 
-        calibration = plan_calibration(inputs["dataset.representative_samples"], split.train, seed)
+        calibration = plan_calibration(inputs["export.representative_samples"], split.train, seed)
         representative = _representative(features, calibration) if calibration.used else None
 
         model = load_trained(context.run_dir)
@@ -259,15 +337,20 @@ def stage(context: StageContext) -> StageFunction:
                 found=inspection.dtype_counts,
             )
 
-        test_features = features[list(split.test)]
+        test_features = select(features, split.test)
         test_targets = targets[list(split.test)]
         if len(test_targets) == 0:  # pragma: no cover - feature 002 refuses an empty split first
             run_rule_error(
                 RULE_GATE_UNMEASURABLE,
-                "dataset.split.test",
-                "the test split has no samples, so the accuracy gate cannot be shown to hold",
+                "preprocessing.split.probabilities",
+                "the test split has no samples, so the int8 gate cannot be shown to hold",
             )
 
+        budget_path = (
+            "output_features[0].mae_increase_max"
+            if output["metric"] == "mae"
+            else "output_features[0].accuracy_drop_max"
+        )
         with tempfile.TemporaryDirectory() as scratch:
             # The unquantized conversion exists only to produce the baseline the gate judges
             # against, so it is not an artifact: keeping it would invite the question of which
@@ -275,39 +358,26 @@ def stage(context: StageContext) -> StageFunction:
             float_path = Path(scratch) / "converted-float.tflite"
             float_path.write_bytes(convert(model, "none"))
             try:
-                converted = measure(
-                    float_path,
-                    test_features,
-                    test_targets,
-                    len(labels),
-                    split="test",
-                    dataset_version=context.dataset.version,
-                )
-                quantized = measure(
-                    quantized_path,
-                    test_features,
-                    test_targets,
-                    len(labels),
-                    split="test",
-                    dataset_version=context.dataset.version,
-                )
+                converted_raw = run_model(float_path, test_features, output["name"])
+                quantized_raw = run_model(quantized_path, test_features, output["name"])
             except ValueError as error:
                 run_rule_error(
                     RULE_GATE_UNMEASURABLE,
-                    "outputs[0].accuracy_drop_max",
-                    f"the accuracy comparison could not be measured ({error}); unknown is not "
-                    "within budget",
+                    budget_path,
+                    f"the comparison could not be measured ({error}); unknown is not within budget",
                 )
 
+        trained_raw = model.predict(test_features, verbose=0)[output["name"]]
         gate = GateOutcome(
-            trained=_keras_accuracy(model, test_features, test_targets, output),
-            converted=converted.accuracy,
-            quantized=quantized.accuracy,
-            threshold=threshold,
-            samples=quantized.samples,
+            trained=score(output, trained_raw, test_targets),
+            converted=score(output, converted_raw, test_targets),
+            quantized=score(output, quantized_raw, test_targets),
+            threshold=output["budget"],
+            samples=len(test_targets),
+            metric=output["metric"],
         )
 
-        record = {
+        record: dict[str, Any] = {
             "model": {
                 "path": QUANTIZED_MODEL,
                 "setting": setting,
@@ -315,16 +385,18 @@ def stage(context: StageContext) -> StageFunction:
                 **inspection.as_dict(),
             },
             "calibration": calibration.as_dict(),
-            "accuracy": {
-                **gate.as_dict(),
-                "dataset_version": context.dataset.version,
-                "confusion_quantized": [list(row) for row in quantized.confusion],
-            },
+            "gate": {**gate.gate(), "split": "test", "dataset_version": context.dataset.version},
+            output["metric"]: {**gate.as_dict(), "dataset_version": context.dataset.version},
             "tools": {
                 **framework_record(),
                 "runtime": {"name": "ai-edge-litert", "version": _runtime_version()},
             },
         }
+        if output["type"] == "category":
+            labels = len(output["preprocessing"]["fitted"]["labels"])
+            record["accuracy"]["confusion_quantized"] = _confusion(
+                quantized_raw, test_targets, labels
+            )
 
         if not gate.passed:
             # The record and the table go straight into the run directory: this stage is about to
@@ -332,13 +404,18 @@ def stage(context: StageContext) -> StageFunction:
             rows = _layer_errors(model, representative)
             record["layer_errors"] = [row.as_dict() for row in rows]
             _write_failure(context.run_dir, record, rows)
+            detail = (
+                f"On {gate.samples} test samples one changed prediction is "
+                f"{gate.resolution:.3f}; "
+                if output["metric"] == "accuracy"
+                else f"Measured on {gate.samples} test samples; "
+            )
             run_rule_error(
                 RULE_ACCURACY_GATE,
-                "outputs[0].accuracy_drop_max",
+                budget_path,
                 (
-                    f"the accuracy gate failed — {gate.summary()}. On {gate.samples} test "
-                    f"samples one changed prediction is {gate.resolution:.3f}; no model was "
-                    f"written and the per-layer table is in {ERROR_TABLE}"
+                    f"the int8 gate failed — {gate.summary()}. {detail}no model was written and "
+                    f"the per-layer table is in {ERROR_TABLE}"
                 ),
                 found=gate.as_dict(),
             )
@@ -351,12 +428,21 @@ def stage(context: StageContext) -> StageFunction:
     return run
 
 
+def _confusion(raw: Any, targets: Any, labels: int) -> list[list[int]]:
+    import numpy as np
+
+    matrix = np.zeros((labels, labels), dtype=np.int64)
+    for actual, guess in zip(targets, np.argmax(raw, axis=1), strict=True):
+        matrix[int(actual), int(guess)] += 1
+    return [[int(cell) for cell in row] for row in matrix]
+
+
 def _representative(features: Any, calibration: CalibrationPlan) -> Any:
-    """A generator over the chosen training samples, in the shape the converter wants."""
+    """A generator over the chosen training samples: one dict per sample, keyed by input name."""
 
     def generate():
         for index in calibration.indices:
-            yield [features[index : index + 1]]
+            yield {name: values[index : index + 1] for name, values in features.items()}
 
     return generate
 

@@ -1,0 +1,42 @@
+# The pilot on the committed fixture with the label order and the vocabulary pinned rather than
+# derived. It must give the same samples and the same split as picket-mlp-fixture.yaml: pinning only
+# fixes an order (feature 008, T018).
+apiVersion: caravan/v0.2
+
+model:
+  name: picket-mlp
+  version: 0.2.0
+  template: mlp
+  params:
+    hidden: [32, 16]
+    dropout: 0.1
+
+input_features:
+  - name: can_id
+    type: category
+    preprocessing: {vocab: [291, 608, 790, 1072]}
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
+
+output_features:
+  - name: label
+    type: category
+    preprocessing: {vocab: [normal, dos, fuzzy, replay]}
+    accuracy_drop_max: 0.02
+
+preprocessing:
+  window_size: 64
+  split: {type: stratify, column: label, probabilities: [0.7, 0.15, 0.15]}
+
+dataset: ../../datasets/synthetic
+
+trainer: {epochs: 50, batch_size: 256, learning_rate: 0.001, early_stop: 5}
+random_seed: 42
+
+export:
+  quantization: int8
+  formats: [flatbuffer, c_array]
+  targets: [s32k144, stm32h743, esp32]
+  representative_samples: 500

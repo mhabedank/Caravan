@@ -14,8 +14,9 @@ import tensorflow as tf
 from caravan.convert.batch import fix_batch
 from caravan.manifest.errors import RULE_CONVERSION_FAILED, run_rule_error
 
-#: A callable yielding one calibration sample at a time, as the converter wants it, or ``None``
-#: for the settings that calibrate against nothing.
+#: A callable yielding one calibration sample at a time — a dict keyed by input name, because the
+#: converter matches a list to its own internal input order without a word (research R9) — or
+#: ``None`` for the settings that calibrate against nothing.
 Representative = Callable[[], Iterator[list[Any]]] | None
 
 
@@ -61,8 +62,10 @@ def _convert(model: Any, setting: str, representative: Representative) -> bytes:
         # a mixed one: without it the converter may leave an operator in float and still report
         # success, and the model would then not run on a runtime built for integers only.
         converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-        converter.inference_input_type = tf.int8
-        converter.inference_output_type = tf.int8
+        # The input and output types are left as the model has them (feature 008, research R2,
+        # R5): a number goes in as float32 and is quantized inside the model with that feature's
+        # own scale, a code goes in as int32 and stays exact, and the output comes out as float32
+        # after a DEQUANTIZE. The firmware applies no scale and no zero point.
     elif setting == "float16":
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         converter.target_spec.supported_types = [tf.float16]

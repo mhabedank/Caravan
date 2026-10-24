@@ -1,18 +1,17 @@
 # The convolutional template on the committed synthetic fixture.
 #
 # A sibling of picket-mlp-fixture.yaml with one section changed: the model's template and its
-# parameters. Same data, same window, same labels, same training settings — so a comparison of the
-# two files is a comparison of *templates* and not of datasets or of hyperparameters. The labels
-# are pinned for the same reason as the mlp's (research R11 of feature 006).
+# parameters. Same data, same window, same features, same training settings — so a comparison of
+# the two files is a comparison of *templates* and not of datasets or of hyperparameters.
 #
 # The blocks fit a 64-sample window: 64 to 30 after the first convolution (kernel 5, stride 2), 15
 # after its pooling, 13 after the second convolution. Rule CF-6 checks that arithmetic before
 # anything is built, so a window that cannot carry the configuration is refused at validation.
-apiVersion: caravan/v0.1
+apiVersion: caravan/v0.2
 
 model:
   name: picket-conv1d
-  version: 0.1.0
+  version: 0.2.0
   template: conv1d
   params:
     blocks:
@@ -20,33 +19,30 @@ model:
       - {filters: 32, kernel: 3, dropout: 0.1}
     head: average
 
-inputs:
-  - name: frames
-    kind: series
-    window: 64
+input_features:
+  - name: can_id
+    type: category
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
 
-outputs:
-  - name: attack
-    kind: class
-    labels: [normal, dos, fuzzy, replay]
+output_features:
+  - name: label
+    type: category
     accuracy_drop_max: 0.02
 
-dataset:
-  source: ../../datasets/synthetic
-  split:
-    train: 0.7
-    val: 0.15
-    test: 0.15
-    stratified: true
-  representative_samples: 500
+preprocessing:
+  window_size: 64
+  split: {type: stratify, column: label, probabilities: [0.7, 0.15, 0.15]}
 
-train:
-  epochs: 50
-  batch: 256
-  optimizer: adam
-  early_stopping: true
+dataset: ../../datasets/synthetic
+
+trainer: {epochs: 50, batch_size: 256, learning_rate: 0.001, early_stop: 5}
+random_seed: 42
 
 export:
   quantization: int8
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
+  representative_samples: 500

@@ -40,12 +40,12 @@ def report_for(command: str, path: Path, outcome: LoadOutcome, **extra: object) 
         manifest_sha256=file_digest(path),
         outcome=OUTCOME_VALID if outcome.is_valid else OUTCOME_INVALID,
         schema_version=outcome.schema_version,
-        dataset=manifest.dataset.source if manifest else None,
+        dataset=manifest.dataset if manifest else None,
         template=manifest.model.template if manifest else None,
         gates=tuple(outcome.gates),
         findings=tuple(outcome.findings),
         unresolved=tuple(outcome.unresolved),
-        seed=manifest.train.seed if manifest else None,
+        seed=manifest.random_seed if manifest else None,
         **extra,  # type: ignore[arg-type]
     )
 

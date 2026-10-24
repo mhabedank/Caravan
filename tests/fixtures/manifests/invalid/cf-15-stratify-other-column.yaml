@@ -1,0 +1,28 @@
+# Invalid on purpose. A stratified split on a column other than the output's: only stratifying
+# by the class is implemented (feature 008).
+# Expected: CF-15 at preprocessing.split.column
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
+  split:
+    type: stratify
+    column: reading
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

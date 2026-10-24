@@ -1,26 +1,28 @@
-# Invalid on purpose. The split column says where a record belongs; as an input it would teach the
-# model which part it is in (feature 007, FR-018).
-# Expected: CF-13 at dataset.split.column
-apiVersion: caravan/v0.1
+# Invalid on purpose. The split column says where a record belongs; as an input feature it would
+# teach the model which part it is in (feature 007, FR-018).
+# Expected: CF-13 at preprocessing.split.column
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
   template: mlp
   params:
-    hidden: [8]
-inputs:
-  - name: frames
-    kind: series
-    columns: [can_id, split]
-    window: 32
-outputs:
-  - name: verdict
-    kind: class
-    accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
   split:
-    column: split
-  representative_samples: 100
+    type: fixed
+    column: reading
+dataset: datasets/example/
 export:
-  targets: [stm32h743]
+  representative_samples: 100
+  targets:
+  - stm32h743

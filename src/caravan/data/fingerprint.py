@@ -60,7 +60,7 @@ def _files_in(root: Path) -> tuple[Path, ...]:
     if nested:
         run_rule_error(
             RULE_DATASET_UNREADABLE,
-            "dataset.source",
+            "dataset",
             (
                 f"{root} has subdirectories that contain data, which are not read: point the "
                 "reference at a directory whose own files are the data, or at a single file"
@@ -73,7 +73,7 @@ def _files_in(root: Path) -> tuple[Path, ...]:
 
 
 def resolve_dataset(source: str, manifest_dir: Path) -> DatasetFiles:
-    """Resolve ``dataset.source`` against the manifest's own directory, and fingerprint it.
+    """Resolve ``dataset`` against the manifest's own directory, and fingerprint it.
 
     The reference is relative to the manifest, so a manifest and its data move together. Every
     failure here is DS-1 and names the path and which of the three things went wrong, because
@@ -84,7 +84,7 @@ def resolve_dataset(source: str, manifest_dir: Path) -> DatasetFiles:
     if not root.exists():
         run_rule_error(
             RULE_DATASET_UNREADABLE,
-            "dataset.source",
+            "dataset",
             f"no such path: {root}",
             found=source,
         )
@@ -94,7 +94,7 @@ def resolve_dataset(source: str, manifest_dir: Path) -> DatasetFiles:
         if not files:
             run_rule_error(
                 RULE_DATASET_UNREADABLE,
-                "dataset.source",
+                "dataset",
                 (
                     f"{root} holds no data file; a dataset directory must contain at least one "
                     f"file ending in {', '.join(DATA_SUFFIXES)}"
@@ -118,7 +118,7 @@ def resolve_dataset(source: str, manifest_dir: Path) -> DatasetFiles:
         except OSError as error:
             run_rule_error(
                 RULE_DATASET_UNREADABLE,
-                "dataset.source",
+                "dataset",
                 f"cannot read {path}: {error.strerror or error}",
                 found=source,
             )

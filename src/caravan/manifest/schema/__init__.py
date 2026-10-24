@@ -1,42 +1,54 @@
 """The manifest root and every rule that spans more than one field.
 
 Field-level rules live with their section; the rules that relate two sections live here, because
-that is the only place that can see both. Each one carries its identifier from
-``specs/001-manifest-schema/data-model.md`` out to the finding, so a test asserts which rule fired
-rather than matching prose.
+that is the only place that can see both. Each one carries its identifier out to the finding, so a
+test asserts which rule fired rather than matching prose.
+
+Schema version ``caravan/v0.2`` (feature 008) names things as Ludwig does wherever Ludwig has the
+concept: ``input_features``, ``output_features``, ``preprocessing``, ``defaults``, ``trainer`` and
+``random_seed``. What Ludwig has no word for keeps Caravan's own: ``model`` (a microcontroller
+architecture), ``dataset``, ``export`` and the int8 budgets (research R1).
 """
 
 from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 from pydantic import ValidationError as PydanticValidationError
 
 from caravan.manifest.errors import (
+    RULE_BUDGET_FOR_TYPE,
     RULE_CALIBRATION_SAMPLES,
     RULE_COLUMN_BOTH_WAYS,
     RULE_DECLARATION_NAME,
-    RULE_DECLARATIONS_IMPLEMENTED,
+    RULE_FEATURE_TYPE,
+    RULE_ONE_OUTPUT,
     RULE_SPLIT_COLUMN_DECLARED,
+    RULE_STRATIFY_COLUMN,
     RULE_TEMPLATE_PARAMETERS,
     RULE_UNKNOWN_BOARD,
     RULE_UNKNOWN_TEMPLATE,
     RULE_WINDOW_MATCHES_TEMPLATE,
     dotted_path,
+    field_error,
     rule_error,
 )
-from caravan.manifest.schema.dataset import MINIMUM_REPRESENTATIVE_SAMPLES, DatasetSpec, Split
-from caravan.manifest.schema.export import ExportSpec
-from caravan.manifest.schema.io import (
-    INPUT_KINDS,
-    OUTPUT_KINDS,
-    InputDeclaration,
-    OutputDeclaration,
+from caravan.manifest.schema.export import MINIMUM_REPRESENTATIVE_SAMPLES, ExportSpec
+from caravan.manifest.schema.features import (
+    INPUT_TYPES,
+    OUTPUT_KEYS,
+    OUTPUT_TYPES,
+    Encoder,
+    InputFeature,
+    InputPreprocessing,
+    OutputFeature,
+    input_key_problem,
     name_problem,
 )
 from caravan.manifest.schema.model import ModelSpec
-from caravan.manifest.schema.train import TrainSpec
+from caravan.manifest.schema.preprocessing import GlobalPreprocessing, Split
+from caravan.manifest.schema.trainer import TrainerSpec
 from caravan.manifest.version import SCHEMA_VERSION
 from caravan.targets.registry import BoardRegistry
 from caravan.targets.registry import default_registry as default_boards
@@ -44,21 +56,23 @@ from caravan.templates.registry import TemplateRegistry
 from caravan.templates.registry import default_registry as default_templates
 
 __all__ = [
-    "DatasetSpec",
     "ExportSpec",
-    "InputDeclaration",
+    "GlobalPreprocessing",
+    "InputFeature",
     "Manifest",
     "ModelSpec",
-    "OutputDeclaration",
+    "OutputFeature",
     "Split",
-    "TrainSpec",
+    "TrainerSpec",
+    "TypeDefaults",
 ]
 
-#: Why a second input or output is refused, in the words the finding uses (rule CF-10).
-SEVERAL_NOT_IMPLEMENTED = (
-    "one input and one output are implemented; several arrive with the first named model or "
-    "documented application that needs them (Principle X, "
-    "docs/research/2026-10-23-multi-io-on-mcu.md)"
+#: Why a type is not implemented, in the words the finding uses (rule CF-14).
+TYPE_NOT_IMPLEMENTED = (
+    "each type brings its preprocessing into the model, and only types with a path to the "
+    "microcontroller are implemented; another type arrives with the first named model or "
+    "documented application that needs it (Principle X, "
+    "docs/research/2026-10-24-typed-features-on-mcu.md)"
 )
 
 
@@ -74,108 +88,204 @@ def _boards(info: ValidationInfo) -> BoardRegistry:
     return registry if registry is not None else default_boards()
 
 
+class TypeDefaults(BaseModel):
+    """What every input feature of one type gets unless it states its own (Ludwig's ``defaults``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    preprocessing: InputPreprocessing = Field(default_factory=InputPreprocessing)
+    encoder: Encoder | None = None
+
+
 class Manifest(BaseModel):
     """One file, one model version."""
 
     model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     # The wire name, deliberately not snake_case: it is what the manifest file says.
-    apiVersion: Literal["caravan/v0.1"] = SCHEMA_VERSION
+    apiVersion: Literal["caravan/v0.2"] = SCHEMA_VERSION
     model: ModelSpec
-    inputs: list[InputDeclaration]
-    outputs: list[OutputDeclaration]
-    dataset: DatasetSpec
-    train: TrainSpec = TrainSpec()
+    input_features: list[InputFeature] = Field(min_length=1)
+    output_features: list[OutputFeature]
+    preprocessing: GlobalPreprocessing = Field(default_factory=GlobalPreprocessing)
+    defaults: dict[str, TypeDefaults] = Field(default_factory=dict)
+    #: The directory or file of the data, relative to the manifest.
+    dataset: str = Field(min_length=1)
+    trainer: TrainerSpec = Field(default_factory=TrainerSpec)
+    #: Seeds the split, the calibration sample and training (Principle III).
+    random_seed: int = 42
     export: ExportSpec
 
-    # --- the declarations: CF-10, then CF-9, then CF-11 ---------------------------------------
+    # --- the features: CF-17, CF-14, keys per type, CF-16, CF-9, CF-11 --------------------------
 
     @model_validator(mode="after")
-    def _one_of_each_and_kinds_implemented(self) -> Manifest:
-        for section, declared in (("inputs", self.inputs), ("outputs", self.outputs)):
-            if len(declared) != 1:
+    def _exactly_one_output(self) -> Manifest:
+        if len(self.output_features) != 1:
+            rule_error(
+                RULE_ONE_OUTPUT,
+                "output_features",
+                f"exactly one output feature is accepted, found {len(self.output_features)}; "
+                "several arrive with the first named model or documented application that needs "
+                "them (Principle X)",
+                found=len(self.output_features),
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _types_are_implemented(self) -> Manifest:
+        for index, feature in enumerate(self.input_features):
+            if feature.type not in INPUT_TYPES:
                 rule_error(
-                    RULE_DECLARATIONS_IMPLEMENTED,
-                    section,
-                    f"exactly one entry is accepted, found {len(declared)}: "
-                    + SEVERAL_NOT_IMPLEMENTED,
-                    found=len(declared),
+                    RULE_FEATURE_TYPE,
+                    f"input_features[{index}].type",
+                    f"this build implements the input types {', '.join(INPUT_TYPES)}; "
+                    + TYPE_NOT_IMPLEMENTED,
+                    found=feature.type,
+                    accepted=INPUT_TYPES,
                 )
-        for section, declared, kinds in (
-            ("inputs", self.inputs, INPUT_KINDS),
-            ("outputs", self.outputs, OUTPUT_KINDS),
-        ):
-            for index, declaration in enumerate(declared):
-                if declaration.kind not in kinds:
-                    rule_error(
-                        RULE_DECLARATIONS_IMPLEMENTED,
-                        f"{section}[{index}].kind",
-                        f"this build implements the {section[:-1]} kind(s) {', '.join(kinds)}; "
-                        "another kind arrives with the first named model or documented "
-                        "application that needs it (Principle X)",
-                        found=declaration.kind,
-                        accepted=kinds,
-                    )
+        output = self.output_features[0]
+        if output.type not in OUTPUT_TYPES:
+            rule_error(
+                RULE_FEATURE_TYPE,
+                "output_features[0].type",
+                f"this build implements the output types {', '.join(OUTPUT_TYPES)}; "
+                + TYPE_NOT_IMPLEMENTED,
+                found=output.type,
+                accepted=OUTPUT_TYPES,
+            )
+        for key in sorted(self.defaults):
+            if key not in INPUT_TYPES:
+                rule_error(
+                    RULE_FEATURE_TYPE,
+                    f"defaults.{key}",
+                    f"defaults are given per input type, and this build implements "
+                    f"{', '.join(INPUT_TYPES)}; " + TYPE_NOT_IMPLEMENTED,
+                    found=key,
+                    accepted=INPUT_TYPES,
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _keys_apply_to_their_type(self) -> Manifest:
+        for index, feature in enumerate(self.input_features):
+            problem = input_key_problem(feature.type, feature.preprocessing, feature.encoder)
+            if problem is not None:
+                where, what = problem
+                field_error(f"input_features[{index}].{where}", what)
+        for key, entry in sorted(self.defaults.items()):
+            problem = input_key_problem(key, entry.preprocessing, entry.encoder)
+            if problem is not None:
+                where, what = problem
+                field_error(f"defaults.{key}.{where}", what)
+        output = self.output_features[0]
+        for key in output.stated_keys():
+            applies = OUTPUT_KEYS[key]
+            if output.type in applies or key in ("accuracy_drop_max", "mae_increase_max"):
+                continue
+            field_error(
+                f"output_features[0].{key}",
+                f"does not apply to a {output.type} output; it applies to {' and '.join(applies)}",
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _budget_matches_the_output(self) -> Manifest:
+        # CF-16: Principle V requires every manifest to state its int8 budget, in the metric of
+        # its output: accuracy for a class, the mean absolute error for a number.
+        output = self.output_features[0]
+        wanted = "mae_increase_max" if output.type == "number" else "accuracy_drop_max"
+        other = "accuracy_drop_max" if wanted == "mae_increase_max" else "mae_increase_max"
+        if getattr(output, other) is not None:
+            rule_error(
+                RULE_BUDGET_FOR_TYPE,
+                f"output_features[0].{other}",
+                f"a {output.type} output states its int8 budget as {wanted}, in "
+                + (
+                    "the column's unit"
+                    if wanted == "mae_increase_max"
+                    else "accuracy lost to quantization"
+                ),
+                found=getattr(output, other),
+                accepted=(wanted,),
+            )
+        if getattr(output, wanted) is None:
+            rule_error(
+                RULE_BUDGET_FOR_TYPE,
+                f"output_features[0].{wanted}",
+                f"a {output.type} output must state its int8 budget as {wanted} (Principle V)",
+                accepted=(wanted,),
+            )
         return self
 
     @model_validator(mode="after")
     def _names_are_well_formed_and_distinct(self) -> Manifest:
         seen: dict[str, str] = {}
-        for section, declared in (("inputs", self.inputs), ("outputs", self.outputs)):
-            for index, declaration in enumerate(declared):
+        for section, features in (
+            ("input_features", self.input_features),
+            ("output_features", self.output_features),
+        ):
+            for index, feature in enumerate(features):
                 path = f"{section}[{index}].name"
-                problem = name_problem(declaration.name)
+                problem = name_problem(feature.name)
                 if problem is not None:
-                    rule_error(RULE_DECLARATION_NAME, path, problem, found=declaration.name)
-                if declaration.name in seen:
+                    rule_error(RULE_DECLARATION_NAME, path, problem, found=feature.name)
+                if feature.name in seen:
+                    if section == "output_features":
+                        # CF-11: an input reading the output's column is a model trained on its
+                        # own answer, which is worse than a duplicate.
+                        rule_error(
+                            RULE_COLUMN_BOTH_WAYS,
+                            seen[feature.name],
+                            f"column {feature.name} is the output's answer and cannot also be an "
+                            "input: the model would be trained on its own answer",
+                            found=feature.name,
+                        )
                     rule_error(
                         RULE_DECLARATION_NAME,
                         path,
-                        f"the name is already used at {seen[declaration.name]}; a runner binds "
-                        "inputs and outputs by name, so every name must be unique",
-                        found=declaration.name,
+                        f"the name is already used at {seen[feature.name]}; one feature reads one "
+                        "column, and a runner binds every input by its name",
+                        found=feature.name,
                     )
-                seen[declaration.name] = path
+                seen[feature.name] = path
         return self
 
+    # --- the split: CF-13, CF-15 ----------------------------------------------------------------
+
     @model_validator(mode="after")
-    def _no_column_is_both_input_and_output(self) -> Manifest:
-        answers = {output.column for output in self.outputs}
-        for index, declaration in enumerate(self.inputs):
-            both = sorted(answers & set(declaration.columns or ()))
-            if both:
+    def _split_column(self) -> Manifest:
+        split = self.preprocessing.split
+        output = self.output_features[0]
+        if split.type == "stratify":
+            column = split.column if split.column is not None else output.name
+            if column != output.name or output.type == "number":
                 rule_error(
-                    RULE_COLUMN_BOTH_WAYS,
-                    f"inputs[{index}].columns",
-                    f"column {both[0]} is the output's answer and cannot also be an input: the "
-                    "model would be trained on its own answer",
-                    found=both,
+                    RULE_STRATIFY_COLUMN,
+                    "preprocessing.split.column",
+                    "a stratified split draws per class of the output, so its column is the "
+                    f"output's ({output.name}) and the output is a category or binary; another "
+                    "column is not implemented",
+                    found=column,
+                    accepted=() if output.type == "number" else (output.name,),
                 )
-        return self
-
-    @model_validator(mode="after")
-    def _split_column_is_neither_input_nor_output(self) -> Manifest:
-        # CF-13 (feature 007). A model given the column that says which part a sample is in would
-        # learn the split, and a split column that is the answer would split by class.
-        column = self.dataset.split.column
-        if column is None:
-            return self
-        if any(output.column == column for output in self.outputs):
-            rule_error(
-                RULE_SPLIT_COLUMN_DECLARED,
-                "dataset.split.column",
-                f"column {column} is the output's answer and cannot also say where a record "
-                "belongs",
-                found=column,
-            )
-        if any(column in (declared.columns or ()) for declared in self.inputs):
-            rule_error(
-                RULE_SPLIT_COLUMN_DECLARED,
-                "dataset.split.column",
-                f"column {column} is listed as an input; the column that says where a record "
-                "belongs must not be something the model learns from",
-                found=column,
-            )
+        if split.type == "fixed" and split.column is not None:
+            column = split.column
+            if column == output.name:
+                rule_error(
+                    RULE_SPLIT_COLUMN_DECLARED,
+                    "preprocessing.split.column",
+                    f"column {column} is the output's answer and cannot also say where a record "
+                    "belongs",
+                    found=column,
+                )
+            if any(feature.name == column for feature in self.input_features):
+                rule_error(
+                    RULE_SPLIT_COLUMN_DECLARED,
+                    "preprocessing.split.column",
+                    f"column {column} is an input feature; the column that says where a record "
+                    "belongs must not be something the model learns from",
+                    found=column,
+                )
         return self
 
     # --- template resolution: T-1, then T-2, then CF-6 ---------------------------------------
@@ -215,10 +325,10 @@ class Manifest(BaseModel):
     @model_validator(mode="after")
     def _window_matches_template(self, info: ValidationInfo) -> Manifest:
         spec = _templates(info).get(self.model.template)
-        if spec is None or len(self.inputs) != 1:
+        if spec is None:
             return self
-        window = self.inputs[0].window
-        path = "inputs[0].window"
+        window = self.preprocessing.window_size
+        path = "preprocessing.window_size"
         if spec.consumes_window and window is None:
             rule_error(
                 RULE_WINDOW_MATCHES_TEMPLATE,
@@ -234,10 +344,8 @@ class Manifest(BaseModel):
                 found=window,
             )
         # A window can be present and still be too short for what the parameters describe. Only the
-        # template can tell — it knows what a kernel is and the core does not — so the core asks it
-        # and reports whatever sentence comes back (feature 005, research R6). Asked after the
-        # parameters have validated, because a check over invalid parameters would report the wrong
-        # problem.
+        # template can tell, so the core asks it and reports whatever sentence comes back (feature
+        # 005, research R6), after the parameters have validated.
         if spec.window_fit is not None and spec.consumes_window and window is not None:
             try:
                 params = spec.parameters.model_validate(self.model.params)
@@ -277,11 +385,11 @@ class Manifest(BaseModel):
     def _int8_needs_calibration_samples(self) -> Manifest:
         if self.export.quantization != "int8":
             return self
-        samples = self.dataset.representative_samples
+        samples = self.export.representative_samples
         if samples is None or samples < MINIMUM_REPRESENTATIVE_SAMPLES:
             rule_error(
                 RULE_CALIBRATION_SAMPLES,
-                "dataset.representative_samples",
+                "export.representative_samples",
                 "int8 quantization calibrates against representative samples, so at least "
                 f"{MINIMUM_REPRESENTATIVE_SAMPLES} are required",
                 found=samples,

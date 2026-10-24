@@ -21,37 +21,31 @@ BUILT_REPORT = "model/built.json"
 
 SPEC = StageSpec(
     name="build",
-    # Exactly what building depends on — including the seed, which the plan did not have here.
-    # Keras initialises weights when the model is constructed, so ``built.keras`` already contains
-    # them: the seed that produced them is an input to *this* stage, and a cache that reused a
-    # built model across seeds would hand back weights the manifest did not ask for. Not here:
-    # dataset.source, because the content is an input and the path is not.
+    # Exactly what building depends on — including the seed: Keras initialises weights when the
+    # model is constructed, so ``built.keras`` already contains them, and a cache that reused a
+    # built model across seeds would hand back weights the manifest did not ask for.
+    #
+    # The input features are read whole, with their fitted values merged in by the pipeline: the
+    # vocabulary, the shift and the scale are constants of the model (feature 008). The output is
+    # read field by field, never its budget: changing the budget must not rebuild (Principle III,
+    # feature 006 FR-031). ``clip`` belongs to a number output only, so it is optional.
     reads=(
         "model.template",
         "model.params",
-        "train.seed",
-        # Field by field, never the whole declaration: the budget inside ``outputs[0]`` is read by
-        # ``quantize`` alone, so changing it must not rebuild (Principle III, feature 006 FR-031).
-        "inputs[0].name",
-        "inputs[0].kind",
-        "inputs[0].columns",
-        "inputs[0].window",
-        "outputs[0].name",
-        "outputs[0].kind",
-        "outputs[0].labels",
+        "random_seed",
+        "input_features",
+        "output_features[0].name",
+        "output_features[0].type",
+        "output_features[0].preprocessing",
+        "output_features[0].clip?",
+        "preprocessing.window_size",
     ),
-    # The feature width is the number of the input's columns, which the projection carries since
-    # feature 006. The data stays part of the key all the same: building is cheap, and a dataset
-    # that changed is retrained on anyway.
+    # The fitted values come from the data, and the data stays part of the key all the same:
+    # building is cheap, and a dataset that changed is retrained on anyway.
     reads_dataset=True,
     upstream=None,
     artifacts=(BUILT_MODEL, BUILT_REPORT),
 )
-
-
-def input_shape_for(window: int | None, features: int) -> tuple[int, ...]:
-    """``(window, features)`` with a window, ``(features,)`` without one."""
-    return (window, features) if window else (features,)
 
 
 def require_framework(command: str) -> None:
@@ -59,52 +53,42 @@ def require_framework(command: str) -> None:
         raise EnvironmentIncomplete(missing_extra_message(command))
 
 
-def rewire(model: Any, input_name: str, output_name: str) -> Any:
-    """The builder's model, unchanged, under the declared names (feature 006, research R4).
-
-    The converter keeps an input's name but drops an output layer's name unless the model returns a
-    dict, and with two outputs it reorders them; only the signature then still says which is
-    which. So: an ``Input`` named after the declared input, the builder's own layers applied in
-    order — the same layer objects, so the same weights — and a dict output keyed by the declared
-    output. Measured on both templates: no weight and no converted operator changes.
-
-    Builders keep their signature; the names are the pipeline's concern, not a template's, and a
-    third-party template registered by entry point works unchanged.
-    """
-    import keras
-
-    inputs = keras.Input(shape=tuple(model.input_shape[1:]), name=input_name)
-    tensor = inputs
-    for layer in model.layers:
-        tensor = layer(tensor)
-    return keras.Model(inputs, {output_name: tensor}, name=model.name)
-
-
-def describe(
-    model: Any,
-    template: str,
-    window: int | None,
-    labels: tuple[str, ...],
-    names: tuple[str, str] = ("input", "output"),
-) -> dict:
-    """The contents of ``built.json``: the shape report FR-002 requires."""
+def describe(model: Any, template: str, inputs: StageInputs) -> dict:
+    """The contents of ``built.json``: the shape report FR-002 requires, per input."""
     # ``math.prod`` over the shapes rather than a count attribute: Keras 3 variables expose a
     # shape, and a count attribute that exists in one version and not another is how a report
     # starts lying after an upgrade.
     trainable = sum(math.prod(weight.shape) for weight in model.trainable_weights)
     non_trainable = sum(math.prod(weight.shape) for weight in model.non_trainable_weights)
+    output = inputs["output_features[0].name"]
     return {
         "template": template,
-        "input_name": names[0],
-        "output_name": names[1],
-        "input_shape": list(input_shape_for(window, int(model.input_shape[-1]))),
-        "output_units": len(labels),
+        "inputs": [
+            {
+                "name": tensor.name.split(":")[0],
+                "dtype": str(tensor.dtype),
+                "shape": [None if size is None else int(size) for size in tensor.shape[1:]],
+            }
+            for tensor in model.inputs
+        ],
+        "output_name": output,
+        "output_type": inputs["output_features[0].type"],
+        "output_shape": [int(size) for size in model.outputs[0].shape[1:]],
         "parameter_count": trainable + non_trainable,
         "trainable_parameters": trainable,
         "non_trainable_parameters": non_trainable,
-        "labels": list(labels),
         "layers": layer_table(model),
         **framework_record(),
+    }
+
+
+def output_feature(inputs: StageInputs) -> dict[str, Any]:
+    """The output feature as the front-end and the stages read it, from the projection."""
+    return {
+        "name": inputs["output_features[0].name"],
+        "type": inputs["output_features[0].type"],
+        "preprocessing": inputs["output_features[0].preprocessing"],
+        "clip": inputs.get("output_features[0].clip"),
     }
 
 
@@ -113,23 +97,20 @@ def construct(inputs: StageInputs, context: StageContext) -> Any:
     import keras
 
     from caravan.templates.builders import load_builder
+    from caravan.templates.builders.frontend import build_model
 
     # Before construction, because construction is where the weights are drawn.
-    keras.utils.set_random_seed(int(inputs["train.seed"]))
-
-    window = inputs["inputs[0].window"]
-    labels = tuple(inputs["outputs[0].labels"])
-    # The columns are the merged, derived-or-stated list (data stage): their number is the width.
-    shape = input_shape_for(window, len(inputs["inputs[0].columns"]))
+    keras.utils.set_random_seed(int(inputs["random_seed"]))
 
     builder = load_builder(inputs["model.template"])
-    names = (inputs["inputs[0].name"], inputs["outputs[0].name"])
-    model = rewire(builder(inputs["model.params"], shape, labels), *names)
-    description = describe(model, inputs["model.template"], window, labels, names)
-    # The kinds the shape and the head were built for: a series of records in, one class out.
-    description["input_kind"] = inputs["inputs[0].kind"]
-    description["output_kind"] = inputs["outputs[0].kind"]
-    return model, description
+    model = build_model(
+        builder,
+        inputs["model.params"],
+        inputs["input_features"],
+        output_feature(inputs),
+        inputs["preprocessing.window_size"],
+    )
+    return model, describe(model, inputs["model.template"], inputs)
 
 
 def stage(context: StageContext) -> StageFunction:
@@ -152,5 +133,8 @@ def stage(context: StageContext) -> StageFunction:
 def load_built_model(run_dir: Path) -> Any:
     """Load the artifact the build stage wrote. Used by the train stage, never by the core."""
     import keras
+
+    # The preprocessing layers are registered on import; a model that carries them loads only then.
+    import caravan.templates.builders.preprocessing  # noqa: F401
 
     return keras.saving.load_model(run_dir / BUILT_MODEL)

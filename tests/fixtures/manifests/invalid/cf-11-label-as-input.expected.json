@@ -1,4 +1,4 @@
 {
   "rule": "CF-11",
-  "path": "inputs[0].columns"
+  "path": "input_features[1].name"
 }

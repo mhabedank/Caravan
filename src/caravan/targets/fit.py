@@ -20,8 +20,15 @@ from typing import Any
 
 from caravan.manifest.errors import RULE_FLOOR_EXCEEDS_BOARD, run_rule_error
 
-#: Layer kinds certain to remain an operator of their own after conversion.
-COUNTED_KINDS: tuple[str, ...] = ("dense", "conv", "pooling")
+#: Layer kinds certain to remain an operator of their own after conversion. The concatenation of
+#: the features joins every input's channels (feature 008) and is a CONCATENATION on the target.
+COUNTED_KINDS: tuple[str, ...] = ("dense", "conv", "pooling", "concat")
+
+#: Bytes per element of a model input since feature 008: float32 for a number, int32 for a code
+#: (research R2, R11), whatever the quantization of the rest.
+INPUT_ELEMENT_BYTES = 4
+#: Bytes per element of a preprocessing constant kept in flash: a category's vocabulary is int32.
+CONSTANT_ELEMENT_BYTES = 4
 
 #: Bytes per element by the stated quantization: kernel, bias, activation. At int8 the converter
 #: stores kernels as int8 and biases as int32; at float16 weights are halved and activations stay
@@ -33,13 +40,15 @@ ELEMENT_BYTES: dict[str, tuple[int, int, int]] = {
 }
 
 FLASH_METHOD = (
-    "kernel and bias elements of every dense and convolution layer at the stated quantization's "
-    "element size; normalisation layers are not counted, because they fold into the convolution"
+    "kernel and bias elements of every dense and convolution layer (a category's embedding is a "
+    "dense kernel) at the stated quantization's element size, and every category vocabulary at "
+    "4 bytes per entry; normalisation layers are not counted, because they fold into the "
+    "convolution"
 )
 RAM_METHOD = (
-    "the largest input plus output of a dense, convolution or pooling layer at the stated "
-    "quantization's activation size; layers that may vanish, be fused or run in place are not "
-    "counted"
+    "the larger of: every model input together at 4 bytes per element, or the largest input plus "
+    "output of a dense, convolution, pooling or concatenation layer at the stated quantization's "
+    "activation size; layers that may vanish, be fused or run in place are not counted"
 )
 NOT_A_FIT_CLAIM = (
     "A pass means only that no lower bound exceeds a board. Whether the model fits is established "
@@ -93,25 +102,34 @@ def floors(records: Sequence[LayerRecord], quantization: str) -> tuple[FitFloor,
     kernel_bytes, bias_bytes, activation_bytes = ELEMENT_BYTES[quantization]
 
     weighted = [record for record in records if record.kind in ("dense", "conv")]
+    constants = [record for record in records if record.kind == "constant"]
     flash = FitFloor(
         resource="flash",
         floor_bytes=sum(
             record.kernel_elements * kernel_bytes + record.bias_elements * bias_bytes
             for record in weighted
-        ),
+        )
+        + sum(record.kernel_elements * CONSTANT_ELEMENT_BYTES for record in constants),
         method=FLASH_METHOD,
-        counted_layers=tuple(record.name for record in weighted),
+        counted_layers=tuple(record.name for record in (*weighted, *constants)),
     )
 
+    # Every model input is allocated at once and filled before the first operator runs.
+    inputs = [record for record in records if record.kind == "input"]
+    inputs_bytes = sum(record.output_elements for record in inputs) * INPUT_ELEMENT_BYTES
     counted = [record for record in records if record.kind in COUNTED_KINDS]
-    if counted:
-        peak = max(counted, key=lambda record: record.input_elements + record.output_elements)
-        ram = FitFloor(
-            resource="ram",
-            floor_bytes=(peak.input_elements + peak.output_elements) * activation_bytes,
-            method=RAM_METHOD,
-            counted_layers=(peak.name,),
-        )
+    peak = (
+        max(counted, key=lambda record: record.input_elements + record.output_elements)
+        if counted
+        else None
+    )
+    peak_bytes = (
+        (peak.input_elements + peak.output_elements) * activation_bytes if peak is not None else 0
+    )
+    if inputs_bytes > peak_bytes:
+        ram = FitFloor("ram", inputs_bytes, RAM_METHOD, tuple(record.name for record in inputs))
+    elif peak is not None:
+        ram = FitFloor("ram", peak_bytes, RAM_METHOD, (peak.name,))
     else:
         ram = FitFloor("ram", 0, RAM_METHOD, ())
     return flash, ram

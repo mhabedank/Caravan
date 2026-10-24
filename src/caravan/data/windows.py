@@ -164,7 +164,7 @@ def _no_samples(
         )
     run_rule_error(
         RULE_DATASET_NO_SAMPLES,
-        "dataset.source",
+        "dataset",
         problem,
         found={
             "records": records,
@@ -285,7 +285,7 @@ def _empty_split(
     )
     run_rule_error(
         RULE_SPLIT_EMPTY,
-        f"dataset.split.{name}",
+        "preprocessing.split.probabilities",
         (
             f"the {name} split comes out empty{where}: {plan.samples} samples at a fraction of "
             f"{fractions[name]:g} leaves nothing, so there is no data to "
@@ -313,7 +313,7 @@ def _fixed_split(plan: WindowPlan, column: str, labels: Sequence[str]) -> SplitP
         if not parts[name]:
             run_rule_error(
                 RULE_SPLIT_EMPTY,
-                "dataset.split.column",
+                "preprocessing.split.column",
                 (
                     f"no window of the data is in the {name} part: column {column!r} names it "
                     "for no whole window, so there is no data to "
@@ -335,16 +335,19 @@ def _fixed_split(plan: WindowPlan, column: str, labels: Sequence[str]) -> SplitP
 def split_for(
     plan: WindowPlan, spec: Mapping[str, object], *, seed: int, labels: Sequence[str]
 ) -> SplitPlan:
-    """The split a resolved ``dataset.split`` asks for, in either form (feature 007)."""
-    column = spec.get("column")
-    if column is not None:
+    """The split a resolved ``preprocessing.split`` asks for: random, stratify or fixed.
+
+    ``labels`` are the classes a stratified split draws per; a ``number`` output has none.
+    """
+    if spec["type"] == "fixed":
         return plan_split(
-            plan, None, stratified=False, seed=None, labels=labels, column=str(column)
+            plan, None, stratified=False, seed=None, labels=labels, column=str(spec["column"])
         )
+    probabilities = [float(value) for value in spec["probabilities"]]  # type: ignore[attr-defined]
     return plan_split(
         plan,
-        {name: float(spec[name]) for name in SPLIT_NAMES},  # type: ignore[arg-type]
-        stratified=bool(spec["stratified"]),
+        dict(zip(SPLIT_NAMES, probabilities, strict=True)),
+        stratified=spec["type"] == "stratify",
         seed=seed,
         labels=labels,
     )

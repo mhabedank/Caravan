@@ -1,0 +1,28 @@
+# Invalid on purpose. Two output features: exactly one is implemented; several arrive with the first
+# named model or documented application that needs them (Principle X).
+# Expected: CF-17 at output_features
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+- name: severity
+  type: number
+  mae_increase_max: 0.5
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

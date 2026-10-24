@@ -6,17 +6,19 @@ model:
   version: 0.0.1
   template: mlp
   params:
-    hidden: [8]
-inputs:
-  - name: frames
-    kind: series
-    window: 32
-outputs:
-  - name: verdict
-    kind: class
-    accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
 export:
-  targets: [stm32h743]
+  representative_samples: 100
+  targets:
+  - stm32h743

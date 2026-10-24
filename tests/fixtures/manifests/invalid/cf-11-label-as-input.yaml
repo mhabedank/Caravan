@@ -1,7 +1,7 @@
-# Invalid on purpose. The input names the output's column: the model would be trained on its own
-# answer.
-# Expected: CF-11 at inputs[0].columns
-apiVersion: caravan/v0.1
+# Invalid on purpose. An input feature reads the output's column: the model would be trained on its
+# own answer.
+# Expected: CF-11 at input_features[1].name
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
@@ -9,20 +9,19 @@ model:
   params:
     hidden:
     - 8
-inputs:
-- name: frames
-  kind: series
-  window: 32
-  columns:
-  - can_id
-  - label
-outputs:
+input_features:
+- name: reading
+  type: number
 - name: verdict
-  kind: class
+  type: category
+output_features:
+- name: verdict
+  type: category
   accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
 export:
+  representative_samples: 100
   targets:
   - stm32h743
