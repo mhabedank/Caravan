@@ -48,7 +48,7 @@ def typed_model() -> Path:
     return path
 
 
-#: The typed model's inputs, their element types, and its output (``tests/fixtures/models/make.py``).
+#: The typed model's inputs, their element types, and its output (tests/fixtures/models/make.py).
 TYPED_INPUTS = {
     "speed": "float32",
     "gear": "int32",

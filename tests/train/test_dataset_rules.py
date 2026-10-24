@@ -14,8 +14,8 @@ import pytest
 
 from caravan.cli.main import EXIT_RULE, main
 from caravan.data.fingerprint import resolve_dataset
-from caravan.data.reader import read_records
 from caravan.data.fit import fit_output_category
+from caravan.data.reader import read_records
 from caravan.manifest.errors import (
     RULE_DATASET_CELL,
     RULE_DATASET_COLUMNS,

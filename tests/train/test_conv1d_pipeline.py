@@ -61,7 +61,7 @@ def test_the_operator_set_is_the_convolutional_one(exported) -> None:
     _run, record = exported
     names = [o["name"] for o in record["graph"]["operators"]]
     assert names == EXPECTED_OPERATORS
-    assert TEMPLATE_OPERATORS <= set(names)
+    assert set(names) >= TEMPLATE_OPERATORS
     assert record["graph"]["distinct_operators"] == 15
 
 

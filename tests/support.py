@@ -70,8 +70,9 @@ def invalid_cases() -> list[tuple[str, Path, dict]]:
 #: The fixed-split variant of the committed dataset (feature 007): the same records with a `split`
 #: column. Derived at test time from the one committed file rather than committed as a second
 #: dataset (feature 002, FR-013). Per label, windows 0-11 are `train`, 12-15 `validation`, 16-19
-#: `test`; the last `normal` window names `test` in its first half and `validation` in its second, so it is mixed
-#: by part and discarded; the committed mixed-label window is `train` and is discarded by label.
+#: `test`; the last `normal` window names `test` in its first half and `validation` in its
+#: second, so it is mixed by part and discarded; the committed mixed-label window is `train` and is
+#: discarded by label.
 SPLIT_COUNTS = {"train": 48, "val": 16, "test": 15}
 SPLIT_DISCARDED = 1
 
