@@ -397,7 +397,7 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 - [X] T048 Run `actionlint` on the workflows (unchanged, a guard).
 - [X] T049 Run quickstart §1–§7 by hand and fill the figures marked *to be measured* in
   `quickstart.md`.
-- [ ] T050 Push `008-typed-features`, open one PR (constitution 4.1.0), see CI green and report to
+- [X] T050 Push `008-typed-features`, open one PR (constitution 4.1.0), see CI green and report to
   the owner. Merging and the release of `v0.1.0` (feature 007, T038–T043) follow on the owner's
   go-ahead.
 
