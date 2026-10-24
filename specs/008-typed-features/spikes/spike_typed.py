@@ -71,7 +71,7 @@ conv.optimizations = [tf.lite.Optimize.DEFAULT]; conv.representative_dataset = r
 conv.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 conv.inference_output_type = tf.int8
 blob = conv.convert()
-open("typed.tflite","wb").write(blob)
+open(__import__("os").path.join(__import__("tempfile").gettempdir(), "typed.tflite"),"wb").write(blob)
 from ai_edge_litert.interpreter import Interpreter
 it = Interpreter(model_content=blob); it.allocate_tensors()
 ops = sorted({d["op_name"] for d in it._get_ops_details()})
