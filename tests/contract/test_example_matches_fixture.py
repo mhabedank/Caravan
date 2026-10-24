@@ -17,8 +17,7 @@ EXAMPLE = ROOT / "examples" / "picket-mlp.yaml"
 
 
 def without_source(mapping: dict) -> dict:
-    dataset = {key: value for key, value in mapping["dataset"].items() if key != "source"}
-    return {**mapping, "dataset": dataset}
+    return {key: value for key, value in mapping.items() if key != "dataset"}
 
 
 def test_the_example_is_the_fixture_apart_from_the_source() -> None:
@@ -26,5 +25,5 @@ def test_the_example_is_the_fixture_apart_from_the_source() -> None:
 
 
 def test_the_example_points_at_the_committed_dataset() -> None:
-    source = read_mapping(EXAMPLE)["dataset"]["source"]
+    source = read_mapping(EXAMPLE)["dataset"]
     assert (EXAMPLE.parent / source).resolve() == SYNTHETIC_DATASET.resolve()

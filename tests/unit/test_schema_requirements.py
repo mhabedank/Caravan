@@ -28,30 +28,31 @@ def first_error(data: dict) -> dict:
     return caught.value.errors()[0]
 
 
-def test_a_defaults_section_is_not_accepted() -> None:
-    # FR-014: no defaults section, no inheritance, no way for one part to set another's values.
+def test_defaults_set_feature_types_and_nothing_else() -> None:
+    # Feature 008: Ludwig's ``defaults`` is per feature type. It sets no other section's values,
+    # so a trainer setting in it is refused rather than inherited.
     data = manifest_data()
-    data["defaults"] = {"train": {"epochs": 1}}
+    data["defaults"] = {"number": {"trainer": {"epochs": 1}}}
     error = first_error(data)
     assert error["type"] == "extra_forbidden"
-    assert error["loc"] == ("defaults",)
+    assert error["loc"] == ("defaults", "number", "trainer")
 
 
 def test_a_manifest_without_an_output_is_invalid() -> None:
     # Principle I (constitution 3.0.0): the manifest declares what goes in and what comes out.
     data = manifest_data()
-    del data["outputs"]
+    del data["output_features"]
     error = first_error(data)
     assert error["type"] == "missing"
-    assert error["loc"] == ("outputs",)
+    assert error["loc"] == ("output_features",)
 
 
-def test_a_positional_split_is_not_accepted() -> None:
-    # FR-018: named parts, never a positional list — the form Ludwig had to migrate away from.
+def test_a_split_is_a_mapping_with_named_keys() -> None:
+    # FR-018: named keys, never a bare positional list in place of the split.
     data = manifest_data()
-    data["dataset"]["split"] = [0.7, 0.15, 0.15]
+    data["preprocessing"]["split"] = [0.7, 0.15, 0.15]
     error = first_error(data)
-    assert error["loc"][:2] == ("dataset", "split")
+    assert error["loc"][:2] == ("preprocessing", "split")
     assert error["type"] in {"model_attributes_type", "model_type", "dict_type"}
 
 
@@ -78,7 +79,7 @@ def test_a_second_template_can_be_registered_without_editing_a_central_list(tmp_
     source = MINIMAL.read_text(encoding="utf-8")
     source = source.replace("template: mlp", "template: flat")
     source = source.replace("  params:\n    hidden: [8]\n", "  params:\n    units: 4\n")
-    source = source.replace("  window: 32\n", "")
+    source = source.replace("preprocessing:\n  window_size: 32\n", "")
     manifest = tmp_path / "flat.yaml"
     manifest.write_text(source, encoding="utf-8")
 

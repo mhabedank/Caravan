@@ -14,15 +14,16 @@ import pytest
 
 from caravan.cli.main import EXIT_RULE, main
 from caravan.data.fingerprint import resolve_dataset
+from caravan.data.fit import fit_output_category
 from caravan.data.reader import read_records
 from caravan.manifest.errors import (
     RULE_DATASET_CELL,
     RULE_DATASET_COLUMNS,
     RULE_DATASET_HEADERS_DIFFER,
     RULE_DATASET_LABELS,
+    RULE_UNKNOWN_INPUT_COLUMN,
     RunRuleFailure,
 )
-from caravan.stages import data as data_stage
 from tests.train.conftest import pure_windows, write_manifest, write_records
 
 HEADER = "label,a,b"
@@ -32,11 +33,14 @@ def read(directory, labels=("normal", "attack")):
     """Read the data, then check it against a pinned label list, as a run does.
 
     Since feature 006 the reader returns the labels as the data spells them and the ``data`` stage
-    holds them against the manifest (DS-5), so the two steps are taken together here.
+    holds them against the manifest (DS-5), so the two steps are taken together here. The features
+    are the two number columns ``a`` and ``b`` (feature 008).
     """
     dataset = resolve_dataset("data", directory)
-    records = read_records(dataset)
-    data_stage.derive_labels(records.labels, list(labels))
+    records = read_records(dataset, features=(("a", "number"), ("b", "number")))
+    fit_output_category(
+        records.labels, records.labels, pinned=list(labels), path="output_features[0]"
+    )
     return records
 
 
@@ -51,12 +55,14 @@ def test_ds_2_when_no_column_is_called_label(tmp_path) -> None:
     assert "label" in finding.accepted
 
 
-def test_ds_2_when_there_is_no_feature_column(tmp_path) -> None:
-    write_records(tmp_path / "data", ["label", "normal"])
+def test_ds_12_when_a_features_column_is_missing(tmp_path) -> None:
+    write_records(tmp_path / "data", ["label,a", "normal,1"])
     with pytest.raises(RunRuleFailure) as error:
         read(tmp_path)
-    assert error.value.finding.rule == RULE_DATASET_COLUMNS
-    assert "feature" in error.value.finding.problem
+    finding = error.value.finding
+    assert finding.rule == RULE_UNKNOWN_INPUT_COLUMN
+    assert finding.path == "input_features[1].name"
+    assert finding.found == "b"
 
 
 def test_ds_2_when_two_columns_are_called_label(tmp_path) -> None:
@@ -90,8 +96,16 @@ def test_ds_4_when_a_cell_is_not_a_number(tmp_path) -> None:
     assert "'a'" in finding.problem  # 'oops' sits in the first feature column
 
 
-def test_ds_4_when_a_cell_is_empty(tmp_path) -> None:
-    write_records(tmp_path / "data", [HEADER, "normal,1,"])
+def test_an_empty_number_is_missing_and_left_to_the_features_strategy(tmp_path) -> None:
+    # Feature 008: a number column has a missing-value strategy, so an empty cell is read as
+    # missing (nan) and filled after fitting, rather than refused.
+    write_records(tmp_path / "data", [HEADER, "normal,1,", "attack,2,3"])
+    records = read(tmp_path)
+    assert str(records.columns["b"][0]) == "nan"
+
+
+def test_ds_4_when_an_output_cell_is_empty(tmp_path) -> None:
+    write_records(tmp_path / "data", [HEADER, "normal,1,2", ",1,2"])
     with pytest.raises(RunRuleFailure) as error:
         read(tmp_path)
     assert error.value.finding.rule == RULE_DATASET_CELL

@@ -1,4 +1,4 @@
-"""UCI HAR, as the zoo's `pace-cnn` 0.1.0 used it, in the form Caravan reads (feature 007, R8).
+"""UCI HAR, as the zoo's `pace-cnn` 0.1.0 used it, in the form Caravan reads (features 007, 008).
 
     python ports/pace-cnn/convert.py <har.zip> <output directory outside this repository>
 
@@ -13,9 +13,11 @@ compared on the same data and the same split:
    draws them; the subject lists and the windows of each part against the benchmark's hashes;
 4. the per-channel mean and standard deviation of the training part, against the benchmark's.
 
-It writes one CSV row per time step, 128 rows per window, with `label`, `split` and the nine
-standardised channels, and a `stats.json` beside it. Caravan scales no inputs yet (proposal P5),
-so the standardisation happens here, as it did in the zoo.
+It writes one CSV row per time step, 128 rows per window, with `activity`, `split` (`train`,
+`validation` or `test`, Ludwig's words) and the nine channels as **raw values**, and a `stats.json`
+beside it. Since feature 008 each `number` feature is standardised inside the model, with the mean
+and deviation fitted on the training part — the same numbers step 4 checks — so the converter no
+longer standardises.
 
 Nothing here trains, labels or evaluates anything (constitution, Principle XI). The data stays
 where the author puts it: the output directory must be outside this repository, and nothing it
@@ -73,7 +75,25 @@ CHANNELS = [
 ]  # fmt: skip
 LABELS = ["walking", "walking_upstairs", "walking_downstairs", "sitting", "standing", "laying"]
 ROOT = "UCI HAR Dataset"
-REPOSITORY = Path(__file__).resolve().parents[2]
+#: The words of a fixed split, per part (feature 008, research R8).
+PART_WORDS = {"train": "train", "val": "validation", "test": "test"}
+
+
+def find_repository(start: Path) -> Path | None:
+    """The Caravan checkout this script sits in, or ``None`` for a copy outside one.
+
+    Found by a ``pyproject.toml`` that names the ``caravan-ml`` distribution in a directory above
+    the script, never by counting parents: a copy of the script elsewhere would otherwise take a
+    stranger's directory for the repository (the defect found on 2026-10-24).
+    """
+    for directory in start.resolve().parents:
+        project = directory / "pyproject.toml"
+        if project.is_file() and 'name = "caravan-ml"' in project.read_text(encoding="utf-8"):
+            return directory
+    return None
+
+
+REPOSITORY = find_repository(Path(__file__))
 
 
 def fail(message: str) -> None:
@@ -137,7 +157,7 @@ def main(argv: list[str]) -> int:
         print(__doc__.splitlines()[2].strip(), file=sys.stderr)
         return 2
     archive_path, out = Path(argv[0]), Path(argv[1]).resolve()
-    if out == REPOSITORY or REPOSITORY in out.parents:
+    if REPOSITORY is not None and (out == REPOSITORY or REPOSITORY in out.parents):
         fail(f"{out} is inside the repository; the data must stay outside it")
 
     archive = inner_archive(archive_path)
@@ -164,23 +184,25 @@ def main(argv: list[str]) -> int:
     mean, std = flat.mean(0), flat.std(0) + np.float32(1e-6)
     if not (np.allclose(mean, MEAN, atol=1e-6) and np.allclose(std, STD, rtol=1e-5)):
         fail("the training part's mean and standard deviation differ from the benchmark's")
-    frozen_mean, frozen_std = np.asarray(MEAN, np.float32), np.asarray(STD, np.float32)
 
     out.mkdir(parents=True, exist_ok=True)
     with (out / "records.csv").open("w", encoding="utf-8", newline="\n") as handle:
-        handle.write(",".join(["label", "split", *CHANNELS]) + "\n")
+        handle.write(",".join(["activity", "split", *CHANNELS]) + "\n")
         for name, (x, y, _) in parts.items():
-            standardised = (x - frozen_mean) / frozen_std
-            for window, label in zip(standardised, y, strict=True):
-                prefix = f"{LABELS[label]},{name},"
+            for window, label in zip(x, y, strict=True):
+                prefix = f"{LABELS[label]},{PART_WORDS[name]},"
                 for step in window:
-                    handle.write(prefix + ",".join(f"{v:.6g}" for v in step) + "\n")
+                    handle.write(prefix + ",".join(f"{v:.9g}" for v in step) + "\n")
     stats = {
         "source": "UCI HAR, archive sha256 " + ARCHIVE_SHA256,
         "benchmark": "uci-har-v1 (mobility-model-zoo)",
         "validation_subjects": val,
         "windows": {name: len(x) for name, (x, _, _) in parts.items()},
-        "normalisation": {"mean": MEAN, "std": STD, "applied_by": "this converter"},
+        "normalisation": {
+            "mean": MEAN,
+            "std": STD,
+            "applied_by": "the model: zscore fitted on the training part (feature 008)",
+        },
         "labels": LABELS,
         "channels": CHANNELS,
     }

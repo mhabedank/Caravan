@@ -1,0 +1,25 @@
+# Invalid on purpose. A category output states its int8 budget as mae_increase_max, which belongs
+# to a number output (feature 008, Principle V).
+# Expected: CF-16 at output_features[0].mae_increase_max
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  mae_increase_max: 0.5
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

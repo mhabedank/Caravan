@@ -22,6 +22,10 @@ Builder = Callable[..., Any]
 
 ENTRY_POINT_GROUP = "caravan.template_builders"
 
+#: Modules of this package that are not builders: the preprocessing layers and the front-end every
+#: template body is put behind (feature 008).
+HELPERS = frozenset({"frontend", "preprocessing"})
+
 
 class UnknownBuilder(Exception):
     """No builder is registered for this template identifier."""
@@ -34,7 +38,7 @@ def builtin_identifiers() -> tuple[str, ...]:
         sorted(
             info.name
             for info in pkgutil.iter_modules(package.__path__)
-            if not info.ispkg and not info.name.startswith("_")
+            if not info.ispkg and not info.name.startswith("_") and info.name not in HELPERS
         )
     )
 

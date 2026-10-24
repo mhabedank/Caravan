@@ -1,0 +1,25 @@
+# Invalid on purpose. The caravan/v0.1 declarations in a caravan/v0.2 manifest: each is refused at
+# its path with the key that replaces it (feature 008, contracts/manifest.md, Removed).
+# Expected: no rule identifier at inputs
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+inputs:
+- name: frames
+  kind: series
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

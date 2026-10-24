@@ -20,18 +20,24 @@ def _summary(name: str, run_dir: Path, _measured: dict[str, Any]) -> None:
     if not path.is_file():  # pragma: no cover - the stage declares it
         return
     record = json.loads(path.read_text(encoding="utf-8"))
-    model, calibration, accuracy = record["model"], record["calibration"], record["accuracy"]
+    model, calibration, gate = record["model"], record["calibration"], record["gate"]
 
     counts = ", ".join(f"{dtype} {count}" for dtype, count in model["dtype_counts"].items())
-    integer = "fully integer" if model["fully_integer"] else "not fully integer"
+    integer = (
+        "integer inside, raw values at the boundary"
+        if model["fully_integer"]
+        else "not fully integer"
+    )
     print(
         f"{name}: quantized {model['setting']} — {model['size_bytes']:,} bytes from "
         f"{model['trained_size_bytes']:,} ({model['path']})",
         file=sys.stderr,
     )
-    scale = model["input"].get("scale")
-    detail = f", input {model['input']['dtype']}" + (f" scale {scale:.6f}" if scale else "")
-    print(f"    tensors: {counts} — {integer}{detail}", file=sys.stderr)
+    kinds = ", ".join(
+        f"{tensor['name'].removeprefix('serving_default_').split(':')[0]} {tensor['dtype']}"
+        for tensor in model["inputs"]
+    )
+    print(f"    tensors: {counts} — {integer}; inputs {kinds}", file=sys.stderr)
     requested = calibration["requested"]
     if requested is None:
         print(
@@ -45,19 +51,27 @@ def _summary(name: str, run_dir: Path, _measured: dict[str, Any]) -> None:
             f"seed {calibration['seed']}",
             file=sys.stderr,
         )
-    version = accuracy["dataset_version"][:18]
-    print(f"    test, {accuracy['samples']} windows, dataset {version}…", file=sys.stderr)
+    measured = record[gate["metric"]]
+    version = gate["dataset_version"][:18]
+    print(f"    test, {gate['samples']} windows, dataset {version}…", file=sys.stderr)
     print(
-        f"      trained {accuracy['trained']:.3f}  converted {accuracy['converted']:.3f}  "
-        f"quantized {accuracy['quantized']:.3f}",
+        f"      {gate['metric']}: trained {measured['trained']:.3f}  "
+        f"converted {measured['converted']:.3f}  quantized {measured['quantized']:.3f}",
         file=sys.stderr,
     )
-    print(
-        f"      conversion cost {accuracy['conversion_drop']:.3f}  "
-        f"quantization cost {accuracy['quantization_drop']:.3f}  "
-        f"accepted {accuracy['threshold']:.3f}  → {accuracy['verdict']}",
-        file=sys.stderr,
-    )
+    if gate["metric"] == "accuracy":
+        print(
+            f"      conversion cost {measured['conversion_drop']:.3f}  "
+            f"quantization cost {measured['quantization_drop']:.3f}  "
+            f"accepted {measured['threshold']:.3f}  → {measured['verdict']}",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"      mean absolute error raised by {measured['mae_increase']:.3f}  "
+            f"accepted {measured['threshold']:.3f}  → {measured['verdict']}",
+            file=sys.stderr,
+        )
 
 
 def run(args: argparse.Namespace) -> int:

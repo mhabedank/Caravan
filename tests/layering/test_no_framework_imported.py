@@ -41,6 +41,9 @@ EXTRA_ONLY_MODULES = frozenset(
         "caravan.metrics.classification",
         "caravan.templates.builders.mlp",
         "caravan.templates.builders.conv1d",
+        # The preprocessing layers and the front-end of feature 008.
+        "caravan.templates.builders.preprocessing",
+        "caravan.templates.builders.frontend",
         "caravan.convert.tflite",
         "caravan.convert.debugger",
         # Feature 004: cloning a trained model onto a batch of one needs the framework that owns

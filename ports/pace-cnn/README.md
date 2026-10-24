@@ -17,11 +17,14 @@ own split by subject. Nothing this port produces is published, and the zoo is no
    python ports/pace-cnn/convert.py har.zip /some/where/uci-har
    ```
 
-   It checks the windows, the subjects and the data of each part against the zoo's benchmark
-   `uci-har-v1`. It writes `records.csv`: 10,299 windows of 128 records, `train` 6,288, `val` 1,064
-   and `test` 2,947, standardised with the zoo's frozen mean and standard deviation.
-4. Copy `pace-cnn.yaml`, set `dataset.source` to that directory, and run
-   `caravan export pace-cnn.yaml`.
+   It checks the windows, the subjects and the data of each part, and the training part's mean
+   and standard deviation, against the zoo's benchmark `uci-har-v1`. It writes `records.csv`:
+   10,299 windows of 128 records, `train` 6,288, `validation` 1,064 and `test` 2,947, as raw
+   values. The script can be copied anywhere: it finds this repository, if it sits in one, by its
+   `pyproject.toml`, and refuses to write into it.
+4. Copy `pace-cnn.yaml`, set `dataset` to that directory, and run `caravan export pace-cnn.yaml`.
+   Each of the nine channels is a `number` feature, standardised inside the model with the mean
+   and deviation of the training part (feature 008).
 
 ## What differs from the zoo's recipe
 
@@ -34,7 +37,6 @@ because Caravan 0.1.0 cannot express all of it (`specs/007-release-0-1-0/researc
 | Adam, cosine decay from 2e-3 | Adam, constant 2e-3 | no learning-rate schedule in 0.1.0 |
 | convolutions without bias | with bias | absorbed by batch normalisation; no effect after folding |
 | calibration on the first 500 training windows | 500 training windows drawn by seed | Caravan draws its calibration sample |
-| standardisation inside the model's pre-processing | standardisation in `convert.py` | Caravan scales no inputs yet (proposal P5) |
 | macro-F1 and per-subject criteria | accuracy, and the int8 gate of 0.03 | Caravan measures accuracy; 0.03 is the zoo's kill criterion K2 |
 
 So the port reproduces the task, not the exact model. Its numbers are compared with the published
@@ -49,4 +51,6 @@ this port runs as an internal test only. Resolving the contradiction is the zoo'
 
 ## Result
 
-Recorded in `docs/releases/0.1.0.md` once the port has run with a candidate.
+With typed features (feature 008, `specs/008-typed-features/research.md`, R16): int8 0.917 on the
+2,947 test windows with the manifest's `random_seed: 0`, and 0.927 to 0.933 with seeds 1 to 3; the
+zoo published 0.923. The final figure is recorded in `docs/releases/0.1.0.md` when 0.1.0 is cut.

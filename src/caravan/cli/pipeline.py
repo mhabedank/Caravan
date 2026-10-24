@@ -33,7 +33,7 @@ from caravan.manifest.errors import (
     render_finding,
 )
 from caravan.manifest.load import load_manifest
-from caravan.manifest.resolve import merge_derived, resolve
+from caravan.manifest.resolve import merge_fitted, resolve
 from caravan.manifest.resolve import render as render_manifest
 from caravan.run.framework_log import captured, mentioned
 from caravan.run.paths import (
@@ -106,8 +106,11 @@ def _stated_train_settings(manifest_path: Path) -> set[str]:
     from caravan.manifest._yaml import read_mapping
 
     document = read_mapping(manifest_path)
-    section = document.get("train") if isinstance(document, dict) else None
-    return set(section) if isinstance(section, dict) else set()
+    section = document.get("trainer") if isinstance(document, dict) else None
+    stated = set(section) if isinstance(section, dict) else set()
+    if isinstance(document, dict) and "random_seed" in document:
+        stated.add("random_seed")
+    return stated
 
 
 def _dataset_section(dataset: Any, context: StageContext) -> dict[str, Any]:
@@ -175,30 +178,44 @@ def _attach_quantization(report: Report, run_dir: Path) -> None:
     if not record:
         return
     report.quantization = record
-    accuracy = record.get("accuracy") or {}
-    if "verdict" in accuracy:
-        report.gates = (
-            *report.gates,
-            Gate(
-                name="accuracy",
-                result=accuracy["verdict"],
-                detail=(
-                    f"quantization cost {accuracy['quantization_drop']:.3f}, "
-                    f"accepted {accuracy['threshold']:.3f} "
-                    f"(on {accuracy['samples']} test samples, "
-                    f"resolution {accuracy['resolution']:.3f})"
-                ),
-            ),
+    gate = record.get("gate") or {}
+    if "verdict" not in gate:
+        return
+    if gate["metric"] == "accuracy":
+        accuracy = record["accuracy"]
+        detail = (
+            f"quantization cost {accuracy['quantization_drop']:.3f}, "
+            f"accepted {accuracy['threshold']:.3f} "
+            f"(on {accuracy['samples']} test samples, "
+            f"resolution {accuracy['resolution']:.3f})"
         )
+    else:
+        detail = (
+            f"quantization raised the mean absolute error by {gate['change']:.3f}, "
+            f"accepted {gate['budget']:.3f} (on {gate['samples']} test samples)"
+        )
+    report.gates = (
+        *report.gates,
+        Gate(name=gate["metric"], result=gate["verdict"], detail=detail),
+    )
 
 
 def data_line(schema: dict[str, Any]) -> str:
-    """What the data said, in one line: the label order matters to anyone reading an output unit."""
-    labels = ", ".join(schema["labels"])
-    columns = len(schema["input_columns"])
+    """What the data said, in one line: the features, the output's order, what was ignored."""
+    count = len(schema["features"])
+    output = schema["output"]
+    fitted = output["fitted"]
+    if output["type"] == "category":
+        answer = f"labels {', '.join(fitted['labels'])} ({fitted['labels_source']})"
+    elif output["type"] == "binary":
+        answer = f"true is {fitted['true_spelling']!r}"
+    else:
+        answer = "a number"
+    ignored = schema["ignored_columns"]
     return (
-        f"data: labels {labels} ({schema['labels_source']}); "
-        f"{columns} input column{'s' if columns != 1 else ''} ({schema['columns_source']})"
+        f"data: {count} input feature{'s' if count != 1 else ''}, fitted on the training part; "
+        f"output {output['name']}: {answer}; "
+        + (f"ignored: {', '.join(ignored)}" if ignored else "no column ignored")
     )
 
 
@@ -252,9 +269,9 @@ def run_pipeline(
     resolved = resolve(manifest)
 
     run_dir = create_run_directory(Path(args.runs_dir), file_digest(path))
-    # Written once the data stage has said what the data holds, so a run's resolved manifest carries
-    # the derived labels and columns rather than the marker (feature 006, FR-013). Until then the
-    # declared form stands in, which is also what remains if the data stage fails.
+    # Written once the data stage has fitted the preprocessing, so a run's resolved manifest carries
+    # the fitted values rather than the marker (features 006, 008). Until then the declared form
+    # stands in, which is also what remains if the data stage fails.
     (run_dir / RESOLVED_MANIFEST_NAME).write_text(render_manifest(manifest), encoding="utf-8")
     cache_dir = Path(args.cache_dir)
     report = report_for(
@@ -275,20 +292,20 @@ def run_pipeline(
         with captured(log_path):
             from caravan.data.fingerprint import resolve_dataset
 
-            dataset = resolve_dataset(manifest.dataset.source, path.parent)
-            declared_columns = manifest.inputs[0].columns
+            dataset = resolve_dataset(manifest.dataset, path.parent)
+            split = manifest.preprocessing.split
             context = StageContext(
                 dataset=dataset,
                 run_dir=run_dir,
                 run_id=run_dir.name,
-                input_columns=None if declared_columns is None else tuple(declared_columns),
-                output_column=manifest.outputs[0].column,
-                split_column=manifest.dataset.split.column,
+                features=tuple((feature.name, feature.type) for feature in manifest.input_features),
+                output=(manifest.output_features[0].name, manifest.output_features[0].type),
+                split_column=split.column if split.type == "fixed" else None,
             )
 
-            # The data stage reads the declarations as written; every later stage reads them with
-            # what the data said merged in, so the derived values are part of their keys (research
-            # R3).
+            # The data stage reads the features as written; every later stage reads them with what
+            # fitting on the training part found merged in, so the fitted values are part of their
+            # keys (feature 008, research R6).
             keys: dict[str, str] = {}
             running = data_stage.SPEC.name
             result = run_stage(
@@ -304,9 +321,7 @@ def run_pipeline(
             keys[data_stage.SPEC.name] = result.key
             outcomes.append(result)
             schema = data_stage.load_schema(run_dir)
-            resolved = merge_derived(
-                resolved, input_columns=schema["input_columns"], labels=schema["labels"]
-            )
+            resolved = merge_fitted(resolved, data_stage.load_fitted(run_dir))
             (run_dir / RESOLVED_MANIFEST_NAME).write_text(dump_mapping(resolved), encoding="utf-8")
             report.data = schema
 

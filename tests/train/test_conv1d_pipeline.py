@@ -22,8 +22,15 @@ from tests.train.conftest import latest_run
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 CONV1D = FIXTURES / "manifests" / "valid" / "picket-conv1d-fixture.yaml"
 
-#: Measured on the first real run of this fixture, 2026-10-22: the reducing head's operator set.
-EXPECTED_OPERATORS = ["RESHAPE", "CONV_2D", "MAX_POOL_2D", "MEAN", "FULLY_CONNECTED", "SOFTMAX"]
+#: What the typed features add in front of every template (feature 008): a number's QUANTIZE, SUB
+#: and MUL, a category's EQUAL, CAST, RELU, SUM, SUB and CONCATENATION, and a DEQUANTIZE at the
+#: output. Measured 2026-10-24.
+EXPECTED_OPERATORS = [
+    "QUANTIZE", "SUB", "MUL", "RESHAPE", "EQUAL", "CAST", "RELU", "SUM", "CONCATENATION",
+    "FULLY_CONNECTED", "CONV_2D", "MAX_POOL_2D", "MEAN", "SOFTMAX", "DEQUANTIZE",
+]  # fmt: skip
+#: The template's own operators, measured on the first real run, 2026-10-22.
+TEMPLATE_OPERATORS = {"RESHAPE", "CONV_2D", "MAX_POOL_2D", "MEAN", "FULLY_CONNECTED", "SOFTMAX"}
 
 
 @pytest.fixture
@@ -52,8 +59,10 @@ def test_the_accuracy_gate_judged_and_passed(exported) -> None:
 
 def test_the_operator_set_is_the_convolutional_one(exported) -> None:
     _run, record = exported
-    assert [o["name"] for o in record["graph"]["operators"]] == EXPECTED_OPERATORS
-    assert record["graph"]["distinct_operators"] == 6
+    names = [o["name"] for o in record["graph"]["operators"]]
+    assert names == EXPECTED_OPERATORS
+    assert set(names) >= TEMPLATE_OPERATORS
+    assert record["graph"]["distinct_operators"] == 15
 
 
 def test_the_resolver_names_each_operator_once_in_the_runtimes_spelling(exported) -> None:
@@ -66,10 +75,13 @@ def test_the_resolver_names_each_operator_once_in_the_runtimes_spelling(exported
         "AddMean",
         "AddFullyConnected",
         "AddSoftmax",
+        "AddEqual",
+        "AddCast",
+        "AddSum",
     ):
         assert header.count(f"resolver.{method}();") == 1, method
-    assert len(re.findall(r"resolver\.Add\w+\(", header)) == 6
-    assert "MicroMutableOpResolver<6>" in header
+    assert len(re.findall(r"resolver\.Add\w+\(", header)) == 15
+    assert "MicroMutableOpResolver<15>" in header
 
 
 def test_the_reduction_is_recorded_as_a_fallback_on_every_board(exported) -> None:
@@ -97,4 +109,4 @@ def test_no_stage_needed_a_special_case(exported) -> None:
         "quantize",
         "export",
     ]
-    assert record["graph"]["nodes"] == 8
+    assert record["graph"]["nodes"] == 35

@@ -14,7 +14,7 @@ def manifest_with(fixture_manifest, tmp_path, setting: str, keep_samples: bool =
     from tests.support import SYNTHETIC_DATASET
 
     text = fixture_manifest.read_text(encoding="utf-8").replace(
-        "source: ../../datasets/synthetic", f"source: {SYNTHETIC_DATASET}"
+        "dataset: ../../datasets/synthetic", f"dataset: {SYNTHETIC_DATASET}"
     )
     text = text.replace("quantization: int8", f"quantization: {setting}")
     if "quantization:" not in text:

@@ -1,0 +1,4 @@
+{
+  "rule": "CF-15",
+  "path": "preprocessing.split.column"
+}

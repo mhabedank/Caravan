@@ -24,20 +24,27 @@ RULE_SPLIT_SUM = "CF-1"
 RULE_DUPLICATE_TARGETS = "CF-2"
 RULE_CALIBRATION_SAMPLES = "CF-4"
 RULE_WINDOW_MATCHES_TEMPLATE = "CF-6"
-#: A declaration name breaks the form ``[a-z][a-z0-9_]{0,31}``, or two declarations share one: the
-#: name is what a runner binds by, in C as much as in the model's signature (feature 006).
+#: A feature name breaks the form ``[a-z][a-z0-9_]{0,31}``, or two features share one: the name is
+#: what a runner binds by, in C as much as in the model's signature (feature 006).
 RULE_DECLARATION_NAME = "CF-9"
-#: More than one input or output, or a kind this build does not implement. Several inputs and
-#: outputs wait for the first named model or documented application that needs them (Principle X).
-RULE_DECLARATIONS_IMPLEMENTED = "CF-10"
-#: A column named by the input is the output's column: a model would be trained on its own answer.
+#: An input feature reads the output's column: a model would be trained on its own answer.
 RULE_COLUMN_BOTH_WAYS = "CF-11"
-#: A fixed split (``dataset.split.column``) stated together with fractions or ``stratified``,
-#: which it would silently override (feature 007).
+#: A fixed split stated with ``probabilities``, which it would silently override, or without the
+#: column that names the parts (features 007, 008).
 RULE_SPLIT_COLUMN_WITH_FRACTIONS = "CF-12"
-#: The split column is also the output's column or one of the input's: a model would learn which
+#: The split column is also the output's column or an input feature: a model would learn which
 #: part a sample is in (feature 007).
 RULE_SPLIT_COLUMN_DECLARED = "CF-13"
+#: A feature type this build does not implement. Each type brings its preprocessing into the model,
+#: and only types with a path to the device are implemented (feature 008, Principle X).
+RULE_FEATURE_TYPE = "CF-14"
+#: ``stratify`` on a column other than the output's, or on a ``number`` output (feature 008).
+RULE_STRATIFY_COLUMN = "CF-15"
+#: The int8 budget does not match the output type: ``accuracy_drop_max`` for ``category`` and
+#: ``binary``, ``mae_increase_max`` for ``number`` (feature 008, Principle V).
+RULE_BUDGET_FOR_TYPE = "CF-16"
+#: Not exactly one output feature (feature 008; the output half of the retired CF-10).
+RULE_ONE_OUTPUT = "CF-17"
 
 #: Rules that can refuse a manifest. Every one of these must have an invalid manifest fixture,
 #: and ``tests/unit/test_fixture_coverage.py`` fails when one does not.
@@ -52,10 +59,13 @@ MANIFEST_REJECTION_RULES: frozenset[str] = frozenset(
         RULE_CALIBRATION_SAMPLES,
         RULE_WINDOW_MATCHES_TEMPLATE,
         RULE_DECLARATION_NAME,
-        RULE_DECLARATIONS_IMPLEMENTED,
         RULE_COLUMN_BOTH_WAYS,
         RULE_SPLIT_COLUMN_WITH_FRACTIONS,
         RULE_SPLIT_COLUMN_DECLARED,
+        RULE_FEATURE_TYPE,
+        RULE_STRATIFY_COLUMN,
+        RULE_BUDGET_FOR_TYPE,
+        RULE_ONE_OUTPUT,
     }
 )
 
@@ -74,11 +84,16 @@ RULE_SPLIT_EMPTY = "DS-8"
 RULE_TRAINING_DIVERGED = "DS-10"
 #: The output column holds fewer than two distinct values: there is nothing to classify.
 RULE_TOO_FEW_CLASSES = "DS-11"
-#: The input names a column the data does not have.
+#: A feature names a column the data does not have.
 RULE_UNKNOWN_INPUT_COLUMN = "DS-12"
-#: The split column is missing from a data file, or a record names a part other than train, val
-#: or test (feature 007).
+#: The split column is missing from a data file, or a record names a part other than 0, 1, 2,
+#: train, validation or test (features 007, 008).
 RULE_SPLIT_VALUE = "DS-13"
+#: A class of the output occurs in the data but not in the training part: nothing could learn it
+#: (feature 008).
+RULE_CLASS_OUTSIDE_TRAIN = "DS-14"
+#: A ``binary`` column with more than two spellings and no ``fallback_true_label`` (feature 008).
+RULE_BINARY_SPELLINGS = "DS-15"
 
 #: Run rules. Every one of these must have a test that provokes it, and
 #: ``tests/unit/test_run_rules_coverage.py`` fails when one does not. DS-7 is deliberately absent:
@@ -96,6 +111,8 @@ RUN_RULES: frozenset[str] = frozenset(
         RULE_TOO_FEW_CLASSES,
         RULE_UNKNOWN_INPUT_COLUMN,
         RULE_SPLIT_VALUE,
+        RULE_CLASS_OUTSIDE_TRAIN,
+        RULE_BINARY_SPELLINGS,
     }
 )
 
@@ -213,8 +230,9 @@ ALL_RULES: frozenset[str] = (
 #: CF-5 publication needs compliance, CF-7 an emulator exists for every target, CF-8 benchmark-only
 #: data not published, DS-9 training not permitted. V-2, which read a manifest with no version as
 #: the oldest known one, was retired by constitution 4.0.0: an undeclared version is now refused
-#: with V-1 (Principle IX).
-RETIRED_RULES: frozenset[str] = frozenset({"CF-3", "CF-5", "CF-7", "CF-8", "DS-9", "V-2"})
+#: with V-1 (Principle IX). CF-10, which allowed exactly one input and one output, was retired by
+#: feature 008: several input features are allowed, and exactly one output is CF-17.
+RETIRED_RULES: frozenset[str] = frozenset({"CF-3", "CF-5", "CF-7", "CF-8", "CF-10", "DS-9", "V-2"})
 
 
 class RunRuleFailure(Exception):
@@ -262,6 +280,18 @@ def rule_error(
         rule,
         "{problem}",
         {"problem": problem, "path": path, "found": found, "accepted": list(accepted)},
+    )
+
+
+#: The kind of a field-level problem raised from a cross-field validator, where pydantic would
+#: otherwise lose the field's path. It carries no rule identifier.
+FIELD_PROBLEM = "caravan_field"
+
+
+def field_error(path: str, problem: str, *, found: Any = None) -> NoReturn:
+    """Fail validation at a field path, without a rule identifier."""
+    raise PydanticCustomError(
+        FIELD_PROBLEM, "{problem}", {"problem": problem, "path": path, "found": found}
     )
 
 

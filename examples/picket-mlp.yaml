@@ -1,52 +1,48 @@
 # A small classifier for CAN bus frames, on the synthetic data that comes with Caravan.
 #
 # The data is arithmetic shaped like a CAN capture, not a recording: 5,184 records with a `label`
-# column (normal, dos, fuzzy, replay) and five numeric columns. Every column but `label` becomes an
-# input, because `inputs[0].columns` is not stated.
+# column (normal, dos, fuzzy, replay) and five other columns. Each column the model reads is one
+# input feature with a type, as in Ludwig: can_id is a category (an identifier, not a magnitude),
+# the others are numbers. Each type brings its preprocessing, fitted on the training part and built
+# into the model, so a firmware passes raw values. A column no feature names is ignored.
 #
-# The labels are pinned rather than derived: derived, they sort to dos, fuzzy, normal, replay, the
-# model trains to different weights, and on this tiny dataset the int8 conversion then loses too
-# much accuracy, because the inputs are not scaled (a known limit of 0.1.0).
-#
-# To use your own data, point `dataset.source` at a directory of CSV files with a header row and a
-# `label` column, and adjust the labels, the window and the boards. docs/try-it.md says more.
-apiVersion: caravan/v0.1
+# To use your own data, point `dataset` at a directory of CSV files with a header row, list the
+# columns as features with their types, name the output, and adjust the window and the boards.
+# docs/try-it.md says more.
+apiVersion: caravan/v0.2
 
 model:
   name: picket-mlp
-  version: 0.1.0
+  version: 0.2.0
   template: mlp
   params:
     hidden: [32, 16]
     dropout: 0.1
 
-inputs:
-  - name: frames
-    kind: series
-    window: 64
+input_features:
+  - name: can_id
+    type: category
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
 
-outputs:
-  - name: attack
-    kind: class
-    labels: [normal, dos, fuzzy, replay]
+output_features:
+  - name: label
+    type: category
     accuracy_drop_max: 0.02
 
-dataset:
-  source: ../tests/fixtures/datasets/synthetic
-  split:
-    train: 0.7
-    val: 0.15
-    test: 0.15
-    stratified: true
-  representative_samples: 500
+preprocessing:
+  window_size: 64
+  split: {type: stratify, column: label, probabilities: [0.7, 0.15, 0.15]}
 
-train:
-  epochs: 50
-  batch: 256
-  optimizer: adam
-  early_stopping: true
+dataset: ../tests/fixtures/datasets/synthetic
+
+trainer: {epochs: 50, batch_size: 256, learning_rate: 0.001, early_stop: 5}
+random_seed: 42
 
 export:
   quantization: int8
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
+  representative_samples: 500

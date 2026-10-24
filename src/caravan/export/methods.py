@@ -52,6 +52,14 @@ RESOLVER_METHODS: dict[str, str] = {
     "CONCATENATION": "AddConcatenation",
     "TRANSPOSE": "AddTranspose",
     "PAD": "AddPad",
+    # What the preprocessing of feature 008 produces: a number's SUB, a category's EQUAL, CAST and
+    # SUM, a number output's clip. Read in the same header at f7ed40d on 2026-10-24.
+    "SUB": "AddSub",
+    "EQUAL": "AddEqual",
+    "CAST": "AddCast",
+    "SUM": "AddSum",
+    "MAXIMUM": "AddMaximum",
+    "MINIMUM": "AddMinimum",
 }
 
 

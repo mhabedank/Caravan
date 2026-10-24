@@ -1,9 +1,10 @@
 # Everything optional left out. This must validate: a minimal manifest is sufficient (FR-014).
 #
-# window is present because the mlp template consumes one (CF-6), representative_samples because
-# quantization defaults to int8 (CF-4), and accuracy_drop_max because a class output must state its
-# budget (Principle V). The labels and the input columns are derived from the data at run time.
-apiVersion: caravan/v0.1
+# window_size is present because the mlp template consumes one (CF-6), representative_samples
+# because quantization defaults to int8 (CF-4), and accuracy_drop_max because a category output
+# must state its budget (Principle V). The label order and every fitted value come from the
+# training part at run time.
+apiVersion: caravan/v0.2
 
 model:
   name: pilot-min
@@ -12,19 +13,17 @@ model:
   params:
     hidden: [8]
 
-inputs:
-  - name: frames
-    kind: series
-    window: 32
+input_features:
+  - {name: reading, type: number}
 
-outputs:
-  - name: verdict
-    kind: class
-    accuracy_drop_max: 0.02
+output_features:
+  - {name: verdict, type: category, accuracy_drop_max: 0.02}
 
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+preprocessing:
+  window_size: 32
+
+dataset: datasets/example/
 
 export:
   targets: [stm32h743]
+  representative_samples: 100

@@ -47,14 +47,15 @@ class StageContext:
     #: it" true for a reused result as much as for a fresh one.
     run_dir: Path
     run_id: str | None = None
-    #: The input's columns as declared, or ``None`` for every column but the output's. Not a
-    #: manifest value reaching a stage: it decides how the data is *read*, which every stage reading
-    #: the data needs identically, and the ``data`` stage records what it produced (feature 006).
-    input_columns: tuple[str, ...] | None = None
-    output_column: str = "label"
-    #: The column naming each record's part of a fixed split, or ``None`` (feature 007). Like the
-    #: two above, it decides how the data is read; the stages that use it also declare
-    #: ``dataset.split`` or ``dataset.split.column``, so it is part of their keys.
+    #: The columns to read and their types, as (name, type) per input feature. Not a manifest value
+    #: reaching a stage: it decides how the data is *read*, which every stage reading the data needs
+    #: identically; every stage that reads the data also declares ``input_features``, so it is part
+    #: of their keys (feature 008).
+    features: tuple[tuple[str, str], ...] = ()
+    #: The output feature's column and type.
+    output: tuple[str, str] = ("label", "category")
+    #: The column naming each record's part of a fixed split, or ``None`` (feature 007). The stages
+    #: that use it declare ``preprocessing.split``, so it is part of their keys.
     split_column: str | None = None
     _records: Any = None
 
@@ -70,8 +71,8 @@ class StageContext:
 
             self._records = read_records(
                 self.dataset,
-                input_columns=self.input_columns,
-                output_column=self.output_column,
+                features=self.features,
+                output=self.output,
                 split_column=self.split_column,
             )
         return self._records
@@ -108,7 +109,7 @@ class StageSpec:
         return (*self.artifacts, *self.artifacts_from(inputs))
 
 
-#: One step of a projection path: a key, optionally followed by an index — ``outputs[0]``.
+#: One step of a projection path: a key, optionally followed by an index — ``output_features[0]``.
 _STEP = re.compile(r"^(?P<key>[A-Za-z_][A-Za-z0-9_]*)(?:\[(?P<index>\d+)\])?$")
 
 
@@ -125,27 +126,42 @@ def _step(current: Any, part: str) -> Any:
     return current
 
 
+#: The suffix of a declared read that only some forms of the manifest carry — a key that belongs to
+#: one output type, such as ``output_features[0].clip?``. Absent, it reads as ``None``.
+OPTIONAL = "?"
+
+
+def read_path(path: str) -> str:
+    """A declared read without its optional marker: the key the stage receives it under."""
+    return path.removesuffix(OPTIONAL)
+
+
 def project(resolved: Mapping[str, Any], spec: StageSpec) -> dict[str, Any]:
     """Build a stage's inputs from its declaration.
 
-    A path may index a list, ``outputs[0].labels``, so a stage reads one field of a declaration
+    A path may index a list, ``output_features[0].type``, so a stage reads one field of a feature
     rather than the whole list: a budget change must not touch the key of a stage that does not
     read the budget (Principle III, feature 006 FR-031).
 
-    A path the resolved manifest does not have raises: a stage that declares a field which does
-    not exist is a defect to find at the first test, not a key that quietly includes ``None``.
+    A path the resolved manifest does not have raises, unless the declaration marks it optional
+    with a trailing ``?``: a stage that declares a field which does not exist is a defect to find
+    at the first test, not a key that quietly includes ``None``.
     """
     inputs: dict[str, Any] = {}
-    for path in spec.reads:
+    for declared in spec.reads:
+        path = read_path(declared)
         current: Any = resolved
         try:
             for part in path.split("."):
                 current = _step(current, part)
         except KeyError:
-            raise DeclarationError(
-                f"stage {spec.name!r} declares it reads {path!r}, which the resolved "
-                "manifest does not contain"
-            ) from None
+            if declared.endswith(OPTIONAL):
+                current = None
+            else:
+                raise DeclarationError(
+                    f"stage {spec.name!r} declares it reads {path!r}, which the resolved "
+                    "manifest does not contain"
+                ) from None
         inputs[path] = current
     return inputs
 

@@ -28,6 +28,14 @@ BUDGET_SECONDS = 30
 #: The boards the fixture manifest names.
 TARGETS = ("s32k144", "stm32h743", "esp32")
 
+#: What the typed features add in front of every template (feature 008): a number's QUANTIZE, SUB
+#: and MUL, a category's EQUAL, CAST, RELU, SUM, SUB and CONCATENATION, and a DEQUANTIZE at the
+#: output. Measured 2026-10-24.
+OPERATORS = [
+    "QUANTIZE", "SUB", "MUL", "RESHAPE", "EQUAL", "CAST", "RELU", "SUM", "CONCATENATION",
+    "FULLY_CONNECTED", "SOFTMAX", "DEQUANTIZE",
+]  # fmt: skip
+
 
 def export(manifest, runs, cache, *extra):
     return main(
@@ -69,13 +77,14 @@ def test_the_c_array_round_trips_to_the_model(exported) -> None:
 
 
 def test_the_graph_is_the_fixed_batch_one(exported) -> None:
-    # Three operators in five nodes, and none of the shape plumbing a dynamic batch produces.
+    # Twelve operators in 32 nodes — the template's three and the typed features' own — and none
+    # of the shape plumbing a dynamic batch produces.
     _run, record, _elapsed, _workspace = exported
     graph = record["graph"]
     names = [operator["name"] for operator in graph["operators"]]
-    assert names == ["RESHAPE", "FULLY_CONNECTED", "SOFTMAX"]
-    assert graph["distinct_operators"] == 3
-    assert graph["nodes"] == 5
+    assert names == OPERATORS
+    assert graph["distinct_operators"] == 12
+    assert graph["nodes"] == 32
     assert graph["input_shape"][0] == 1
     for plumbing in ("SHAPE", "STRIDED_SLICE", "PACK"):
         assert plumbing not in names
@@ -84,21 +93,23 @@ def test_the_graph_is_the_fixed_batch_one(exported) -> None:
 def test_the_resolver_names_exactly_those_operators(exported) -> None:
     run, record, _elapsed, _workspace = exported
     header = (run / RESOLVER).read_text(encoding="utf-8")
-    assert "MicroMutableOpResolver<3>" in header
-    for method in ("AddReshape", "AddFullyConnected", "AddSoftmax"):
+    assert "MicroMutableOpResolver<12>" in header
+    for method in ("AddReshape", "AddFullyConnected", "AddSoftmax", "AddEqual", "AddQuantize"):
         assert header.count(f"resolver.{method}();") == 1
-    assert len(re.findall(r"resolver\.Add\w+\(", header)) == 3
-    assert record["graph"]["distinct_operators"] == 3
+    assert len(re.findall(r"resolver\.Add\w+\(", header)) == 12
+    assert record["graph"]["distinct_operators"] == 12
 
 
 def test_coverage_is_recorded_for_every_operator_and_every_target(exported) -> None:
     _run, record, _elapsed, _workspace = exported
     verdicts = record["coverage"]
-    assert len(verdicts) == 3 * len(TARGETS)
+    assert len(verdicts) == 12 * len(TARGETS)
     for verdict in verdicts:
         assert verdict["source"] and verdict["read_on"]
     falling_back = {v["operator"] for v in verdicts if not v["accelerated"]}
-    assert falling_back == {"RESHAPE"}
+    assert falling_back == {
+        "CAST", "CONCATENATION", "DEQUANTIZE", "EQUAL", "QUANTIZE", "RELU", "RESHAPE", "SUB", "SUM",
+    }  # fmt: skip
 
 
 def test_every_artifact_carries_its_size_and_digest(exported) -> None:
@@ -118,7 +129,7 @@ def test_the_requirements_say_what_the_author_must_supply(exported) -> None:
     for target in TARGETS:
         requirement = record["requirements"][target]
         assert requirement["runtime"] == "tflm"
-        assert requirement["operators"] == ["RESHAPE", "FULLY_CONNECTED", "SOFTMAX"]
+        assert requirement["operators"] == OPERATORS
         assert requirement["working_memory_floor_bytes"] > 0
         assert "peak simultaneously live" in requirement["floor_method"]
         assert "not the figure" in requirement["floor_is_not_the_requirement"]

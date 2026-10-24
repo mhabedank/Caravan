@@ -37,9 +37,23 @@ def _elements(shape: Any) -> int:
     return int(math.prod(int(dimension) for dimension in tuple(shape)[1:]))
 
 
+def _tensor_elements(tensors: Any) -> int:
+    """Elements of one or several tensors, as a layer with several inputs has."""
+    if isinstance(tensors, list | tuple):
+        return sum(_elements(tensor.shape) for tensor in tensors)
+    return _elements(tensors.shape)
+
+
 def layer_records(model: Any) -> tuple[LayerRecord, ...]:
-    """The built model's layers, as the records the floors are computed from."""
+    """The built model's layers, as the records the floors are computed from.
+
+    Feature 008 adds three kinds: every model input (``input``, at 4 bytes per element), every
+    category's vocabulary (``constant``, int32 in flash), and the concatenation of the features
+    (``concat``). The embedding of a category is a ``Dense`` and counts as one.
+    """
     import keras
+
+    from caravan.templates.builders.preprocessing import VocabularyOneHot
 
     dense = (keras.layers.Dense,)
     conv = (keras.layers.Conv1D, keras.layers.Conv2D)
@@ -56,8 +70,19 @@ def layer_records(model: Any) -> tuple[LayerRecord, ...]:
     records: list[LayerRecord] = []
     for layer in model.layers:
         if isinstance(layer, keras.layers.InputLayer):
+            records.append(
+                LayerRecord(
+                    kind="input",
+                    name=layer.name,
+                    output_elements=_tensor_elements(layer.output),
+                )
+            )
             continue
-        if isinstance(layer, dense + conv):
+        if isinstance(layer, VocabularyOneHot):
+            kind, kernel, bias = "constant", len(layer.codes), 0
+        elif isinstance(layer, keras.layers.Concatenate):
+            kind, kernel, bias = "concat", 0, 0
+        elif isinstance(layer, dense + conv):
             kind = "dense" if isinstance(layer, dense) else "conv"
             kernel = int(math.prod(layer.kernel.shape))
             bias = int(math.prod(layer.bias.shape)) if layer.use_bias else 0
@@ -72,8 +97,8 @@ def layer_records(model: Any) -> tuple[LayerRecord, ...]:
                 name=layer.name,
                 kernel_elements=kernel,
                 bias_elements=bias,
-                input_elements=_elements(layer.input.shape),
-                output_elements=_elements(layer.output.shape),
+                input_elements=_tensor_elements(layer.input),
+                output_elements=_tensor_elements(layer.output),
             )
         )
     return tuple(records)

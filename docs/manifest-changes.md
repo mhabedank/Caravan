@@ -51,7 +51,8 @@ reach them, so they have no fixture.
 
 `CF-3`, `CF-5`, `CF-7`, `CF-8` and `DS-9` were removed in feature 006 with the compliance layer;
 `V-2`, which read a manifest without a version as the oldest known one, was retired by constitution
-4.0.0. They sit in `RETIRED_RULES`: in no rule group, in no fixture's expectation, raised by no
+4.0.0; `CF-10`, one input and one output, was retired by feature 008, which allows several input
+features and gives the single output its own rule, `CF-17`. They sit in `RETIRED_RULES`: in no rule group, in no fixture's expectation, raised by no
 module (`tests/unit/test_retired_rules.py`). An identifier that came back with another meaning
 would make an old run report lie.
 
@@ -117,3 +118,101 @@ binds by (`model/interface.json`, the C header).
 A manifest still in the previous form is refused with V-1 at `apiVersion`; a previous-form field
 written into a `caravan/v0.1` manifest is refused at its own path with the reason in the table
 above.
+
+## `caravan/v0.1` → `caravan/v0.2` (feature 008, 2026-10-24)
+
+The manifest uses Ludwig's names wherever Ludwig has the concept (owner decision 2026-10-24). Each
+column the model reads is one **input feature** with a **type**, and each type brings its
+preprocessing: fitted on the training part, built into the model, so the firmware passes raw values
+(`specs/008-typed-features/`). The messages for the moved keys come from
+`caravan/manifest/schema/removed.py`.
+
+### What changes, and the edit an author makes by hand
+
+| `caravan/v0.1` | `caravan/v0.2` | Ludwig |
+|---|---|---|
+| `inputs[0]` (one tensor, columns derived) | `input_features: [{name, type, preprocessing, encoder}]`, one per column | same |
+| `outputs[0]` | `output_features: [{name, type, ...}]`, exactly one | same (Ludwig allows several) |
+| `inputs[0].window` | `preprocessing.window_size` | per timeseries feature in Ludwig; here for all rows |
+| `inputs[0].columns`, `outputs[0].column`, `kind` | the feature's `name` (the column) and `type` | same |
+| `outputs[0].labels` | `output_features[0].preprocessing.vocab` | same |
+| `dataset.source` | `dataset` | on Ludwig's command line; Caravan keeps it in the manifest |
+| `dataset.split` (fractions, `stratified`, `column`) | `preprocessing.split: {type: random\|stratify\|fixed, probabilities, column}` | same |
+| — | `defaults: {<type>: {preprocessing, encoder}}` | same |
+| `dataset.representative_samples` | `export.representative_samples` | none; it calibrates the quantization |
+| `train.epochs`, `train.learning_rate` | `trainer.epochs`, `trainer.learning_rate` | same |
+| `train.batch` | `trainer.batch_size` | same |
+| `train.optimizer` | `trainer.optimizer.type` | same |
+| `train.early_stopping` + `train.patience` | `trainer.early_stop` (patience; `-1` never stops) | same |
+| `train.seed` | `random_seed` (top level) | same |
+
+The types implemented: inputs `number`, `binary`, `category`; outputs `category`, `binary`,
+`number`. A fixed split's column holds Ludwig's `0`, `1`, `2` or the words `train`, `validation`,
+`test` — `val` is now `validation`.
+
+By hand, the pilot goes from
+
+```yaml
+apiVersion: caravan/v0.1
+model: {name: picket-mlp, version: 0.1.0, template: mlp, params: {hidden: [32, 16], dropout: 0.1}}
+inputs: [{name: frames, kind: series, window: 64}]
+outputs: [{name: attack, kind: class, accuracy_drop_max: 0.02}]
+dataset: {source: data/, split: {train: 0.7, val: 0.15, test: 0.15, stratified: true},
+          representative_samples: 500}
+train: {epochs: 50, batch: 256, early_stopping: true, patience: 5, seed: 42}
+export: {targets: [s32k144, stm32h743, esp32]}
+```
+
+to
+
+```yaml
+apiVersion: caravan/v0.2
+model: {name: picket-mlp, version: 0.2.0, template: mlp, params: {hidden: [32, 16], dropout: 0.1}}
+input_features:
+  - {name: can_id, type: category}      # a code, not a magnitude
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
+output_features:
+  - {name: label, type: category, accuracy_drop_max: 0.02}
+preprocessing:
+  window_size: 64
+  split: {type: stratify, column: label, probabilities: [0.7, 0.15, 0.15]}
+dataset: data/
+trainer: {epochs: 50, batch_size: 256, early_stop: 5}
+random_seed: 42
+export: {targets: [s32k144, stm32h743, esp32], representative_samples: 500}
+```
+
+The input and output names are now the columns, and they are what a firmware author binds by
+(`model/interface.json`, the C header). A column no feature names is not used, and every run lists
+it under `ignored_columns`.
+
+### Where Caravan keeps its own name, and why
+
+Every exception to Ludwig's naming (SC-002):
+
+| Caravan | Why not Ludwig's |
+|---|---|
+| `model.template`, `model.params` | Ludwig's `combiner` merges encoder outputs; Caravan's template is the whole network for a microcontroller, so it is not a combiner |
+| `dataset` in the manifest | Ludwig takes the data on its command line; a Caravan run's provenance names its data |
+| `export` (`quantization`, `formats`, `targets`, `representative_samples`) | Ludwig has no deployment to a microcontroller |
+| `accuracy_drop_max`, `mae_increase_max` | Ludwig has no int8 budget; Principle V requires one per output |
+| `defaults` covers input features only, with `preprocessing` and `encoder` | the output's keys are few and stated on the output itself |
+| the dense encoder is a `Dense` without bias on the one-hot | Ludwig's embedding is a table lookup (GATHER, SELECT v1), which TFLite Micro cannot run; the product with the one-hot is the same function and lowers to FULLY_CONNECTED |
+| preprocessing is fitted on the training part only | Ludwig fits on all parts together, which leaks the test part into the preprocessing |
+
+### Three things to know
+
+- **Derived labels are now ordered by frequency** in the training part, descending, ties by text —
+  Ludwig's order — and no longer alphabetically. A model that relied on the old order pins it under
+  `output_features[0].preprocessing.vocab`.
+- **The inputs are no longer one tensor.** A firmware that fed one int8 window of all columns now
+  fills one input per feature, by its named position, with raw values: float32 for a number, int32
+  for a category code or a 0/1. The contract version is 2.
+- **The output is float32.** A category's scores, a binary score or a number come out after the
+  model's own DEQUANTIZE; the firmware applies no scale and no zero point.
+
+A manifest in the previous form is refused with V-1 at `apiVersion`; a previous-form key written
+into a `caravan/v0.2` manifest is refused at its own path, naming the key that replaces it.

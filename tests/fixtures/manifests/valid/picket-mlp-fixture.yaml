@@ -1,55 +1,44 @@
-# The pilot manifest, with one field changed: dataset.source points at the committed synthetic
-# fixture instead of the author's copy of the HCRL Car-Hacking data.
+# The pilot manifest, with one field changed: `dataset` points at the committed synthetic fixture
+# instead of the author's copy of the HCRL Car-Hacking data. Keep it in step with picket-mlp.yaml.
 #
-# It exists because the acceptance criterion is that *the pilot manifest* runs end to end, and the
-# pilot's own source is a path on the author's machine. Nothing else is changed, so a run of this
-# file exercises what a run of the real one would, on 5,184 synthetic records. Keep it in step with
-# picket-mlp.yaml.
-#
-# The input columns are derived from the data (every column but `label`). The labels are pinned,
-# and that is a measured decision rather than a habit. Derived, they sort to dos, fuzzy, normal,
-# replay; the model trains to different weights, and on this fixture the int8 gate then fails —
-# 0.75 trained, 0.50 quantized, 3 of 12 test windows (measured 2026-10-23). The cause is not the
-# order but unscaled inputs: CAN identifiers in the hundreds and payload bytes share one int8 input
-# scale (input scaling is proposal P5). picket-mlp-fixture-derived.yaml is the same manifest with
-# the labels derived.
-apiVersion: caravan/v0.1
+# Everything the training part can say is left to it: the label order (by frequency, as in Ludwig),
+# the vocabulary of can_id, the shift and scale of each number. can_id is a category, a code and not
+# a magnitude; the other columns are numbers. Each feature is its own model input and brings its
+# preprocessing into the model, so the int8 gate passes with derived labels (feature 008, SC-003).
+apiVersion: caravan/v0.2
 
 model:
   name: picket-mlp
-  version: 0.1.0
+  version: 0.2.0
   template: mlp
   params:
     hidden: [32, 16]
     dropout: 0.1
 
-inputs:
-  - name: frames
-    kind: series
-    window: 64
+input_features:
+  - name: can_id
+    type: category
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
 
-outputs:
-  - name: attack
-    kind: class
-    labels: [normal, dos, fuzzy, replay]
+output_features:
+  - name: label
+    type: category
     accuracy_drop_max: 0.02
 
-dataset:
-  source: ../../datasets/synthetic
-  split:
-    train: 0.7
-    val: 0.15
-    test: 0.15
-    stratified: true
-  representative_samples: 500
+preprocessing:
+  window_size: 64
+  split: {type: stratify, column: label, probabilities: [0.7, 0.15, 0.15]}
 
-train:
-  epochs: 50
-  batch: 256
-  optimizer: adam
-  early_stopping: true
+dataset: ../../datasets/synthetic
+
+trainer: {epochs: 50, batch_size: 256, learning_rate: 0.001, early_stop: 5}
+random_seed: 42
 
 export:
   quantization: int8
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
+  representative_samples: 500

@@ -165,7 +165,7 @@ def test_ds_8_when_a_part_comes_out_empty() -> None:
         plan_split(plan, FRACTIONS, stratified=True, seed=1, labels=["normal"])
     finding = error.value.finding
     assert finding.rule == RULE_SPLIT_EMPTY
-    assert finding.path in {"dataset.split.val", "dataset.split.test"}
+    assert finding.path == "preprocessing.split.probabilities"
     assert "4 samples" in finding.problem
 
 

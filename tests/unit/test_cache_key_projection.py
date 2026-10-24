@@ -19,20 +19,19 @@ from typing import Any
 import pytest
 
 from caravan.manifest.load import load_manifest
-from caravan.manifest.resolve import merge_derived, resolve
-from caravan.stages.base import StageSpec, project
+from caravan.manifest.resolve import merge_fitted, resolve
+from caravan.stages.base import StageSpec, project, read_path
 from caravan.stages.build import SPEC as BUILD
 from caravan.stages.cache import cache_key
 from caravan.stages.data import SPEC as DATA
 from caravan.stages.export import SPEC as EXPORT
 from caravan.stages.quantize import SPEC as QUANTIZE
 from caravan.stages.train import SPEC as TRAIN
-from tests.support import VALID
+from tests.support import VALID, pilot_fitted
 
-#: The new-form pilot (feature 006), with what the data stage derives merged in — the form every
-#: stage after ``data`` actually reads.
+#: The typed pilot (feature 008), with what the data stage fits merged in — the form every stage
+#: after ``data`` actually reads.
 PILOT = VALID / "picket-mlp-fixture.yaml"
-FIXTURE_COLUMNS = ["can_id", "dlc", "b0", "b1", "b2"]
 
 # Feature 003 adds one entry, and the walk below then covers the new stage entirely: every leaf of
 # the pilot manifest is changed in turn and the key must move if and only if that leaf is in the
@@ -42,19 +41,25 @@ STAGES = (DATA, BUILD, TRAIN, QUANTIZE, EXPORT)
 DATASET_VERSION = "sha256:aaaa"
 
 
-def resolved_pilot() -> dict[str, Any]:
+def declared_pilot() -> dict[str, Any]:
+    """The pilot as the ``data`` stage sees it: declared, nothing fitted yet."""
     outcome = load_manifest(PILOT)
     assert outcome.manifest is not None
-    resolved = resolve(outcome.manifest)
-    return merge_derived(
-        resolved,
-        input_columns=FIXTURE_COLUMNS,
-        labels=resolved["outputs"][0]["labels"],
-    )
+    return resolve(outcome.manifest)
+
+
+def resolved_pilot() -> dict[str, Any]:
+    return merge_fitted(declared_pilot(), pilot_fitted())
+
+
+def document_for(spec: StageSpec) -> dict[str, Any]:
+    """What a stage's key is computed from in a run: the declared form for ``data``, which fits,
+    and the merged form for every stage after it (``cli/pipeline.py``)."""
+    return declared_pilot() if spec is DATA else resolved_pilot()
 
 
 def leaf_paths(value: Any, prefix: str = "") -> list[str]:
-    """Every path to a leaf in the resolved manifest: ``export.targets``, ``outputs[0].labels``.
+    """Every path to a leaf of the resolved manifest: ``export.targets``, ``model.params.hidden``.
 
     A list of mappings — the declarations — is walked into, entry by entry; a list of scalars is
     one leaf.
@@ -125,16 +130,21 @@ def key_for(spec: StageSpec, document: dict[str, Any], upstream: str | None = No
 
 def covers(spec: StageSpec, leaf: str) -> bool:
     """Whether a declared read covers this leaf — the field itself, or a field inside it."""
-    return any(leaf == read or leaf.startswith(f"{read}.") for read in spec.reads)
+    return any(covered_by(leaf, read_path(read)) for read in spec.reads)
+
+
+def covered_by(leaf: str, read: str) -> bool:
+    """The read is the leaf, or a field or a list the leaf sits inside."""
+    return leaf == read or leaf.startswith(f"{read}.") or leaf.startswith(f"{read}[")
 
 
 @pytest.mark.parametrize("spec", STAGES, ids=lambda spec: spec.name)
 def test_the_key_moves_exactly_for_the_fields_the_stage_declares(spec: StageSpec) -> None:
-    base = resolved_pilot()
+    base = document_for(spec)
     before = key_for(spec, base)
 
     for leaf in leaf_paths(base):
-        document = resolved_pilot()
+        document = document_for(spec)
         original = get_at(document, leaf)
         set_at(document, leaf, perturb(original))
         after = key_for(spec, document)
@@ -154,9 +164,10 @@ def test_the_key_moves_exactly_for_the_fields_the_stage_declares(spec: StageSpec
 def test_the_walk_actually_covers_the_manifest() -> None:
     # A guard against the test above passing because it examined nothing.
     leaves = leaf_paths(resolved_pilot())
-    assert len(leaves) > 25, leaves
-    assert "outputs[0].accuracy_drop_max" in leaves
-    assert "inputs[0].columns" in leaves
+    assert len(leaves) > 40, leaves
+    assert "output_features[0].accuracy_drop_max" in leaves
+    assert "input_features[0].preprocessing.fitted.vocab" in leaves
+    assert "input_features[1].preprocessing.fitted.shift" in leaves
     assert "model.params.hidden" in leaves
 
 
@@ -164,7 +175,7 @@ def test_the_walk_actually_covers_the_manifest() -> None:
 def test_every_declared_read_exists_in_the_resolved_manifest(spec: StageSpec) -> None:
     # A declared field that does not exist would make the stage unrunnable, and the projection
     # raises for it — this says so at the first test rather than at the first run.
-    project(resolved_pilot(), spec)
+    project(document_for(spec), spec)
 
 
 #: Whose *own* projection a change moves (feature 006, FR-031; data model, *Stages*). A stage
@@ -173,31 +184,81 @@ def test_every_declared_read_exists_in_the_resolved_manifest(spec: StageSpec) ->
 #: general property; this names the cases a person actually meets, so the reason survives a
 #: refactor. Principle III: a change only a later stage reads must not invalidate an earlier one.
 RERUNS = {
-    "outputs[0].accuracy_drop_max": {"quantize"},
+    "output_features[0].accuracy_drop_max": {"quantize"},
     "export.targets": {"export"},
     "model.name": {"export"},
     "model.version": {"export"},
-    "outputs[0].labels": {"data", "build", "train", "quantize", "export"},
+    "output_features[0].preprocessing.vocab": {"data", "build", "train", "quantize", "export"},
+    # The seed draws the split, so the training part moves and with it every fitted value (T014).
+    "random_seed": {"data", "build", "train", "quantize"},
+    "trainer.epochs": {"train"},
 }
+
+
+def moved_by(leaf: str, value: Any = None) -> set[str]:
+    """The stages whose own key a change of this leaf moves, each on the document it reads."""
+    moved = set()
+    for spec in STAGES:
+        base = document_for(spec)
+        edited = document_for(spec)
+        set_at(edited, leaf, perturb(get_at(edited, leaf)) if value is None else value)
+        if key_for(spec, base) != key_for(spec, edited):
+            moved.add(spec.name)
+    return moved
 
 
 @pytest.mark.parametrize("leaf", sorted(RERUNS))
 def test_a_change_reruns_exactly_the_stages_that_read_it(leaf: str) -> None:
-    base = resolved_pilot()
-    edited = resolved_pilot()
-    set_at(edited, leaf, perturb(get_at(edited, leaf)))
-    moved = {spec.name for spec in STAGES if key_for(spec, base) != key_for(spec, edited)}
-    assert moved == RERUNS[leaf]
+    assert moved_by(leaf) == RERUNS[leaf]
 
 
 def test_a_budget_change_never_retrains() -> None:
-    # The case analysis C1 of 2026-10-23 found: the budget sits inside outputs[0], and a stage
-    # that read the declaration whole would rebuild and retrain when it changed.
+    # The case analysis C1 of 2026-10-23 found: the budget sits inside the output, and a stage that
+    # read the feature whole would rebuild and retrain when it changed.
+    assert not moved_by("output_features[0].accuracy_drop_max", 0.05) & {"data", "build", "train"}
+
+
+@pytest.mark.parametrize(
+    "leaf",
+    [
+        "input_features[0].preprocessing.fitted.vocab",
+        "input_features[1].preprocessing.fitted.shift",
+        "output_features[0].preprocessing.fitted.labels",
+    ],
+)
+def test_a_fitted_value_rebuilds_retrains_and_requantizes_but_never_refits(leaf: str) -> None:
+    # FR-019, Principle III (feature 008, T014): the fitted values are constants of the model, so a
+    # change of one — a vocabulary entry, a shift — changes what build, train and quantize produce.
+    # The data stage's key is computed from the declared form, before anything is fitted, so it
+    # never includes its own output.
     base = resolved_pilot()
     edited = resolved_pilot()
-    set_at(edited, "outputs[0].accuracy_drop_max", 0.05)
-    for spec in (DATA, BUILD, TRAIN):
-        assert key_for(spec, base) == key_for(spec, edited), spec.name
+    set_at(edited, leaf, perturb(get_at(edited, leaf)))
+    moved = {
+        spec.name
+        for spec in STAGES
+        if spec is not DATA and key_for(spec, base) != key_for(spec, edited)
+    }
+    assert {"build", "train", "quantize"} <= moved
+    assert "fitted" not in str(DATA.reads) and "fitted" not in str(project(declared_pilot(), DATA))
+
+
+def test_a_number_budget_moves_only_quantize() -> None:
+    # The budget of a number output is mae_increase_max; the same rule holds for it (T014).
+    base = resolved_pilot()
+    output = {
+        "name": "label",
+        "type": "number",
+        "preprocessing": {"normalization": None, "fitted": {"normalization": None}},
+        "loss": {"type": "mean_squared_error"},
+        "clip": None,
+        "mae_increase_max": 0.5,
+    }
+    base["output_features"][0] = output
+    edited = copy.deepcopy(base)
+    edited["output_features"][0]["mae_increase_max"] = 0.75
+    moved = {spec.name for spec in STAGES if key_for(spec, base) != key_for(spec, edited)}
+    assert moved == {"quantize"}
 
 
 def test_the_dataset_version_and_the_upstream_key_are_part_of_the_identity() -> None:
@@ -227,15 +288,15 @@ def test_the_two_stages_never_share_a_key() -> None:
     assert key_for(BUILD, base) != key_for(TRAIN, base)
 
 
-def test_the_split_column_reruns_the_data_stage_and_a_fraction_does_not() -> None:
-    # Analysis finding A1 of feature 007: the data stage leaves the split column out of the
-    # derived inputs, so the column is part of its key; it does not split, so a fraction is not.
+def test_the_split_reruns_the_data_stage() -> None:
+    # Feature 008: the data stage splits and fits on the training part, so the split — its type,
+    # its column, its probabilities — is part of its key, as it is of every stage that splits.
     base = resolved_pilot()
     fixed = copy.deepcopy(base)
-    fixed["dataset"]["split"] = {"column": "split"}
+    fixed["preprocessing"]["split"] = {"type": "fixed", "column": "split"}
     assert key_for(DATA, fixed) != key_for(DATA, base)
     tighter = copy.deepcopy(base)
-    tighter["dataset"]["split"]["train"] = 0.6
-    tighter["dataset"]["split"]["val"] = 0.25
-    assert key_for(DATA, tighter) == key_for(DATA, base)
+    tighter["preprocessing"]["split"]["probabilities"] = [0.6, 0.25, 0.15]
+    assert key_for(DATA, tighter) != key_for(DATA, base)
     assert key_for(TRAIN, tighter) != key_for(TRAIN, base)
+    assert key_for(EXPORT, tighter) == key_for(EXPORT, base)

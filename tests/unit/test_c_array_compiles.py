@@ -87,13 +87,32 @@ def test_the_pair_with_the_interface_compiles_and_reads_back(tmp_path) -> None:
 
     model = {"name": "picket-mlp", "version": "0.1.0"}
     bindings = [
-        {"name": "frames", "role": "input", "position": 0},
-        {"name": "attack", "role": "output", "position": 0},
+        {
+            "name": "frames",
+            "role": "input",
+            "position": 0,
+            "element_type": "float32",
+            "shape": [1, 8],
+        },
+        {
+            "name": "attack",
+            "role": "output",
+            "position": 0,
+            "element_type": "float32",
+            "shape": [1, 4],
+        },
     ]
-    output = {"name": "attack", "labels": ["dos", 'quo"te', "fäll", "\tF"]}
+    features = [{"name": "frames", "type": "number"}]
+    output = {
+        "name": "attack",
+        "type": "category",
+        "preprocessing": {"fitted": {"labels": ["dos", 'quo"te', "fäll", "\tF"]}},
+    }
     (tmp_path / "model_data.h").write_text(
         c_array.header(
-            "model_data", len(BLOB), header_additions("g_model_data", model, bindings, output)
+            "model_data",
+            len(BLOB),
+            header_additions("g_model_data", model, bindings, features, output),
         )
     )
     (tmp_path / "model_data.cc").write_text(

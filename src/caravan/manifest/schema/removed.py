@@ -1,12 +1,13 @@
-"""The fields schema version ``caravan/v0.1`` removed or moved, and why.
+"""The fields schema versions ``caravan/v0.1`` and ``caravan/v0.2`` removed or moved, and why.
 
 Read by the loader, for the message a manifest that still carries one of these fields is refused
 with, and mirrored by the change note in ``docs/manifest-changes.md``. Nothing migrates them: before
 Caravan 1.0.0 an older form is refused, not converted (constitution 4.0.0, Principle IX).
 
-The messages come from ``specs/006-declared-io/contracts/manifest.md`` (Removed fields). A removed
-field gets its own message rather than the generic "unknown field" (FR-001), so an author learns
-that the field is gone, and not that it is misspelt.
+The messages come from ``specs/006-declared-io/contracts/manifest.md`` and
+``specs/008-typed-features/contracts/manifest.md`` (Removed). A removed field gets its own message
+rather than the generic "unknown field" (FR-001), so an author learns that the field is gone, and
+not that it is misspelt.
 """
 
 from __future__ import annotations
@@ -26,12 +27,14 @@ class RemovedField:
     #: The new path, for a moved field.
     to: str | None
     reason: str
+    #: The schema version that removed or moved it.
+    version: str = "caravan/v0.1"
 
     def message(self) -> str:
         """The sentence a new-form manifest that still carries this field is refused with."""
         verb = "moved" if self.action == "moved" else "removed"
         where = f" to {self.to}" if self.to else ""
-        return f"{verb} in caravan/v0.1{where}: {self.reason}"
+        return f"{verb} in {self.version}{where}: {self.reason}"
 
 
 _NO_COMPLIANCE = (
@@ -53,23 +56,62 @@ REMOVED_FIELDS: tuple[RemovedField, ...] = (
     RemovedField("bench", "dropped", None, _NO_STAGE_YET),
     RemovedField("publish", "dropped", None, _NO_STAGE_YET),
     RemovedField(
-        "dataset.window",
-        "moved",
-        "inputs[0].window",
-        "a window describes how the input is cut, so it belongs to the input",
-    ),
-    RemovedField(
-        "dataset.labels",
-        "moved",
-        "outputs[0].labels",
-        "labels are derived from the data; a stated list only pins their order",
-    ),
-    RemovedField(
         "export.accuracy_drop_max",
         "moved",
-        "outputs[0].accuracy_drop_max",
+        "output_features[0].accuracy_drop_max",
         "the budget is per output (Principle V)",
     ),
 )
 
+_V02 = "caravan/v0.2"
+
+#: What ``caravan/v0.2`` moved, in the order of ``specs/008-typed-features/contracts/manifest.md``.
+#: Each is refused at its own path, with the key that replaces it named (research R1).
+MOVED_IN_V02: tuple[RemovedField, ...] = (
+    RemovedField(
+        "inputs",
+        "moved",
+        "input_features",
+        "one feature per column, each with its name (the column) and its type; "
+        "inputs[0].window is preprocessing.window_size",
+        _V02,
+    ),
+    RemovedField(
+        "outputs",
+        "moved",
+        "output_features",
+        "the output's name is its column; outputs[0].labels is "
+        "output_features[0].preprocessing.vocab, and the budget stays on the output",
+        _V02,
+    ),
+    RemovedField(
+        "train",
+        "moved",
+        "trainer",
+        "with Ludwig's names: batch is batch_size, optimizer is optimizer.type, early_stopping "
+        "and patience are early_stop (-1 never stops), and seed is the top-level random_seed",
+        _V02,
+    ),
+    RemovedField("dataset.source", "moved", "dataset", "dataset is now the path itself", _V02),
+    RemovedField(
+        "dataset.split",
+        "moved",
+        "preprocessing.split",
+        "with Ludwig's names: type random, stratify or fixed, probabilities, column",
+        _V02,
+    ),
+    RemovedField(
+        "dataset.representative_samples",
+        "moved",
+        "export.representative_samples",
+        "it calibrates the quantization",
+        _V02,
+    ),
+)
+
 BY_PATH: dict[str, RemovedField] = {field.path: field for field in REMOVED_FIELDS}
+MOVED_BY_PATH: dict[str, RemovedField] = {field.path: field for field in MOVED_IN_V02}
+
+#: The key that replaces a moved top-level section: when the old one is present, a missing new one
+#: is not reported a second time.
+REPLACES: dict[str, str] = {"inputs": "input_features", "outputs": "output_features"}

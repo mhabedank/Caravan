@@ -1,7 +1,7 @@
-# Invalid on purpose. A hyphen in a declaration name: the name becomes a C identifier in the
+# Invalid on purpose. A hyphen in a feature name: the name becomes a C identifier in the
 # exported header, and a hyphen is not C.
-# Expected: CF-9 at inputs[0].name
-apiVersion: caravan/v0.1
+# Expected: CF-9 at input_features[0].name
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
@@ -9,17 +9,17 @@ model:
   params:
     hidden:
     - 8
-inputs:
-- name: can-frames
-  kind: series
-  window: 32
-outputs:
+input_features:
+- name: wheel-speed
+  type: number
+output_features:
 - name: verdict
-  kind: class
+  type: category
   accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+preprocessing:
+  window_size: 32
+dataset: datasets/example/
 export:
+  representative_samples: 100
   targets:
   - stm32h743

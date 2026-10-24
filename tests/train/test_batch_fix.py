@@ -135,3 +135,83 @@ def test_a_model_fixed_to_another_batch_is_refused() -> None:
     )
     with pytest.raises(ValueError, match="batch"):
         fix_batch(model)
+
+
+# --- feature 008: one input per feature, each with its own element type -----------------------
+
+
+def _five_inputs():
+    """The shape of a typed model: three numbers, a category and a binary, through the front-end."""
+    import keras
+
+    from caravan.templates.builders import load_builder
+    from caravan.templates.builders.frontend import build_model
+
+    number = {"normalization": "zscore", "shift": 0.5, "scale": 2.0, "fill": 0.0}
+    features = [
+        *(
+            {"name": name, "type": "number", "preprocessing": {"fitted": dict(number)}}
+            for name in ("x", "y", "z")
+        ),
+        {
+            "name": "code",
+            "type": "category",
+            "preprocessing": {"fitted": {"codes": [3, 5, 7], "text_codes": None}},
+            "encoder": {"type": "dense", "embedding_size": 2},
+        },
+        {"name": "flag", "type": "binary", "preprocessing": {"fitted": {"spellings": {}}}},
+    ]
+    output = {"name": "label", "type": "category", "preprocessing": {"fitted": {"labels": "abcd"}}}
+    keras.utils.set_random_seed(SEED)
+    return build_model(load_builder("mlp"), {"hidden": [8]}, features, output, WINDOW)
+
+
+def _five_probe(count: int) -> dict:
+    rng = np.random.default_rng(SEED + 3)
+    return {
+        "x": rng.standard_normal((count, WINDOW)).astype("float32"),
+        "y": rng.standard_normal((count, WINDOW)).astype("float32"),
+        "z": rng.standard_normal((count, WINDOW)).astype("float32"),
+        "code": rng.choice([3, 5, 7, 9], size=(count, WINDOW)).astype("int32"),
+        "flag": rng.integers(0, 2, size=(count, WINDOW)).astype("int32"),
+    }
+
+
+def test_every_input_is_fixed_with_its_own_name_and_dtype() -> None:
+    fixed = fix_batch(_five_inputs())
+    shapes = {
+        tensor.name.split(":")[0]: (tuple(tensor.shape), str(tensor.dtype))
+        for tensor in fixed.inputs
+    }
+    assert shapes == {
+        "x": ((1, WINDOW), "float32"),
+        "y": ((1, WINDOW), "float32"),
+        "z": ((1, WINDOW), "float32"),
+        "code": ((1, WINDOW), "int32"),
+        "flag": ((1, WINDOW), "int32"),
+    }
+
+
+def test_a_five_input_model_computes_the_same_function_fixed() -> None:
+    model = _five_inputs()
+    fixed = fix_batch(model)
+    probe = _five_probe(4)
+    before = model.predict(probe, verbose=0)["label"]
+    after = np.concatenate(
+        [
+            fixed.predict({k: v[i : i + 1] for k, v in probe.items()}, verbose=0)["label"]
+            for i in range(4)
+        ]
+    )
+    np.testing.assert_allclose(before, after, rtol=0.0, atol=ROUND_OFF)
+
+
+def test_a_lambda_layer_is_refused() -> None:
+    # Research R9: a Lambda's function is Python code a clone cannot be shown to rebuild.
+    import keras
+
+    tensor_in = keras.Input(shape=(WINDOW,), name="x")
+    tensor = keras.layers.Lambda(lambda value: value * 2.0, name="double")(tensor_in)
+    model = keras.Model(tensor_in, keras.layers.Dense(2, name="out")(tensor))
+    with pytest.raises(ValueError, match="Lambda"):
+        fix_batch(model)

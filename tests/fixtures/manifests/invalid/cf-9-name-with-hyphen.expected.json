@@ -1,4 +1,4 @@
 {
   "rule": "CF-9",
-  "path": "inputs[0].name"
+  "path": "input_features[0].name"
 }

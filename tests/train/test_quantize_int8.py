@@ -31,12 +31,24 @@ def test_the_produced_model_is_fully_integer_according_to_the_file(
     path = latest_run(runs) / QUANTIZED_MODEL
     interpreter = Interpreter(model_path=str(path))
     interpreter.allocate_tensors()
-    dtypes = {detail["dtype"].__name__ for detail in interpreter.get_tensor_details()}
+    details = interpreter.get_tensor_details()
+    boundary = {d["index"] for d in interpreter.get_input_details()} | {
+        d["index"] for d in interpreter.get_output_details()
+    }
+    inside = {d["dtype"].__name__ for d in details if d["index"] not in boundary}
 
-    assert dtypes <= {"int8", "int32"}
-    assert "float32" not in dtypes
-    assert interpreter.get_input_details()[0]["dtype"].__name__ == "int8"
-    assert interpreter.get_output_details()[0]["dtype"].__name__ == "int8"
+    # Feature 008 (research R5): raw float32 and int32 in, float32 out after a DEQUANTIZE, and
+    # integers inside — with one float32 tensor per category, the CAST of its one-hot, on its way
+    # into a QUANTIZE (research R3).
+    assert inside <= {"int8", "int32", "bool", "float32"}
+    floats_inside = [
+        d["name"]
+        for d in details
+        if d["index"] not in boundary and d["dtype"].__name__ == "float32"
+    ]
+    assert floats_inside and all("Cast" in name for name in floats_inside), floats_inside
+    assert {d["dtype"].__name__ for d in interpreter.get_input_details()} == {"float32", "int32"}
+    assert interpreter.get_output_details()[0]["dtype"].__name__ == "float32"
 
 
 def test_the_report_agrees_with_the_file(fixture_manifest, workspace) -> None:
@@ -56,7 +68,9 @@ def test_the_report_agrees_with_the_file(fixture_manifest, workspace) -> None:
     assert claimed["dtype_counts"] == dict(sorted(counts.items()))
     assert claimed["fully_integer"] is True
     assert claimed["size_bytes"] == (run_dir / QUANTIZED_MODEL).stat().st_size
-    assert claimed["input"]["scale"] == interpreter.get_input_details()[0]["quantization"][0]
+    assert [tensor["dtype"] for tensor in claimed["inputs"]] == [
+        detail["dtype"].__name__ for detail in interpreter.get_input_details()
+    ]
 
 
 def test_the_quantized_model_is_smaller_than_the_trained_one(fixture_manifest, workspace) -> None:

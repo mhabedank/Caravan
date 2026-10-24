@@ -37,15 +37,15 @@ def test_unknown_field_lists_what_is_accepted_and_suggests_the_nearest() -> None
 
 def test_misplaced_field_says_where_it_belongs() -> None:
     text = rendered("unknown-field-misplaced")
-    assert "model.window — unknown field" in text
-    assert "this field belongs at: inputs[0].window" in text
+    assert "model.window_size — unknown field" in text
+    assert "this field belongs at: preprocessing.window_size" in text
 
 
 def test_cross_field_rule_names_the_fields_it_relates() -> None:
-    # CF-11 relates the input's columns to the output's column, and says which column and why.
+    # CF-11 relates an input feature to the output's column, and says which column and why.
     text = rendered("cf-11-label-as-input")
-    assert "inputs[0].columns" in text
-    assert "column label is the output's answer" in text
+    assert "input_features[1].name" in text
+    assert "column verdict is the output's answer" in text
 
 
 def test_a_removed_field_says_it_was_removed_and_why() -> None:

@@ -86,7 +86,7 @@ def test_q5_when_the_comparison_cannot_be_measured(
     def refuse(*_args, **_kwargs):
         raise ValueError("the interpreter would not load the model")
 
-    monkeypatch.setattr(measure_module, "measure", refuse)
+    monkeypatch.setattr(measure_module, "run_model", refuse)
 
     runs, cache = workspace
     assert quantize(fixture_manifest, runs, cache) == EXIT_RULE

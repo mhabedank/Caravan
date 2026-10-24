@@ -29,31 +29,42 @@ DEPLOYED_BATCH = 1
 def fix_batch(model: Any) -> Any:
     """Return the same function on a batch of one: a clone with the trained weights.
 
-    Idempotent: a model already fixed to one is returned unchanged, so a second conversion of the
-    same model is not a second clone.
+    Every input is rebuilt at batch one with its own name and its own element type — a model of
+    feature 008 has one input per feature, float32 for numbers and int32 for codes, and an input
+    rebuilt as float would compare codes in floating point.
 
-    A model fixed to some *other* batch is refused rather than reshaped. No template produces one,
-    and quietly turning somebody's batch of 32 into a batch of 1 would change what their model is.
+    Idempotent: a model whose every input is already fixed to one is returned unchanged.
+
+    A model fixed to some *other* batch is refused rather than reshaped, and so is a model with a
+    ``Lambda`` layer: its function is Python code that a clone cannot be shown to rebuild, which is
+    why every preprocessing layer of Caravan's is a registered layer with its constants as
+    arguments (research R9).
     """
-    shape = tuple(model.inputs[0].shape)
-    batch = shape[0]
-    if batch == DEPLOYED_BATCH:
-        return model
-    if batch is not None:
+    if any(isinstance(layer, keras.layers.Lambda) for layer in model.layers):
         raise ValueError(
-            f"the model's input batch is fixed to {batch}, and converting for a target needs a "
-            f"batch of {DEPLOYED_BATCH}; build the model with an undetermined batch and let the "
+            "the model contains a Lambda layer, which the batch fix cannot rebuild faithfully; "
+            "use a registered layer whose constants are constructor arguments"
+        )
+    batches = {next(iter(tensor.shape)) for tensor in model.inputs}
+    if batches == {DEPLOYED_BATCH}:
+        return model
+    fixed_to = sorted(batch for batch in batches if batch is not None)
+    if fixed_to:
+        raise ValueError(
+            f"the model's input batch is fixed to {fixed_to[0]}, and converting for a target needs "
+            f"a batch of {DEPLOYED_BATCH}; build the model with an undetermined batch and let the "
             "conversion fix it"
         )
 
-    fixed = keras.models.clone_model(
-        model,
-        input_tensors=keras.layers.Input(
-            batch_shape=(DEPLOYED_BATCH, *shape[1:]),
-            dtype=model.inputs[0].dtype,
-            name=model.inputs[0].name,
-        ),
-    )
+    inputs = [
+        keras.layers.Input(
+            batch_shape=(DEPLOYED_BATCH, *tuple(tensor.shape)[1:]),
+            dtype=tensor.dtype,
+            name=tensor.name.split(":")[0],
+        )
+        for tensor in model.inputs
+    ]
+    fixed = keras.models.clone_model(model, input_tensors=inputs if len(inputs) > 1 else inputs[0])
     # ``clone_model`` copies the architecture, not the values. Without this the exported model
     # would be an untrained one with the right shape, which is the kind of mistake that passes
     # every structural test and fails the accuracy gate for a reason nobody can find.

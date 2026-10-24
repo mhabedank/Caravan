@@ -1,4 +1,4 @@
 {
   "rule": "CF-12",
-  "path": "dataset.split"
+  "path": "preprocessing.split.probabilities"
 }

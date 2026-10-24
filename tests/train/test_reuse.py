@@ -84,15 +84,15 @@ def test_changing_a_template_parameter_rebuilds_and_retrains(tmp_path) -> None:
     }
 
 
-def test_changing_the_seed_rebuilds_and_retrains(tmp_path) -> None:
-    # The seed is an input to *both* stages, which the plan had wrong: Keras draws the initial
-    # weights when the model is constructed, so ``built.keras`` already contains them. Reusing a
-    # built model across seeds would hand back weights the manifest did not ask for.
+def test_changing_the_seed_refits_rebuilds_and_retrains(tmp_path) -> None:
+    # The seed is an input to every stage: Keras draws the initial weights when the model is
+    # constructed, so ``built.keras`` already contains them; and since feature 008 the data stage
+    # splits and fits on the training part, which the seed draws.
     manifest = dataset_and_manifest(tmp_path)
     train(manifest, tmp_path)
-    edit(manifest, "epochs: 1", "epochs: 1\n  seed: 7")
+    edit(manifest, "export:", "random_seed: 7\nexport:")
     assert train(manifest, tmp_path) == {
-        "data": OUTCOME_REUSED,
+        "data": OUTCOME_PRODUCED,
         "build": OUTCOME_PRODUCED,
         "fit": OUTCOME_PRODUCED,
         "train": OUTCOME_PRODUCED,
@@ -130,13 +130,13 @@ def test_changing_a_byte_of_the_dataset_rebuilds_and_retrains(tmp_path) -> None:
 
 
 def test_moving_the_dataset_without_changing_it_retrains_nothing(tmp_path) -> None:
-    # ``dataset.source`` is in no stage's read set on purpose: the identity of a result depends on
+    # ``dataset`` is in no stage's read set on purpose: the identity of a result depends on
     # the data, not on where the data sits.
     manifest = dataset_and_manifest(tmp_path)
     train(manifest, tmp_path)
 
     (tmp_path / "data").rename(tmp_path / "elsewhere")
-    edit(manifest, "source: data", "source: elsewhere")
+    edit(manifest, "dataset: data", "dataset: elsewhere")
     assert train(manifest, tmp_path) == {
         "data": OUTCOME_REUSED,
         "build": OUTCOME_REUSED,

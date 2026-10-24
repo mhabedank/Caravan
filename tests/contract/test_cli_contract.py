@@ -161,7 +161,7 @@ def test_render_to_stdout_writes_only_the_document(capsys) -> None:
     assert main(["render", str(PILOT), "--stdout"]) == EXIT_OK
     captured = capsys.readouterr()
     assert captured.err == ""
-    assert captured.out.startswith("apiVersion: caravan/v0.1\n")
+    assert captured.out.startswith("apiVersion: caravan/v0.2\n")
 
 
 # --- feature 007: framework output is an option of the stage verbs, never a verb ---------------

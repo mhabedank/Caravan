@@ -36,7 +36,7 @@ def test_the_record_is_serialisable_and_says_what_it_read(int8_model) -> None:
     record = inspect_model(int8_model).as_dict()
     assert record["fully_integer"] is True
     assert record["dtype_counts"]
-    assert record["input"]["scale"] > 0
+    assert record["inputs"][0]["scale"] > 0
     assert len(record["tensors"]) == sum(record["dtype_counts"].values())
 
 
@@ -46,3 +46,34 @@ def test_int32_counts_as_integer_because_biases_are_int32(int8_model) -> None:
     counts = inspect_model(int8_model).dtype_counts
     assert "int32" in counts and "int8" in counts
     assert "int32" in INTEGER_DTYPES
+
+
+# --- feature 008: raw values at the boundary, integers inside ----------------------------------
+
+
+def test_a_typed_model_is_fully_integer_inside_its_boundary(typed_model) -> None:
+    # Research R5: its inputs are the raw float32 and int32 a firmware passes, its output float32
+    # after a DEQUANTIZE; everything between is integer, and a category's one-hot is float only on
+    # its way into a QUANTIZE.
+    inspection = inspect_model(typed_model)
+    assert inspection.fully_integer, inspection.floating_tensors()
+    assert {tensor.dtype for tensor in inspection.inputs} == {"float32", "int32"}
+    assert inspection.output.dtype == "float32"
+    assert "float32" in inspection.dtype_counts  # the boundary, which is allowed
+
+
+def test_a_float_tensor_inside_the_model_is_still_caught(typed_model) -> None:
+    # The boundary rule must not excuse a float tensor in the middle of the graph.
+    from dataclasses import replace
+
+    inspection = inspect_model(typed_model)
+    inside = next(tensor for tensor in inspection.tensors if tensor.dtype == "int8")
+    poisoned = replace(
+        inspection,
+        tensors=tuple(
+            replace(tensor, dtype="float32") if tensor is inside else tensor
+            for tensor in inspection.tensors
+        ),
+    )
+    assert not poisoned.fully_integer
+    assert inside.name in poisoned.floating_tensors()

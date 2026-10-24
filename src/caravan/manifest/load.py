@@ -18,6 +18,7 @@ from pydantic import ValidationError as PydanticValidationError
 from caravan.manifest._yaml import DocumentError, read_mapping
 from caravan.manifest.errors import (
     ALL_RULES,
+    FIELD_PROBLEM,
     RULE_DATASET_UNRESOLVED,
     RULE_UNKNOWN_SCHEMA_VERSION,
     Finding,
@@ -27,6 +28,7 @@ from caravan.manifest.errors import (
 )
 from caravan.manifest.schema import Manifest
 from caravan.manifest.schema.removed import BY_PATH as REMOVED_FIELDS
+from caravan.manifest.schema.removed import MOVED_BY_PATH, REPLACES
 from caravan.manifest.version import SCHEMA_VERSION, UnknownSchemaVersion, check_version
 from caravan.targets.registry import BoardRegistry
 from caravan.targets.registry import default_registry as default_boards
@@ -112,14 +114,14 @@ def findings_from_validation_error(
         kind = error["type"]
         context = error.get("ctx") or {}
 
-        if kind in ALL_RULES:
+        if kind in ALL_RULES or kind == FIELD_PROBLEM:
             findings.append(
                 Finding(
                     path=str(context.get("path") or dotted_path(error["loc"])),
                     problem=str(context.get("problem") or error["msg"]),
                     found=context.get("found"),
                     accepted=tuple(context.get("accepted") or ()),
-                    rule=kind,
+                    rule=kind if kind in ALL_RULES else None,
                 )
             )
             continue
@@ -175,6 +177,38 @@ def findings_from_validation_error(
     return findings
 
 
+# --- the keys caravan/v0.2 moved ------------------------------------------------------------------
+
+
+def moved_keys(data: dict[str, Any]) -> tuple[dict[str, Any], list[Finding], set[str]]:
+    """Each ``caravan/v0.1`` key in the document, refused at its path with its new key named.
+
+    Returns the document without those keys, the findings, and the new keys whose absence is
+    already explained — so the schema reports only what else is wrong, and never "missing
+    input_features" beside "inputs moved to input_features".
+    """
+    rest = dict(data)
+    findings: list[Finding] = []
+    explained: set[str] = set()
+    for key in ("inputs", "outputs", "train"):
+        if key in rest:
+            moved = MOVED_BY_PATH[key]
+            findings.append(Finding(path=key, problem=moved.message(), near=key))
+            del rest[key]
+            replacement = REPLACES.get(key)
+            if replacement is not None and replacement not in rest:
+                explained.add(replacement)
+    dataset = rest.get("dataset")
+    if isinstance(dataset, dict):
+        for key in ("source", "split", "representative_samples"):
+            if key in dataset:
+                moved = MOVED_BY_PATH[f"dataset.{key}"]
+                findings.append(Finding(path=f"dataset.{key}", problem=moved.message(), near=key))
+        source = dataset.get("source")
+        rest["dataset"] = source if isinstance(source, str) else "moved"
+    return rest, findings, explained
+
+
 # --- the load sequence --------------------------------------------------------------------------
 
 
@@ -209,10 +243,22 @@ def load_manifest(
 
     outcome.gates.append(Gate("schema-version", "pass", outcome.schema_version))
 
+    document, moved, handled = moved_keys(data)
     try:
-        manifest = Manifest.model_validate(data, context={"templates": templates, "boards": boards})
+        manifest = Manifest.model_validate(
+            document, context={"templates": templates, "boards": boards}
+        )
     except PydanticValidationError as exc:
-        outcome.findings.extend(findings_from_validation_error(exc))
+        findings = [
+            finding
+            for finding in findings_from_validation_error(exc)
+            if finding.path not in handled
+        ]
+        outcome.findings.extend([*moved, *findings])
+        outcome.gates.append(Gate("schema", "fail"))
+        return outcome
+    if moved:
+        outcome.findings.extend(moved)
         outcome.gates.append(Gate("schema", "fail"))
         return outcome
 
@@ -230,7 +276,7 @@ def load_manifest(
     outcome.unresolved.append(
         Unresolved(
             kind="dataset-reference",
-            value=manifest.dataset.source,
+            value=manifest.dataset,
             reason=DATASET_UNRESOLVED_REASON,
             rule=RULE_DATASET_UNRESOLVED,
         )

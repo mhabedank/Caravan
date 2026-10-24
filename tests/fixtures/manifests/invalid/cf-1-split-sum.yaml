@@ -1,6 +1,6 @@
 # Invalid on purpose. The split parts do not sum to one.
-# Expected: CF-1 at dataset.split
-apiVersion: caravan/v0.1
+# Expected: CF-1 at preprocessing.split.probabilities
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
@@ -8,21 +8,19 @@ model:
   params:
     hidden:
     - 8
-inputs:
-- name: frames
-  kind: series
-  window: 32
-outputs:
+input_features:
+- name: reading
+  type: number
+output_features:
 - name: verdict
-  kind: class
+  type: category
   accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+preprocessing:
+  window_size: 32
   split:
-    train: 0.9
-    val: 0.15
-    test: 0.15
+    probabilities: [0.9, 0.15, 0.15]
+dataset: datasets/example/
 export:
+  representative_samples: 100
   targets:
   - stm32h743

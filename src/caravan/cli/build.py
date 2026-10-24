@@ -15,10 +15,14 @@ from caravan.stages import build as build_stage
 def _summary(name: str, run_dir: Path, _measured: dict[str, Any]) -> None:
     """The shape report, on standard error, in the form ``contracts/cli.md`` fixes."""
     description = json.loads((run_dir / build_stage.BUILT_REPORT).read_text(encoding="utf-8"))
-    shape = ", ".join(str(size) for size in description["input_shape"])
+    inputs = ", ".join(
+        f"{entry['name']} {entry['dtype']}[{', '.join(str(size) for size in entry['shape'])}]"
+        for entry in description["inputs"]
+    )
+    units = ", ".join(str(size) for size in description["output_shape"])
     print(
-        f"{name}: built {description['template']} — input ({shape}), "
-        f"output {description['output_units']}, "
+        f"{name}: built {description['template']} — inputs {inputs}; "
+        f"output {description['output_name']} ({units}), "
         f"{description['parameter_count']:,} parameters "
         f"({description['trainable_parameters']:,} trainable)",
         file=sys.stderr,

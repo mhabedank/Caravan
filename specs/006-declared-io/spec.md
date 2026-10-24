@@ -1,5 +1,7 @@
 # Feature Specification: Declared Inputs and Outputs, and a Lean Manifest
 
+> **Superseded for the declaration form** by feature 008 (`specs/008-typed-features/`): `inputs` and `outputs` became Ludwig-style `input_features` and `output_features`, one per column, in schema `caravan/v0.2`.
+
 **Feature Branch**: `006-declared-io`
 
 **Created**: 2026-10-23

@@ -77,7 +77,7 @@ def test_ds_1_when_the_path_does_not_exist(tmp_path) -> None:
         resolve_dataset("nowhere", tmp_path)
     finding = error.value.finding
     assert finding.rule == RULE_DATASET_UNREADABLE
-    assert finding.path == "dataset.source"
+    assert finding.path == "dataset"
     assert "nowhere" in finding.problem
 
 

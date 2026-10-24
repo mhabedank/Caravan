@@ -63,11 +63,14 @@ def test_a_window_too_short_for_the_blocks_is_refused_with_the_arithmetic(tmp_pa
     # CF-6, extended by this feature: a window can be present and still not carry the blocks.
     manifest = _variant(
         tmp_path,
-        **{"window: 64": "window: 16", "kernel: 3, dropout: 0.1": "kernel: 5, dropout: 0.1"},
+        **{
+            "window_size: 64": "window_size: 16",
+            "kernel: 3, dropout: 0.1": "kernel: 5, dropout: 0.1",
+        },
     )
     assert main(["validate", str(manifest), "--runs-dir", str(tmp_path / "runs")]) == EXIT_RULE
     message = capsys.readouterr().err
-    assert "inputs[0].window" in message
+    assert "preprocessing.window_size" in message
     assert "block 2" in message
     assert "3 samples left" in message
     # The offered window is computed by walking the blocks, not estimated.
@@ -76,12 +79,12 @@ def test_a_window_too_short_for_the_blocks_is_refused_with_the_arithmetic(tmp_pa
 
 def test_a_missing_window_is_still_refused(tmp_path, capsys) -> None:
     # The older half of CF-6: this template consumes a window, so one has to be there.
-    manifest = _variant(tmp_path, **{"  window: 64\n": ""})
+    manifest = _variant(tmp_path, **{"  window_size: 64\n": ""})
     assert main(["validate", str(manifest), "--runs-dir", str(tmp_path / "runs")]) == EXIT_RULE
-    assert "inputs[0].window" in capsys.readouterr().err
+    assert "preprocessing.window_size" in capsys.readouterr().err
 
 
 def test_a_fitting_configuration_is_not_refused_for_its_window(tmp_path) -> None:
     # The check must not fire on a configuration that fits: a false refusal is worse than none.
-    manifest = _variant(tmp_path, **{"window: 64": "window: 128"})
+    manifest = _variant(tmp_path, **{"window_size: 64": "window_size: 128"})
     assert main(["validate", str(manifest), "--runs-dir", str(tmp_path / "runs")]) == EXIT_OK

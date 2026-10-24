@@ -1,6 +1,6 @@
 # Invalid on purpose. The mlp template consumes a time window; this manifest states none.
-# Expected: CF-6 at inputs[0].window
-apiVersion: caravan/v0.1
+# Expected: CF-6 at preprocessing.window_size
+apiVersion: caravan/v0.2
 model:
   name: pilot-min
   version: 0.0.1
@@ -8,16 +8,15 @@ model:
   params:
     hidden:
     - 8
-inputs:
-- name: frames
-  kind: series
-outputs:
+input_features:
+- name: reading
+  type: number
+output_features:
 - name: verdict
-  kind: class
+  type: category
   accuracy_drop_max: 0.02
-dataset:
-  source: datasets/example/
-  representative_samples: 100
+dataset: datasets/example/
 export:
+  representative_samples: 100
   targets:
   - stm32h743

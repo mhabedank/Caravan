@@ -17,12 +17,21 @@ Quantization = Literal["int8", "float16", "none"]
 Format = Literal["flatbuffer", "c_array", "onnx"]
 
 
+#: The documented floor for int8 calibration. Calibration data determines the quantized
+#: activation ranges; too few or unrepresentative samples are a known cause of accuracy collapse,
+#: so this is a schema requirement rather than a convention. More is better.
+MINIMUM_REPRESENTATIVE_SAMPLES = 100
+
+
 class ExportSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     quantization: Quantization = "int8"
     formats: list[Format] = Field(default_factory=lambda: ["flatbuffer", "c_array"])
     targets: list[str] = Field(min_length=1)
+    #: How many training samples calibrate an int8 conversion (rule CF-4). It belongs to the
+    #: quantization, so it lives here since caravan/v0.2.
+    representative_samples: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def _targets_and_formats_are_distinct(self) -> ExportSpec:

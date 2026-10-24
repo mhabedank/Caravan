@@ -63,7 +63,7 @@ def test_an_empty_part_is_refused_naming_the_column() -> None:
         plan_split(plan, None, stratified=False, seed=None, labels=LABELS, column="split")
     finding = caught.value.finding
     assert finding.rule == RULE_SPLIT_EMPTY
-    assert finding.path == "dataset.split.column"
+    assert finding.path == "preprocessing.split.column"
     assert "val" in finding.problem and "'split'" in finding.problem
 
 

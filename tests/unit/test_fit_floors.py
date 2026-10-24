@@ -142,3 +142,72 @@ def test_a_board_without_a_figure_fails_rather_than_passes() -> None:
     assert found["ram"].verdict == "unknown"
     with pytest.raises(RunRuleFailure):
         check((DENSE,), "int8", [unknown])
+
+
+# --- feature 008: inputs, vocabularies and the concatenation of the features (T029) -------------
+
+#: The typed pilot's front: four numbers and a category of 32 codes, window 64, an embedding of 4.
+TYPED_INPUTS = tuple(
+    LayerRecord("input", name, output_elements=64) for name in ("can_id", "dlc", "b0", "b1", "b2")
+)
+VOCABULARY = LayerRecord(
+    "constant", "can_id_onehot", kernel_elements=32, input_elements=64, output_elements=64 * 33
+)
+EMBEDDING = LayerRecord(
+    "dense",
+    "can_id_embedding",
+    kernel_elements=33 * 4,
+    bias_elements=0,
+    input_elements=64 * 33,
+    output_elements=64 * 4,
+)
+CONCAT = LayerRecord("concat", "features", input_elements=64 * 4 + 4 * 64, output_elements=64 * 8)
+TYPED_DENSE = LayerRecord(
+    "dense",
+    "hidden_1",
+    kernel_elements=512 * 32,
+    bias_elements=32,
+    input_elements=512,
+    output_elements=32,
+)
+
+
+def typed_records() -> tuple[LayerRecord, ...]:
+    return (*TYPED_INPUTS, VOCABULARY, EMBEDDING, CONCAT, TYPED_DENSE, OUTPUT)
+
+
+def test_the_flash_floor_counts_the_vocabulary_and_the_embedding() -> None:
+    flash, _ = floors(typed_records(), "int8")
+    expected = (
+        32 * 4  # the vocabulary, int32
+        + 33 * 4  # the embedding, an int8 dense kernel without bias
+        + 512 * 32
+        + 32 * 4  # the first hidden layer
+        + 32 * 4
+        + 4 * 4  # the output layer
+    )
+    assert flash.floor_bytes == expected
+    assert "can_id_onehot" in flash.counted_layers and "can_id_embedding" in flash.counted_layers
+
+
+def test_the_ram_floor_is_the_larger_of_the_inputs_and_the_peak_layer() -> None:
+    # The one-hot into the embedding is 64 x 33 values in and 64 x 4 out, 2,368 int8 bytes, more
+    # than the five inputs' 1,280 bytes at 4 bytes per value.
+    _, ram = floors(typed_records(), "int8")
+    assert ram.floor_bytes == 64 * 33 + 64 * 4
+    assert ram.counted_layers == ("can_id_embedding",)
+
+
+def test_the_inputs_set_the_ram_floor_when_they_are_the_peak() -> None:
+    # Five inputs of 64 values at 4 bytes: 1,280 bytes, live together before the first operator.
+    small = LayerRecord("dense", "head", kernel_elements=8, input_elements=2, output_elements=4)
+    _, ram = floors((*TYPED_INPUTS, small), "int8")
+    assert ram.floor_bytes == 5 * 64 * 4
+    assert set(ram.counted_layers) == {"can_id", "dlc", "b0", "b1", "b2"}
+
+
+def test_a_large_concatenation_sets_the_ram_floor_when_it_is_the_peak() -> None:
+    wide = LayerRecord("concat", "features", input_elements=4000, output_elements=4000)
+    _, ram = floors((*TYPED_INPUTS, wide), "int8")
+    assert ram.floor_bytes == 8000
+    assert ram.counted_layers == ("features",)
