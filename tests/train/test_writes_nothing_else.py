@@ -34,7 +34,7 @@ def test_the_manifest_and_the_dataset_are_left_exactly_as_they_were(tmp_path) ->
     manifest.write_text(
         (SYNTHETIC_DATASET.parent.parent / "manifests" / "valid" / "picket-mlp-fixture.yaml")
         .read_text(encoding="utf-8")
-        .replace("source: ../../datasets/synthetic", "source: data"),
+        .replace("dataset: ../../datasets/synthetic", "dataset: data"),
         encoding="utf-8",
     )
 
@@ -67,7 +67,7 @@ def test_only_the_runs_and_cache_directories_appear(tmp_path, monkeypatch) -> No
     manifest.write_text(
         (SYNTHETIC_DATASET.parent.parent / "manifests" / "valid" / "picket-mlp-fixture.yaml")
         .read_text(encoding="utf-8")
-        .replace("source: ../../datasets/synthetic", "source: data"),
+        .replace("dataset: ../../datasets/synthetic", "dataset: data"),
         encoding="utf-8",
     )
 

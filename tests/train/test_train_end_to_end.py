@@ -82,8 +82,8 @@ def test_the_report_states_what_the_windowing_kept_and_threw_away(
 
 
 def test_the_report_records_every_effective_training_setting(fixture_manifest, workspace) -> None:
-    # FR-008. The pilot manifest states four of the seven; the record carries all seven and says
-    # which three it filled in itself.
+    # FR-008. The pilot manifest states five of the six; the record carries all six and says
+    # which one it filled in itself.
     runs, cache = workspace
     train(fixture_manifest, runs, cache)
     report = json.loads((latest_run(runs) / "report.json").read_text(encoding="utf-8"))
@@ -91,14 +91,13 @@ def test_the_report_records_every_effective_training_setting(fixture_manifest, w
 
     assert set(training["effective_settings"]) == {
         "epochs",
-        "batch",
+        "batch_size",
         "optimizer",
         "learning_rate",
-        "early_stopping",
-        "patience",
-        "seed",
+        "early_stop",
+        "random_seed",
     }
-    assert training["settings_from_default"] == ["learning_rate", "patience", "seed"]
+    assert training["settings_from_default"] == ["optimizer"]
     assert training["finished"] is True
     assert training["epochs_run"] >= 1
 

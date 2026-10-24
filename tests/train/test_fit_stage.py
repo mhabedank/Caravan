@@ -66,10 +66,11 @@ def test_a_model_too_big_for_a_board_stops_before_training(tmp_path) -> None:
     finding = next(f for f in report["findings"] if f.get("rule") == RULE_FLOOR_EXCEEDS_BOARD)
     assert finding["path"] == "export.targets"
     assert len(finding["found"]) == 1
-    # Kernels 320 x 2048 + 2048 x 256 + 256 x 4 = 1,180,672 int8 bytes, biases 2,308 x 4 int32
-    # bytes = 9,232: 1,189,904 against 512 KiB.
+    # Kernels 512 x 2048 + 2048 x 256 + 256 x 4 = 1,573,888 int8 bytes, biases 2,308 x 4 int32
+    # bytes = 9,232, can_id's embedding 33 x 4 = 132 and its vocabulary 32 x 4 int32 bytes = 128
+    # (feature 008): 1,583,380 against 512 KiB.
     assert finding["found"][0] == (
-        "s32k144 flash: the floor is 1,189,904 bytes and the board has 524,288 (short by 665,616)"
+        "s32k144 flash: the floor is 1,583,380 bytes and the board has 524,288 (short by 1,059,092)"
     )
     assert [stage["name"] for stage in report["stages"]] == ["data", "build"]
     run_dir = latest_run(tmp_path / "runs")

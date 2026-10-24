@@ -399,7 +399,11 @@ def stage(context: StageContext) -> StageFunction:
         if not gate.passed:
             # The record and the table go straight into the run directory: this stage is about to
             # raise, and the runner will delete the working directory with the model in it.
-            rows = _layer_errors(model, representative)
+            order = [
+                tensor.name.removeprefix("serving_default_").split(":")[0]
+                for tensor in inspection.inputs
+            ]
+            rows = _layer_errors(model, representative, order)
             record["layer_errors"] = [row.as_dict() for row in rows]
             _write_failure(context.run_dir, record, rows)
             detail = (
@@ -453,13 +457,13 @@ def _runtime_version() -> str:
         return "unknown"
 
 
-def _layer_errors(model: Any, representative: Any) -> tuple[Any, ...]:
+def _layer_errors(model: Any, representative: Any, order: list[str]) -> tuple[Any, ...]:
     """The diagnostic table, which only a failure pays for."""
     if representative is None:
         return ()
     from caravan.convert.debugger import layer_errors
 
-    return layer_errors(model, representative)
+    return layer_errors(model, representative, order)
 
 
 def _write_failure(run_dir: Path, record: dict[str, Any], rows: tuple[Any, ...]) -> None:

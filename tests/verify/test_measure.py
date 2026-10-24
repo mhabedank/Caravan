@@ -135,3 +135,47 @@ def test_measuring_needs_no_training_framework(int8_model) -> None:
     samples, loaded = result.stdout.strip().split(" ", 1)
     assert samples == "2"
     assert loaded == "[]", f"measuring loaded a training framework: {loaded}"
+
+
+# --- feature 008: several inputs, fed by name ----------------------------------------------------
+
+
+def typed_values(count: int) -> dict:
+    from tests.verify.conftest import TYPED_INPUTS, TYPED_WINDOW
+
+    rng = np.random.default_rng(11)
+    out = {}
+    for name, dtype in TYPED_INPUTS.items():
+        if dtype == "int32":
+            out[name] = rng.integers(0, 8, size=(count, TYPED_WINDOW)).astype(np.int32)
+        else:
+            out[name] = rng.random((count, TYPED_WINDOW), dtype=np.float32)
+    return out
+
+
+def test_a_typed_model_is_run_by_input_name(typed_model) -> None:
+    from caravan.runtime.measure import run_model
+
+    raw = run_model(typed_model, typed_values(5), "state")
+    assert raw.shape == (5, 3)
+    assert raw.dtype == np.float32
+    np.testing.assert_allclose(raw.sum(axis=1), 1.0, atol=0.02)  # a softmax, dequantized
+
+
+def test_the_order_of_the_mapping_does_not_matter(typed_model) -> None:
+    from caravan.runtime.measure import run_model
+
+    values = typed_values(4)
+    reordered = dict(reversed(list(values.items())))
+    np.testing.assert_array_equal(
+        run_model(typed_model, values, "state"), run_model(typed_model, reordered, "state")
+    )
+
+
+def test_a_missing_input_is_refused_by_name(typed_model) -> None:
+    from caravan.runtime.measure import run_model
+
+    values = typed_values(2)
+    del values["gear"]
+    with pytest.raises(ValueError, match="gear"):
+        run_model(typed_model, values, "state")

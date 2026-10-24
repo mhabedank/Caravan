@@ -13,7 +13,7 @@ Each lowers only to operators TFLite Micro has at ``f7ed40d`` (research note, se
   Without it the converter keeps the SUM, the SUB and the CONCATENATION in float32 and, worse,
   dequantizes the other features to concatenate them in float (measured 2026-10-24, TF 2.21.0);
   with it the only float32 tensor of the branch is the CAST's output, consumed by a QUANTIZE;
-* ``AsChannel`` — CAST of a 0/1 int32 to a channel;
+* ``AsChannel`` — CAST of a 0/1 int32 to a channel, and the same RELU;
 * ``Rescale`` — the inverse of ``Standardize`` for a ``number`` output, and ``Clip`` for its
   bounds (MAXIMUM, MINIMUM).
 
@@ -81,7 +81,9 @@ class AsChannel(keras.layers.Layer):
     """A ``binary`` input: the int32 0/1 as one float channel per step."""
 
     def call(self, inputs: Any) -> Any:
-        return keras.ops.expand_dims(keras.ops.cast(inputs, "float32"), -1)
+        # The RELU is the identity on 0 and 1 and the point where the conversion quantizes, as in
+        # ``VocabularyOneHot``: a CAST straight into the concatenation would keep it in float.
+        return keras.ops.expand_dims(keras.ops.relu(keras.ops.cast(inputs, "float32")), -1)
 
     def compute_output_shape(self, input_shape: Sequence[int | None]) -> tuple[int | None, ...]:
         return (*input_shape, 1)

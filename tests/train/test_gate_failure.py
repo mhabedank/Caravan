@@ -3,8 +3,8 @@
 The failure cannot be provoked from the manifest. On the fixture, quantization changes no
 prediction, so the drop is 0.000 and even a threshold of 0.0 passes — `0.000 <= 0.000`. Tightening
 a threshold and hoping would be a test that passes for the wrong reason, so the drop is injected
-at the measurement seam, and the arithmetic is covered separately in
-``tests/unit/test_gate_arithmetic.py``.
+at the measurement seam, ``caravan.runtime.measure.run_model``, and the arithmetic is covered
+separately in ``tests/unit/test_gate_arithmetic.py``.
 """
 
 from __future__ import annotations
@@ -19,31 +19,33 @@ from caravan.stages.quantize import ERROR_TABLE, QUANTIZED_MODEL, RECORD
 from tests.train.conftest import latest_run
 
 
-@pytest.fixture
-def quantization_costs_accuracy(monkeypatch):
-    """Make the quantized model score one point lower than the converted one.
+def degrade_the_quantized_model(monkeypatch) -> None:
+    """Make the quantized model's outputs worse: every class shifted by one, or a value raised.
 
-    Patched at ``caravan.runtime.measure.measure``, which the stage imports inside its function —
+    Patched at ``caravan.runtime.measure.run_model``, which the stage imports inside its function —
     so this replaces what the stage actually calls, and everything between the conversion and the
-    verdict runs for real.
+    verdict runs for real. Shared with ``test_output_types.py`` for a ``number`` output.
     """
+    import numpy as np
+
     from caravan.runtime import measure as measure_module
 
-    real = measure_module.measure
+    real = measure_module.run_model
 
-    def lower_for_the_quantized_model(path, *args, **kwargs):
+    def worse_for_the_quantized_model(path, *args, **kwargs):
         result = real(path, *args, **kwargs)
-        if "quantized" in path.name:
-            return type(result)(
-                accuracy=max(result.accuracy - 0.25, 0.0),
-                confusion=result.confusion,
-                samples=result.samples,
-                split=result.split,
-                dataset_version=result.dataset_version,
-            )
-        return result
+        if "quantized" not in path.name:
+            return result
+        if result.shape[1] > 1:
+            return np.roll(result, 1, axis=1)
+        return result + 1000.0
 
-    monkeypatch.setattr(measure_module, "measure", lower_for_the_quantized_model)
+    monkeypatch.setattr(measure_module, "run_model", worse_for_the_quantized_model)
+
+
+@pytest.fixture
+def quantization_costs_accuracy(monkeypatch):
+    degrade_the_quantized_model(monkeypatch)
 
 
 def quantize(manifest, runs, cache):
@@ -60,7 +62,7 @@ def test_the_run_fails_with_the_rule_that_names_the_threshold(
     rules = {finding.get("rule") for finding in report["findings"]}
     assert RULE_ACCURACY_GATE in rules
     finding = next(f for f in report["findings"] if f.get("rule") == RULE_ACCURACY_GATE)
-    assert finding["path"] == "outputs[0].accuracy_drop_max"
+    assert finding["path"] == "output_features[0].accuracy_drop_max"
 
 
 def test_no_quantized_model_survives_a_failed_gate(

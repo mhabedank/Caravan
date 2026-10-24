@@ -51,7 +51,7 @@ def latest_run(runs: Path) -> Path:
     return max(runs.iterdir(), key=lambda path: path.stat().st_mtime)
 
 
-MANIFEST_TEMPLATE = """apiVersion: caravan/v0.1
+MANIFEST_TEMPLATE = """apiVersion: caravan/v0.2
 
 model:
   name: rule-case
@@ -60,33 +60,32 @@ model:
   params:
     hidden: [4]
 
-inputs:
-  - name: frames
-    kind: series
-    window: {window}
+input_features:
+  - {{name: a, type: number}}
+  - {{name: b, type: number}}
 
-outputs:
-  - name: verdict
-    kind: class
-    labels: [{labels}]
+output_features:
+  - name: label
+    type: category
+    preprocessing: {{vocab: [{labels}]}}
     accuracy_drop_max: {accuracy_drop_max}
 
-dataset:
-  source: {source}
-  representative_samples: 100
+preprocessing:
+  window_size: {window}
   split:
-    train: {train}
-    val: {val}
-    test: {test}
-    stratified: {stratified}
+    type: {split_type}
+    probabilities: [{train}, {val}, {test}]
 
-train:
+dataset: {source}
+
+trainer:
   epochs: {epochs}
-  batch: 4
+  batch_size: 4
   learning_rate: {learning_rate}
 
 export:
   targets: [stm32h743]
+  representative_samples: 100
 """
 
 
@@ -104,10 +103,13 @@ def write_manifest(directory: Path, **overrides) -> Path:
         "train": 0.5,
         "val": 0.25,
         "test": 0.25,
-        "stratified": "true",
+        "split_type": "stratify",
         "epochs": 1,
         "learning_rate": 0.001,
     }
+    stratified = overrides.pop("stratified", None)
+    if stratified is not None:
+        overrides["split_type"] = "stratify" if stratified in (True, "true") else "random"
     settings.update(overrides)
     path = directory / "manifest.yaml"
     path.write_text(MANIFEST_TEMPLATE.format(**settings), encoding="utf-8")

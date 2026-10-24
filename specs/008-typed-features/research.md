@@ -78,6 +78,16 @@ concatenated, giving (window_size, channels), and the template body follows unch
 No `Lambda` is used (it breaks `fix_batch`), and no Keras lookup or encoding layer
 (`IntegerLookup`, `StringLookup`, `CategoryEncoding`, `Embedding`; note, section 2).
 
+**Found during implementation (2026-10-24, TF 2.21.0).** The converter does not quantize the
+output of a CAST. Written as above, the one-hot's SUM, SUB and CONCATENATION stayed float32, and
+where a CAST fed the concatenation of all features directly (a `binary` input, a `onehot` encoder)
+the converter even dequantized the other features to concatenate in float. A RELU right after the
+CAST — the identity on 0 and 1 — is where the converter inserts its QUANTIZE: the only float32
+tensor of the branch is then the CAST's output, consumed by that QUANTIZE, and everything after it
+is int8. Measured on a probe with every code of a vocabulary and four unseen ones: the converted
+one-hot is exact (largest error 0). The quantize stage's integer check accordingly allows a float32
+tensor only at the model's boundary or where every consumer is a QUANTIZE (R5).
+
 ## R4. Encoder default for `category`, and its size
 
 **Measured** (spike `spike_embedding.py` and `spike_typed.py`, same split, `can_id` with a

@@ -33,6 +33,7 @@ YAML like the zoo's.
 | `conv1d` template, both halves | v0.1 | **delivered** (feature 005) | **`pace-cnn`** (decided 2026-10-22) |
 | Declared inputs and outputs, labels and columns from the data, the fit check before training, the interface contract in the export | v0.1 | **delivered** (feature 006) | `picket-mlp`; constitution 3.0.0 |
 | A fixed split from a column of the data; the framework's output in `framework.log`; the try-it guide; the release workflow | v0.1 | **delivered** (feature 007) | **`pace-cnn`** (the split); the release |
+| Typed features in Ludwig's names: one input per column (`number`, `category`, `binary`), preprocessing fitted on the training part and built into the model, outputs `category`, `binary`, `number`; manifest `caravan/v0.2` | v0.1 | **delivered** (feature 008) | `picket-mlp` (derived labels pass int8); **`pace-cnn`**; owner decision D7, 2026-10-24 |
 | Export with only the runtime installed, when training and quantization are cached | v0.1 | **deferred** by the owner, 2026-10-23 | a known limit of 0.1.0 |
 
 **The release, 2026-10-23.** Candidate `v0.1.0rc1` first: the version to try by hand

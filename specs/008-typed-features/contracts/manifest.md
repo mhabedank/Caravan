@@ -91,7 +91,8 @@ defaults:
 ```
 
 A feature's own value wins, then `defaults`, then the table above. `render` shows every feature
-fully resolved.
+fully resolved. `defaults` applies to input features, with `preprocessing` and `encoder`; the
+output's few keys are stated on the output itself.
 
 ## Trainer and seed
 

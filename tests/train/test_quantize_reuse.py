@@ -122,13 +122,13 @@ def test_changing_the_calibration_count_re_quantizes_only(tmp_path) -> None:
     assert quantize(manifest, tmp_path) == ONLY_QUANTIZE
 
 
-def test_changing_the_seed_re_runs_everything_but_the_data_stage(tmp_path) -> None:
-    # The data stage reads the declarations and the data, never the seed: what the data says does
-    # not depend on how the weights were drawn (feature 006).
+def test_changing_the_seed_re_runs_everything(tmp_path) -> None:
+    # Since feature 008 the data stage splits and fits on the training part, and the seed draws
+    # the split, so it re-runs too.
     manifest = prepare(tmp_path)
     quantize(manifest, tmp_path)
-    edit(manifest, "epochs: 1", "epochs: 1\n  seed: 11")
-    assert quantize(manifest, tmp_path) == {**ALL_PRODUCED, "data": OUTCOME_REUSED}
+    edit(manifest, "export:", "random_seed: 11\nexport:")
+    assert quantize(manifest, tmp_path) == ALL_PRODUCED
 
 
 def test_changing_a_byte_of_the_dataset_re_runs_everything(tmp_path) -> None:

@@ -56,17 +56,28 @@ def test_the_committed_models_match_what_their_generator_produces(tmp_path) -> N
     # layout choices, and nothing promises two runs produce the same bytes. Promising it would buy
     # an intermittent failure in exchange for nothing the suite needs.
     make = load_generator()
-    int8_again, float_again = make.generate(tmp_path / "again")
+    int8_again, float_again, typed_again = make.generate(tmp_path / "again")
 
     assert describe(int8_again) == describe(MODELS / "example-int8.tflite")
     assert describe(float_again) == describe(MODELS / "example-float.tflite")
     assert predictions(int8_again) == predictions(MODELS / "example-int8.tflite")
+    assert describe(typed_again)["dtypes"] == describe(MODELS / "example-typed.tflite")["dtypes"]
+    assert typed_predictions(make, typed_again) == typed_predictions(
+        make, MODELS / "example-typed.tflite"
+    )
 
 
-def test_the_committed_int8_model_is_fully_integer() -> None:
+def typed_predictions(make, path: Path) -> list[int]:
+    from caravan.runtime.measure import predict
+
+    return list(predict(path, make.typed_input(12), make.TYPED_OUTPUT))
+
+
+def test_the_committed_int8_models_are_fully_integer() -> None:
     from caravan.runtime.inspect import inspect_model
 
     assert inspect_model(MODELS / "example-int8.tflite").fully_integer
+    assert inspect_model(MODELS / "example-typed.tflite").fully_integer
 
 
 def test_the_models_stay_small() -> None:

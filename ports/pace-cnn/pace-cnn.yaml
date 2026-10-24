@@ -1,20 +1,22 @@
 # The zoo's pace-cnn 0.1.0 (IMU activity recognition on UCI HAR), rebuilt through Caravan as an
-# internal test of the release candidate (feature 007). Nothing it produces is published.
+# internal test (features 007, 008). Nothing it produces is published.
 #
-# The data is what ports/pace-cnn/convert.py writes from the UCI HAR archive: the zoo's windows,
-# its split by subject and its normalisation, checked against the zoo's hashes. Replace
-# dataset.source with the directory you gave the converter; it must be outside this repository.
+# The data is what ports/pace-cnn/convert.py writes from the UCI HAR archive: the zoo's windows and
+# its split by subject, checked against the zoo's hashes, as raw values. Each of the nine channels is
+# a number feature, standardised inside the model with the mean and deviation of the training part
+# (the zoo's frozen normalisation, which the converter checks). Replace `dataset` with the directory
+# you gave the converter; it must be outside this repository.
 #
-# Where this differs from the zoo's recipe, because Caravan 0.1.0 cannot express it (research R8):
+# Where this differs from the zoo's recipe, because Caravan cannot express it (feature 007, R8):
 # dropout 0.3 sits on the last block rather than after the pooling head; the learning rate is
 # constant, without the zoo's cosine decay; convolutions keep their bias, which batch
 # normalisation absorbs; calibration draws 500 training windows by seed rather than the first
 # 500. The budget is the zoo's kill criterion K2.
-apiVersion: caravan/v0.1
+apiVersion: caravan/v0.2
 
 model:
   name: pace-cnn
-  version: 0.1.0
+  version: 0.2.0
   template: conv1d
   params:
     blocks:
@@ -23,32 +25,41 @@ model:
       - {filters: 32, kernel: 3, padding: same, normalise: true, dropout: 0.3}
     head: average
 
-inputs:
-  - name: imu
-    kind: series
-    window: 128
+input_features:
+  - {name: body_acc_x, type: number}
+  - {name: body_acc_y, type: number}
+  - {name: body_acc_z, type: number}
+  - {name: body_gyro_x, type: number}
+  - {name: body_gyro_y, type: number}
+  - {name: body_gyro_z, type: number}
+  - {name: total_acc_x, type: number}
+  - {name: total_acc_y, type: number}
+  - {name: total_acc_z, type: number}
 
-outputs:
+output_features:
   - name: activity
-    kind: class
-    labels: [walking, walking_upstairs, walking_downstairs, sitting, standing, laying]
+    type: category
+    # The zoo's label order, pinned so the confusion matrices read alike.
+    preprocessing:
+      vocab: [walking, walking_upstairs, walking_downstairs, sitting, standing, laying]
     accuracy_drop_max: 0.03
 
-dataset:
-  source: /path/to/converted/uci-har
-  split:
-    column: split
-  representative_samples: 500
+preprocessing:
+  window_size: 128
+  split: {type: fixed, column: split}
 
-train:
+dataset: /path/to/converted/uci-har
+
+trainer:
   epochs: 20
-  batch: 128
-  optimizer: adam
+  batch_size: 128
+  optimizer: {type: adam}
   learning_rate: 0.002
-  early_stopping: false
-  seed: 0
+  early_stop: -1
+random_seed: 0
 
 export:
   quantization: int8
   formats: [flatbuffer, c_array]
   targets: [esp32]
+  representative_samples: 500

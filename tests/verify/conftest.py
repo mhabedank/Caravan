@@ -37,3 +37,24 @@ def float_model() -> Path:
     if not path.is_file():  # pragma: no cover - committed with the suite
         pytest.skip(f"{path} is not committed")
     return path
+
+
+@pytest.fixture
+def typed_model() -> Path:
+    """A committed model in the form of feature 008: five inputs of mixed element types."""
+    path = MODELS / "example-typed.tflite"
+    if not path.is_file():  # pragma: no cover - committed with the suite
+        pytest.skip(f"{path} is not committed")
+    return path
+
+
+#: The typed model's inputs, their element types, and its output (``tests/fixtures/models/make.py``).
+TYPED_INPUTS = {
+    "speed": "float32",
+    "gear": "int32",
+    "brake": "int32",
+    "rpm": "float32",
+    "load": "float32",
+}
+TYPED_OUTPUT = "state"
+TYPED_WINDOW = 8

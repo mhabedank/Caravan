@@ -24,9 +24,13 @@ def test_the_pilot_manifest_builds_and_reports_its_shape(fixture_manifest, works
     assert (run_dir / BUILT_MODEL).is_file()
     description = json.loads((run_dir / BUILT_REPORT).read_text(encoding="utf-8"))
 
-    # The window from the manifest, the feature count from the data (FR-004).
-    assert description["input_shape"] == [64, FIXTURE_FEATURES]
-    assert description["output_units"] == 4
+    # One input per feature, its window from the manifest, its element type from its type
+    # (feature 008, research R2); the output's units are the labels fitted on the training part.
+    assert len(description["inputs"]) == FIXTURE_FEATURES
+    by_name = {entry["name"]: entry for entry in description["inputs"]}
+    assert by_name["can_id"] == {"name": "can_id", "dtype": "int32", "shape": [64]}
+    assert by_name["dlc"] == {"name": "dlc", "dtype": "float32", "shape": [64]}
+    assert description["output_shape"] == [4]
     assert description["template"] == "mlp"
 
 
@@ -58,7 +62,7 @@ def test_an_implausible_model_still_builds_and_shows_why_it_is_implausible(
     # needs an absolute one.
     absurd.write_text(
         source.replace("hidden: [32, 16]", "hidden: [4096, 4096]").replace(
-            "source: ../../datasets/synthetic", f"source: {SYNTHETIC_DATASET}"
+            "dataset: ../../datasets/synthetic", f"dataset: {SYNTHETIC_DATASET}"
         ),
         encoding="utf-8",
     )

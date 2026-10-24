@@ -2,8 +2,9 @@
 
 A declarative pipeline for small machine learning models that run on microcontrollers.
 
-One YAML manifest per model declares the data, what goes into the model and what comes out, and the
-boards it must fit. The pipeline does the rest: architecture from a template, a fit check against
+One YAML manifest per model names the columns the model reads, each with a type, as in Ludwig; the
+column it answers; and the boards it must fit. Each type brings its preprocessing into the model,
+so a firmware passes raw values. The pipeline does the rest: architecture from a template, a fit check against
 the boards before training, training, int8 quantization, export with the model's interface
 contract, footprint analysis, emulated verification, hardware benchmark and, optionally,
 publication. The manifest asks only for what a stage uses: no compliance block, no description
@@ -25,8 +26,11 @@ architecture search. See `.specify/memory/constitution.md`.
 `render`, `build`, `train`, `quantize` and `export`, with `templates` and `boards` to list what is
 registered. Two templates, `mlp` and `conv1d`, and three boards, `s32k144`, `stm32h743` and `esp32`.
 `build` checks the model against the boards' flash and RAM before any training, and `export` writes
-an interface contract a firmware author binds by. 0.1.0 follows once the zoo's `pace-cnn` has been
-rebuilt with this candidate (`docs/releases/0.1.0.md` says what is in it and what is not).
+an interface contract a firmware author binds by. Since the candidate, `main` reads typed features
+in Ludwig's names (manifest `caravan/v0.2`, feature 008): one input per column, its preprocessing
+fitted on the training part and built into the model, and outputs of type `category`, `binary` or
+`number`. The candidate itself reads `caravan/v0.1`. 0.1.0 follows with typed features
+(`docs/releases/0.1.0.md` says what is in it and what is not).
 
 Not on the package index. Each version is installed from its GitHub release.
 
@@ -123,30 +127,34 @@ against. A stage result is reused when the fields that stage reads and the datas
 so tightening the quantization budget re-runs the quantization and never the training:
 
 ```text
-picket-mlp.yaml: trained — 26 of 50 epochs, stopped early at 26 (best: 21)
-    test, 12 windows, dataset sha256:8fac6d55c7e…  accuracy 0.667  f1_macro 0.581
-    build: reused the result of run 20261022T182748Z-b271d5b3
+picket-mlp.yaml: trained — 50 of 50 epochs (best: 50)
+    test, 12 windows, dataset sha256:8fac6d55c7e…  accuracy 1.000  f1_macro 1.000
+    build: reused the result of run 20261024T090718Z-f9e0adce
 ```
 
-A dataset is raw, record-level delimited text. The output names the column holding the class
-(`label` unless it says otherwise), and the class names are read from it, sorted, unless the
-manifest pins their order; the input reads every other column unless it names its own. Caravan does
-the windowing, and a window whose records disagree about the label is discarded and counted rather
-than labelled. The split is drawn by fractions, or, with `dataset.split: {column: split}`, named by
-the data record by record, so a subject or a recording never ends up on both sides. `specs/002-build-and-train/contracts/dataset.md` and
-`specs/006-declared-io/contracts/manifest.md` are the whole contract.
+A dataset is raw, record-level delimited text. Each column the model reads is an input feature
+with a type — `number`, `category` or `binary` — and the output feature names the column it answers;
+every other column is ignored, visibly. What a type learns from the data — a shift and a scale, a
+vocabulary, a label order — is fitted on the training part only and built into the model. Caravan
+does the windowing, and a window whose records disagree about the output is discarded and counted
+rather than labelled. The split is drawn at random or per class with Ludwig's `probabilities`, or,
+with `{type: fixed, column: split}`, named by the data record by record, so a subject or a
+recording never ends up on both sides. `specs/002-build-and-train/contracts/dataset.md` and
+`specs/008-typed-features/contracts/manifest.md` are the whole contract.
 
-`quantize` converts the trained model and then **judges** it: three accuracies on the test split —
-trained, converted, quantized — and the gate is the difference between the last two, because that
-difference is the loss from quantization and nothing else. Over the threshold and the run fails
-with no model written, and the per-layer error table says which layer lost the accuracy. Nothing
-can lower the threshold but an edit to the manifest.
+`quantize` converts the trained model and then **judges** it: three measurements on the test
+split — trained, converted, quantized — and the gate is the difference between the last two,
+because that difference is the loss from quantization and nothing else. It is accuracy for a
+`category` or `binary` output and the mean absolute error, in the column's unit, for a `number`.
+Over the budget and the run fails with no model written, and the per-layer error table says which
+layer lost it. Nothing can lower the budget but an edit to the manifest.
 
 ```text
-picket-mlp.yaml: quantized int8 — 15,664 bytes from 162,375 (model/quantized.tflite)
-    tensors: int32 9, int8 9 — fully integer, input int8 scale 8.015686
+picket-mlp.yaml: quantized int8 — 27,608 bytes from 269,434 (model/quantized.tflite)
+    tensors: bool 1, float32 6, int32 9, int8 41 — integer inside, raw values at the boundary; inputs b2 float32, can_id int32, b1 float32, dlc float32, b0 float32
     calibration: 56 of 500 requested, drawn from 56 available in the train split, seed 42
-      trained 0.667  converted 0.667  quantized 0.667
+    test, 12 windows, dataset sha256:8fac6d55c7e…
+      accuracy: trained 1.000  converted 1.000  quantized 1.000
       conversion cost 0.000  quantization cost 0.000  accepted 0.020  → pass
 ```
 
@@ -160,6 +168,11 @@ so its log is not evidence. `specs/003-quantize/contracts/gate.md` has the arith
 |---|---|---|
 | `mlp` | a decider over a window of samples, from hidden layer widths | `RESHAPE`, `FULLY_CONNECTED`, `SOFTMAX` |
 | `conv1d` | a convolutional decider over a window, from blocks of filters | `RESHAPE`, `CONV_2D`, `MAX_POOL_2D`, `FULLY_CONNECTED`, `SOFTMAX`, and `MEAN` with the reducing head |
+
+In front of the template sit the features' own layers: QUANTIZE, SUB and MUL for a `number`;
+EQUAL, CAST, RELU, SUM, SUB and CONCATENATION for a `category`, then a FULLY_CONNECTED for its
+embedding; CAST and RELU for a `binary`; CONCATENATION to join them; DEQUANTIZE at the output. Every
+one is an operator TFLite Micro has.
 
 A template is two files and a registration: a typed parameter half in the core, and a builder half
 behind the `train` extra. Adding one edits no central list.
@@ -178,39 +191,45 @@ export` records which, per board, with the source and the date of that claim.
 ## A manifest
 
 ```yaml
-apiVersion: caravan/v0.1
+apiVersion: caravan/v0.2
 model:
   name: picket-mlp
-  version: 0.1.0
+  version: 0.2.0
   template: mlp
   params:
     hidden: [32, 16]
     dropout: 0.1
-inputs:
-  - name: frames
-    kind: series
-    window: 64
-outputs:
-  - name: attack
-    kind: class
+input_features:
+  - name: can_id
+    type: category          # an identifier, not a magnitude
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
+output_features:
+  - name: label
+    type: category
     accuracy_drop_max: 0.02
-dataset:
-  source: datasets/car-hacking/
-  representative_samples: 500
+preprocessing:
+  window_size: 64
+  split: {type: stratify, column: label, probabilities: [0.7, 0.15, 0.15]}
+dataset: datasets/car-hacking/
 export:
   targets: [s32k144, stm32h743, esp32]
+  representative_samples: 500
 ```
 
-The output's kind says what the model does; its budget is stated, not defaulted, because a budget
-nobody wrote down is a budget nobody chose. The names `frames` and `attack` are what a firmware
-author binds by: the export writes them, with each tensor's position, shape, scale and zero point
-and the label order, into `model/interface.json` and the C header.
+The names are Ludwig's wherever Ludwig has the concept; `docs/manifest-changes.md` lists the few
+exceptions and why. The output's type says what the model does; its budget is stated, not
+defaulted, because a budget nobody wrote down is a budget nobody chose. The feature names are the
+columns, and what a firmware author binds by: the export writes each input's position, element type
+and shape, what was fitted for it and the label order into `model/interface.json` and the C header.
 
 Caravan carries no compliance layer. The rights to the data, and the use of a model trained on it,
 are the author's; Caravan neither asks about them nor claims to have checked them.
 
 Until Caravan 1.0.0 the manifest may change without migration. A manifest in another form, such as
-the previous `caravan/v0`, is refused with the version this build reads, and
+the previous `caravan/v0.1`, is refused with the version this build reads, and
 `docs/manifest-changes.md` says what to edit by hand.
 
 ## Where things are

@@ -45,7 +45,7 @@ def test_the_split_column_is_not_an_input(tmp_path) -> None:
     prepare(tmp_path)
     assert run(tmp_path, "build") == EXIT_OK
     schema = json.loads((latest_run(tmp_path / "runs") / "data" / "schema.json").read_text())
-    assert "split" not in schema["input_columns"]
+    assert "split" not in [feature["name"] for feature in schema["features"]]
     assert "split" not in schema["ignored_columns"]
     assert schema["split_column"] == "split"
 

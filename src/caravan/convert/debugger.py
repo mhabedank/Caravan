@@ -18,6 +18,7 @@ import io
 import math
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Sequence
 from typing import Any
 
 import tensorflow as tf
@@ -61,14 +62,25 @@ def _sort_key(row: LayerErrorRow) -> tuple[int, float]:
     return (0, -row.rmse_over_scale) if row.rmse_over_scale is not None else (1, 0.0)
 
 
-def layer_errors(model: Any, representative: Any) -> tuple[LayerErrorRow, ...]:
-    """Run the debugger and return its rows, worst first."""
+def layer_errors(
+    model: Any, representative: Any, order: Sequence[str] = ()
+) -> tuple[LayerErrorRow, ...]:
+    """Run the debugger and return its rows, worst first.
+
+    ``representative`` yields dicts keyed by input name (feature 008). The converter calibrates
+    from them by name; the debugger feeds its own model by position, so it is given the same
+    samples as lists in ``order`` — the converted model's input order, read from the file.
+    """
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.representative_dataset = representative
 
+    def by_position():
+        for sample in representative():
+            yield [sample[name] for name in order] if isinstance(sample, dict) else sample
+
     debugger = tf.lite.experimental.QuantizationDebugger(
-        converter=converter, debug_dataset=representative
+        converter=converter, debug_dataset=by_position
     )
     debugger.run()
 

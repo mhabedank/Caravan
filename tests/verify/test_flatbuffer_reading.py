@@ -61,3 +61,19 @@ def test_the_fully_connected_operator_is_found_with_its_version(int8_model) -> N
     assert by_name["FULLY_CONNECTED"].builtin_code == 9
     assert by_name["FULLY_CONNECTED"].version >= 1
     assert by_name["FULLY_CONNECTED"].nodes == 2
+
+
+def test_every_input_of_a_typed_model_is_bound_with_its_element_type(typed_model) -> None:
+    # Feature 008, T027: five inputs, each found through the signature with its position, element
+    # type and shape — never in the order the manifest gave them, which the converter does not keep.
+    from caravan.runtime.flatbuffer import read_bindings
+    from tests.verify.conftest import TYPED_INPUTS, TYPED_OUTPUT, TYPED_WINDOW
+
+    bindings = read_bindings(typed_model, inputs=list(TYPED_INPUTS), outputs=[TYPED_OUTPUT])
+    inputs = {binding.name: binding for binding in bindings if binding.role == "input"}
+    assert {name: binding.element_type for name, binding in inputs.items()} == TYPED_INPUTS
+    assert sorted(binding.position for binding in inputs.values()) == list(range(5))
+    assert all(binding.shape == (1, TYPED_WINDOW) for binding in inputs.values())
+    assert all(binding.scale is None for binding in inputs.values())
+    (output,) = (binding for binding in bindings if binding.role == "output")
+    assert output.element_type == "float32"

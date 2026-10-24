@@ -23,13 +23,20 @@ def _summary(name: str, run_dir: Path, _measured: dict[str, Any]) -> None:
     model, calibration, gate = record["model"], record["calibration"], record["gate"]
 
     counts = ", ".join(f"{dtype} {count}" for dtype, count in model["dtype_counts"].items())
-    integer = "fully integer" if model["fully_integer"] else "not fully integer"
+    integer = (
+        "integer inside, raw values at the boundary"
+        if model["fully_integer"]
+        else "not fully integer"
+    )
     print(
         f"{name}: quantized {model['setting']} — {model['size_bytes']:,} bytes from "
         f"{model['trained_size_bytes']:,} ({model['path']})",
         file=sys.stderr,
     )
-    kinds = ", ".join(f"{tensor['name']} {tensor['dtype']}" for tensor in model["inputs"])
+    kinds = ", ".join(
+        f"{tensor['name'].removeprefix('serving_default_').split(':')[0]} {tensor['dtype']}"
+        for tensor in model["inputs"]
+    )
     print(f"    tensors: {counts} — {integer}; inputs {kinds}", file=sys.stderr)
     requested = calibration["requested"]
     if requested is None:

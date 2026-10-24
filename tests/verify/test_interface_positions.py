@@ -51,3 +51,18 @@ def test_a_name_the_signature_does_not_carry_is_refused_by_name() -> None:
     assert finding.rule == RULE_DECLARED_NAME_NOT_IN_MODEL
     assert finding.found == "verdict"
     assert "attack" in finding.accepted
+
+
+def test_the_typed_models_positions_are_the_interpreters() -> None:
+    # Feature 008: the position the contract states is the index interpreter.input(i) takes.
+    from ai_edge_litert.interpreter import Interpreter
+
+    from tests.verify.conftest import TYPED_INPUTS, TYPED_OUTPUT
+
+    path = MODELS / "example-typed.tflite"
+    bindings = read_bindings(path, inputs=list(TYPED_INPUTS), outputs=[TYPED_OUTPUT])
+    details = Interpreter(model_path=str(path)).get_input_details()
+    for binding in bindings:
+        if binding.role == "input":
+            assert details[binding.position]["index"] == binding.tensor_index
+            assert details[binding.position]["dtype"].__name__ == TYPED_INPUTS[binding.name]

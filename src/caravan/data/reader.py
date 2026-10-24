@@ -329,10 +329,9 @@ def read_records(
 
     for path in dataset.files:
         header = _read_header(path)
-        columns = _check_header(path, header, features, output_name, split_column)
-        if first is None:
-            first = (path, header, columns)
-        elif header != first[1]:
+        # Two files that disagree are named together before either is checked on its own: either
+        # one could be the file that is wrong.
+        if first is not None and header != first[1]:
             first_path, first_header, _ = first
             differing = next(
                 (name for name, other in zip(header, first_header, strict=False) if name != other),
@@ -351,6 +350,9 @@ def read_records(
                 ),
                 found={path.name: header, first_path.name: first_header},
             )
+        columns = _check_header(path, header, features, output_name, split_column)
+        if first is None:
+            first = (path, header, columns)
         text_positions = [columns.positions[index] for index in texts]
         extra = [columns.label_index]
         if columns.split_index is not None:
