@@ -256,6 +256,36 @@ by-hand edit of the pilot.
 **Stays:** the templates' bodies (`mlp`, `conv1d`), the stage cache, the run directory, the gate's
 error table, the operator resolver and the kernel coverage.
 
+## R16. The pace-cnn port in the typed form (T038, SC-006)
+
+**Run** on 2026-10-24 with the working tree of `008-typed-features` (Python 3.13.16, TF 2.21.0,
+Keras 3.15.1, ai-edge-litert 2.3.0), on the UCI HAR archive the converter checks by hash
+(`c00b8030…`), converted to raw values; `ports/pace-cnn/pace-cnn.yaml` as committed, nine `number`
+features standardised inside the model.
+
+| Seed | Trained | Converted | int8 | Gate (budget 0.03) |
+|---|---|---|---|---|
+| 0 (the manifest's) | 0.9087 | 0.9087 | **0.9169** | pass (−0.0081) |
+| 1 | 0.9420 | — | 0.9335 | pass |
+| 2 | 0.9328 | — | 0.9308 | pass |
+| 3 | 0.9281 | — | 0.9270 | pass |
+
+All on the 2,947 test windows (resolution 0.0003), dataset
+`sha256:3b9edec3…`. The model file is 24,776 bytes with 11 distinct operators in 48 nodes
+(QUANTIZE, SUB, MUL, RESHAPE, CONCATENATION, CONV_2D, MAX_POOL_2D, MEAN, FULLY_CONNECTED, SOFTMAX,
+DEQUANTIZE), fully integer inside; working-memory floor 4,736 bytes. The whole export took 40 s.
+
+**SC-006 (≥ 0.918) is not met with the manifest's seed**: 0.9169 is 0.0011, three windows, short.
+The threshold came from one run of the release candidate with seed 0 (0.918, feature 007). Seeds 1
+to 3 give 0.927 to 0.933, all above it and above the zoo's published 0.923. The spread between
+seeds (0.917 to 0.934) is larger than the difference SC-006 asks about, so one seed cannot decide
+it; the seed in the manifest is not changed after the fact.
+
+**Size.** 24,776 bytes against 15,120 for the candidate's port, which read one standardised
+(128, 9) tensor. The 9,656 bytes are the nine inputs: each brings its own input tensor, QUANTIZE,
+SUB and MUL with their tensors and names. That is the price of raw values per
+channel; a later feature could offer a `vector` feature that takes several channels as one input.
+
 ## R15. Cash budget
 
 None. Local compute and the existing CI runners; no paid service, no key.

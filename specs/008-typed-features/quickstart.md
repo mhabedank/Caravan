@@ -1,6 +1,6 @@
 # Quickstart: validating typed features
 
-Figures marked *to be measured* are filled in from the actual run.
+Figures are from the runs of 2026-10-24 (Python 3.13.16, TF 2.21.0, ai-edge-litert 2.3.0).
 
 ## 1. The previous form is refused
 
@@ -30,8 +30,9 @@ caravan export examples/picket-mlp.yaml
 
 Expected:
 - the gate passes with derived labels;
-- the trained and quantized accuracies are *to be measured* (spike: 1.000 / 1.000);
-- the model size is *to be measured* (spike: 28,192 B);
+- trained 1.000, converted 1.000, quantized 1.000 on the 12 test windows (spike: 1.000 / 1.000);
+- the model is 27,608 B, 12 distinct operators in 32 nodes (spike: 28,192 B with the unknown slot
+  computed in float; the RELU anchor of research R3 keeps the one-hot in int8);
 - `data.ignored_columns` is empty, and `data.features` shows the fitted values from the training
   part.
 
@@ -73,5 +74,7 @@ python ports/pace-cnn/convert.py <archive> <out>        # writes raw values, no 
 caravan export ports/pace-cnn/pace-cnn.yaml
 ```
 
-Expected: int8 accuracy at least 0.918 on 2,947 test windows (*to be measured*), with
-standardisation done by the model.
+Expected: int8 accuracy at least 0.918 on 2,947 test windows, with standardisation done by the
+model. Measured: 0.9169 with the manifest's seed 0 (trained 0.9087), 0.927 to 0.933 with seeds 1
+to 3; 24,776 B. SC-006 is missed by three windows with seed 0 and met by every other seed tried
+(research R16).
