@@ -228,7 +228,8 @@ that `render` shows minmax on every number feature that does not override it.
     `most_common`;
   - index 0 MUST always be "unknown", for values cut by the cap or never seen;
   - an explicit `vocab` list MAY pin the vocabulary and its order;
-  - `encoder` MUST be `onehot` (default) or `dense` with an `embedding_size`.
+  - `encoder` MUST be `dense` (default, as in Ludwig: an embedding of `embedding_size`) or
+    `onehot`.
 - **FR-011**: `binary`: values MUST map to 0 and 1 with Ludwig's recognised spellings, and
   `fallback_true_label` for other spellings.
 - **FR-012**: Every fitted statistic MUST come from the training part only (not validation or test,
@@ -307,8 +308,9 @@ that `render` shows minmax on every number feature that does not override it.
 - **Defaults on a microcontroller.**
   - `most_common` defaults to 32, not Ludwig's 10,000, because every vocabulary entry costs a
     comparison and weights on the device.
-  - `embedding_size` defaults to `min(vocabulary size, 8)`, not 50.
-  - The research and the plan size both.
+  - `embedding_size` defaults to `min(vocabulary size, 4)`, not 50. The plan measured 4 against 8
+    and against one-hot on the pilot: same accuracy, 28 KB against 37 KB and 87 KB (plan research
+    R4).
 - **Out of scope:**
   - `set`, `bag`, `sequence`, `text`, `image`, `audio`, `date`, `h3` and `vector`: no device path,
     or no named model needs them (Principle X);
