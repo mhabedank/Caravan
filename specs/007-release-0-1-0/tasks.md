@@ -334,7 +334,9 @@ it against contracts/release.md.
 - [X] T032 Set the version to `0.1.0rc1` in `pyproject.toml` and `src/caravan/__init__.py`. Run
   ruff and the whole suite on 3.13 with both extras, on 3.15 without extras, on 3.14 with `verify`,
   and from a clean wheel (as in feature 006, T075). Commit and push, and see PR #12 green.
-- [ ] T033 Ask the owner to merge PR #12. After the merge, and only on the owner's go-ahead in the
+- [ ] T033 Ask the owner to merge PR #12 (merged 2026-10-24 as `be3c44a`). The tag push from the session
+  was refused by its proxy (HTTP 403), so `release.yml` gained a manual start that tags itself
+  (owner's choice). After the merge, and only on the owner's go-ahead in the
   conversation, tag `v0.1.0rc1` on `main` and push the tag. See `release.yml` green through
   **verify**. If any job fails, follow contracts/release.md: fix on `main`, then tag `rc2`; never
   move a tag.

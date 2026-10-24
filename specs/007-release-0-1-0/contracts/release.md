@@ -4,7 +4,10 @@
 
 1. On `main`, set the version to `0.1.0rcN` in `pyproject.toml` and `src/caravan/__init__.py`, in
    one commit. CI must be green.
-2. After the owner's go-ahead, tag `v0.1.0rcN` and push the tag.
+2. After the owner's go-ahead, either push the tag `v0.1.0rcN`, or start `release.yml` by hand on
+   `main` ("Run workflow", version `0.1.0rcN`). The manual start runs the checks first, then
+   creates the tag on that commit with the workflow's own token and carries on in the same run.
+   It was added on 2026-10-24, when a session's proxy refused to push the tag (HTTP 403).
 3. The workflow `release.yml` runs:
    - **check**: the tag equals the version; the full suite on 3.13 with both extras; the guide test;
    - **build**: wheel and sdist from the tag; `caravan --version` from a clean 3.13 install with

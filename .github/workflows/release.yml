@@ -1,15 +1,26 @@
 name: release
 
-# On a pushed tag v*: check that the tag is the version, build from the tag, check the built
-# package, publish a GitHub release with the wheel and the sdist, then run the try-it guide
-# literally against what was published (feature 007, contracts/release.md).
+# Two ways in, one sequence:
+#   - a pushed tag v*;
+#   - "Run workflow" on main with a version: the tag is created here, after the checks pass. A
+#     session that cannot push tags can still release (feature 007, contracts/release.md).
+# Then: check that the version is the package's, run the whole suite, tag (manual start only),
+# build and check the built package, publish a GitHub release with the wheel and the sdist, and run
+# the try-it guide literally against what was published.
 #
 # Nothing goes to the package index (owner decision, 2026-10-23), and no secret exists beyond this
-# workflow's own token. A failure before `release` publishes nothing; a tag is never moved.
+# workflow's own token. A failure before `tag` creates nothing, a failure before `release`
+# publishes nothing, and a tag is never moved.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to tag and release, without the v (e.g. 0.1.0rc1). Must equal pyproject.toml on main."
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -19,29 +30,65 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install 3.13
       - name: the tag is the version
         id: version
+        env:
+          REQUESTED: ${{ inputs.version }}
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "a release is started from main only, not from $GITHUB_REF"; exit 1
+            fi
+            version="${REQUESTED#v}"
+            if git ls-remote --exit-code --tags origin "refs/tags/v${version}" >/dev/null; then
+              echo "tag v${version} exists already; a tag is never moved"; exit 1
+            fi
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
           declared=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
           module=$(grep -m1 '^__version__ = ' src/caravan/__init__.py | cut -d'"' -f2)
-          echo "tag $tag, pyproject $declared, module $module"
-          if [ "$tag" != "$declared" ] || [ "$tag" != "$module" ]; then
-            echo "the tag does not match the version; nothing is published"; exit 1
+          echo "requested $version, pyproject $declared, module $module"
+          if [ "$version" != "$declared" ] || [ "$version" != "$module" ]; then
+            echo "the version does not match the package; nothing is tagged or published"; exit 1
           fi
-          echo "version=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
       - name: the whole suite, both extras, from the tag
         run: |
           uv venv --python 3.13 /tmp/train
           VIRTUAL_ENV=/tmp/train uv pip install -e ".[train,verify]" pytest packaging
           VIRTUAL_ENV=/tmp/train /tmp/train/bin/python -m pytest tests -q
 
-  build:
+  tag:
+    # Only for a manual start: the tag on the commit that was just checked. Pushed with this
+    # workflow's own token, which starts no further workflow, so this run carries on by itself.
     needs: check
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.check.outputs.tag }}
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: create and push the tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$GITHUB_SHA" -m "Caravan ${VERSION}"
+          git push origin "$TAG"
+
+  build:
+    needs: [check, tag]
+    # `tag` is skipped on a pushed tag; skipped is fine, failed is not.
+    if: always() && needs.check.result == 'success' && needs.tag.result != 'failure' && needs.tag.result != 'cancelled'
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.check.outputs.version }}
@@ -67,11 +114,13 @@ jobs:
 
   release:
     needs: [check, build]
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       VERSION: ${{ needs.check.outputs.version }}
+      TAG: ${{ needs.check.outputs.tag }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
@@ -84,7 +133,7 @@ jobs:
           base="${VERSION%%rc*}"
           flags=()
           case "$VERSION" in *rc*) flags+=(--prerelease) ;; esac
-          gh release create "$GITHUB_REF_NAME" dist/* \
+          gh release create "$TAG" dist/* --verify-tag \
             --title "Caravan ${VERSION}" \
             --notes-file "docs/releases/${base}.md" \
             "${flags[@]}"
@@ -92,6 +141,7 @@ jobs:
   verify:
     # A fresh runner, the guide as written, against the release just published (research R5).
     needs: [check, release]
+    if: always() && needs.release.result == 'success'
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.check.outputs.version }}
