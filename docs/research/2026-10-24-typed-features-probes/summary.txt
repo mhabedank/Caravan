@@ -1,0 +1,214 @@
+2.21.0 3.15.1
+
+## e1_normalization_layer | fix_batch: CHANGES OUTPUT (max abs diff 1056)
+  a: ok 2344B ops=['SUB', 'MUL', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:int8[np.int32(1), np.int32(5)] q=(8.822691, -127.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'MUL(int8,int8)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=3.42585 rel=0.7224 perlast=[1.2895, 3.4259, 1.8507]
+  b: ok 2512B ops=['QUANTIZE', 'SUB', 'MUL', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:float32[np.int32(1), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=2.08556 rel=0.4406 perlast=[1.3296, 2.0252, 2.0856]
+
+## e1_lambda_standardize | fix_batch: FAILED: ValueError: Requested the deserialization of a `Lambda` layer whose `function` is a Python lambda. This carries a potential risk of arbitrary code execution and thus it is disallowed by default. If you trust the source of the artifact, you can override this error by passing `safe_mode=False` to the 
+  a: ok 2096B ops=['SUB', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:int8[np.int32(1), np.int32(5)] q=(8.597118, -118.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=3.17619 rel=1.1437 perlast=[1.8639, 3.1762, 1.2985]
+  b: ok 2248B ops=['QUANTIZE', 'SUB', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:float32[np.int32(1), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=1.4719 rel=0.4879 perlast=[1.368, 1.4719, 1.1063]
+
+## e1_custom_standardize | fix_batch: ok (same outputs)
+  a: ok 2120B ops=['SUB', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:int8[np.int32(1), np.int32(5)] q=(8.597118, -118.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=2.62001 rel=0.6886 perlast=[1.0737, 2.62, 1.8536]
+  b: ok 2280B ops=['QUANTIZE', 'SUB', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:float32[np.int32(1), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=1.83147 rel=0.5291 perlast=[1.575, 1.786, 1.8315]
+
+## e1_rescaling | fix_batch: ok (same outputs)
+  a: ok 2280B ops=['MUL', 'ADD', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:int8[np.int32(1), np.int32(5)] q=(8.597118, -118.0)'] out=['0']
+     io=['ADD(int8,int8)->int8', 'FULLY_CONNECTED(int8,int8)->int8', 'MUL(int8,int8)->int8']
+     inf=ok maxerr=3.66052 rel=0.962 perlast=[1.5317, 3.6605, 2.7566]
+  b: ok 2440B ops=['QUANTIZE', 'MUL', 'ADD', 'FULLY_CONNECTED', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_x:0:float32[np.int32(1), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['ADD(int8,int8)->int8', 'FULLY_CONNECTED(int8,int8)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8']
+     inf=ok maxerr=2.40169 rel=0.6938 perlast=[0.7928, 2.4017, 1.8121]
+
+## e1_normalization_only | fix_batch: CHANGES OUTPUT (max abs diff 1869)
+  a: ok 1424B ops=['SUB', 'MUL']
+     notTFLM=[] in=['serving_default_x:0:int8[np.int32(1), np.int32(5)] q=(8.822691, -127.0)'] out=['0']
+     io=['MUL(int8,int8)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=3.43132 rel=0.718 perlast=[2.3011, 3.4313, 1.4816, 2.0554, 1.0869]
+  b: ok 1576B ops=['QUANTIZE', 'SUB', 'MUL']
+     notTFLM=[] in=['serving_default_x:0:float32[np.int32(1), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=3.48653 rel=0.6233 perlast=[2.1502, 3.4865, 2.2451, 1.9209, 1.1333]
+
+## e1_normalization_only_same_scale | fix_batch: CHANGES OUTPUT (max abs diff 97.22)
+  a: ok 1424B ops=['SUB', 'MUL']
+     notTFLM=[] in=['serving_default_x:0:int8[np.int32(1), np.int32(5)] q=(0.47468, -111.0)'] out=['0']
+     io=['MUL(int8,int8)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=0.03264 rel=0.0068 perlast=[0.032, 0.0255, 0.0221, 0.0285, 0.0326]
+  b: ok 1576B ops=['QUANTIZE', 'SUB', 'MUL']
+     notTFLM=[] in=['serving_default_x:0:float32[np.int32(1), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=0.11916 rel=0.0213 perlast=[0.022, 0.1192, 0.0297, 0.0309, 0.0298]
+
+## e1_split_inputs_normalization_only | fix_batch: n/a (fix_batch handles only model.inputs[0])
+  a: ok 4960B ops=['SUB', 'MUL', 'SUB', 'MUL', 'SUB', 'MUL', 'SUB', 'MUL', 'SUB', 'MUL', 'CONCATENATION']
+     notTFLM=[] in=['serving_default_f2:0:int8[np.int32(1), np.int32(1)] q=(0.00093, -111.0)', 'serving_default_f0:0:int8[np.int32(1), np.int32(1)] q=(7.371981, -120.0)', 'serving_default_f4:0:int8[np.int32(1), np.int32(1)] q=(0.361434, -128.0)', 'serving_default_f3:0:int8[np.int32(1), np.int32(1)] q=(2.048681, -128.0)', 'serving_default_f1:0:int8[np.int32(1), np.int32(1)] q=(0.039136, -128.0)'] out=['0']
+     io=['CONCATENATION(int8,int8,int8,int8,int8)->int8', 'MUL(int8,int8)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=0.75146 rel=0.1371 perlast=[0.1407, 0.0178, 0.0224, 0.7515, 0.5529]
+  b: ok 5552B ops=['QUANTIZE', 'QUANTIZE', 'QUANTIZE', 'QUANTIZE', 'QUANTIZE', 'SUB', 'MUL', 'SUB', 'MUL', 'SUB', 'MUL', 'SUB', 'MUL', 'SUB', 'MUL', 'CONCATENATION']
+     notTFLM=[] in=['serving_default_f2:0:float32[np.int32(1), np.int32(1)] q=(0.0, 0.0)', 'serving_default_f0:0:float32[np.int32(1), np.int32(1)] q=(0.0, 0.0)', 'serving_default_f4:0:float32[np.int32(1), np.int32(1)] q=(0.0, 0.0)', 'serving_default_f3:0:float32[np.int32(1), np.int32(1)] q=(0.0, 0.0)', 'serving_default_f1:0:float32[np.int32(1), np.int32(1)] q=(0.0, 0.0)'] out=['0']
+     io=['CONCATENATION(int8,int8,int8,int8,int8)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'SUB(int8,int8)->int8']
+     inf=ok maxerr=0.88562 rel=0.158 perlast=[0.0247, 0.8856, 0.8374, 0.0236, 0.0191]
+
+## e2_integer_lookup | fix_batch: ok (same outputs)
+  a: FAILED ConverterError: Could not translate MLIR to FlatBuffer.<unknown>:0: error: loc(fused["HashTableV2:", "hash_table"]): 'tf.HashTableV2' op is neither a custom op nor a flex op | <unknown>:0: note: loc(fused["HashTableV2:", "hash_table"]): see current operation: %6 = "tf.HashTableV2"() <{container = "", key_dtype = i64, shared_name = "669", use_node_name_sharing = false, value_dtype = i64}> {device = ""} : () -> tensor<!tf_type.resource> | <unknown>:0: note: loc(fused["HashTableV2:", "hash_table"]): Error code: ERROR_NEEDS_FLEX_OPS | <unknown>:0: error: loc(callsite(fused["LookupTableFindV2:", "functional_1_1/integer_lookup_1_1/hash_table_Lookup/LookupTableFindV2@__inference_function_825"] at callsite(fused["StatefulPartitionedCall:", "StatefulPartitionedCall@__inference_signature_wrapper_856"] at fused["StatefulPartitionedCall:", "StatefulPartitionedCall_1"]))): 'tf.LookupTableFindV2' op i
+  b: FAILED ConverterError: Could not translate MLIR to FlatBuffer.<unknown>:0: error: loc(fused["HashTableV2:", "hash_table"]): 'tf.HashTableV2' op is neither a custom op nor a flex op | <unknown>:0: note: loc(fused["HashTableV2:", "hash_table"]): see current operation: %6 = "tf.HashTableV2"() <{container = "", key_dtype = i64, shared_name = "669", use_node_name_sharing = false, value_dtype = i64}> {device = ""} : () -> tensor<!tf_type.resource> | <unknown>:0: note: loc(fused["HashTableV2:", "hash_table"]): Error code: ERROR_NEEDS_FLEX_OPS | <unknown>:0: error: loc(callsite(fused["LookupTableFindV2:", "functional_1_1/integer_lookup_1_1/hash_table_Lookup/LookupTableFindV2@__inference_function_1375"] at callsite(fused["StatefulPartitionedCall:", "StatefulPartitionedCall@__inference_signature_wrapper_1406"] at fused["StatefulPartitionedCall:", "StatefulPartitionedCall_1"]))): 'tf.LookupTableFindV2' op
+  c: FAILED ConverterError: Could not translate MLIR to FlatBuffer.<unknown>:0: error: loc(fused["HashTableV2:", "hash_table"]): 'tf.HashTableV2' op is neither a custom op nor a flex op | <unknown>:0: note: loc(fused["HashTableV2:", "hash_table"]): see current operation: %6 = "tf.HashTableV2"() <{container = "", key_dtype = i64, shared_name = "669", use_node_name_sharing = false, value_dtype = i64}> {device = ""} : () -> tensor<!tf_type.resource> | <unknown>:0: note: loc(fused["HashTableV2:", "hash_table"]): Error code: ERROR_NEEDS_FLEX_OPS | <unknown>:0: error: loc(callsite(fused["LookupTableFindV2:", "functional_1_1/integer_lookup_1_1/hash_table_Lookup/LookupTableFindV2@__inference_function_1925"] at callsite(fused["StatefulPartitionedCall:", "StatefulPartitionedCall@__inference_signature_wrapper_1956"] at fused["StatefulPartitionedCall:", "StatefulPartitionedCall_1"]))): 'tf.LookupTableFindV2' op
+  cf: ok 4420B ops=['CALL_ONCE', 'FlexHashTableV2', 'CAST', 'FlexLookupTableFindV2', 'LESS', 'ADD', 'SELECT_V2', 'GATHER', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=['FlexHashTableV2', 'FlexLookupTableFindV2'] in=['serving_default_ids:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['ADD(int64,int64)->int64', 'CALL_ONCE()->', 'CAST(int32)->int64', 'FULLY_CONNECTED(float32,float32)->float32', 'FlexHashTableV2()->object', 'FlexLookupTableFindV2(object,int64,int64)->int64', 'GATHER(float32,int64)->float32', 'LESS(int64,int64)->bool', 'RESHAPE(float32,int32)->float32', 'SELECT_V2(bool,int64,int64)->int64']
+     inf=FAILED: RuntimeError: Select TensorFlow op(s), included in the given model, is(are) not supported by this interpreter. Make sure you apply/link the Flex delegate before inference. For the Android, it can be resolved by adding "org.tensorflow:tensorflow-lite-select-tf-ops" dependency. See instructions: https://www.tensorflow.org/lite/guide/ops_selectNode number 1 (FlexHashTableV2) failed to prepare. maxerr=None rel=None perlast=None
+
+## e2_string_lookup | fix_batch: None
+   crashed process exit code -11
+   last_step ['MODE a converting']
+
+## e2_compare_onehot_int32 | fix_batch: ok (same outputs)
+  a: ok 3872B ops=['RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'FULLY_CONNECTED', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_ids:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.0161 rel=0.0052 perlast=[0.0108, 0.0161, 0.013]
+  b: ok 3872B ops=['RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'FULLY_CONNECTED', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_ids:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.19313 rel=0.0694 perlast=[0.0104, 0.0116, 0.1931]
+
+## e2_compare_onehot_float | fix_batch: ok (same outputs)
+  a: ok 3960B ops=['RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'FULLY_CONNECTED', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_ids:0:int8[np.int32(1), np.int32(8)] q=(7.960784, -128.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int8,int8)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=2.0174 rel=0.6555 perlast=[1.8157, 1.8382, 2.0174]
+  b: ok 4064B ops=['QUANTIZE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'FULLY_CONNECTED', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_ids:0:float32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int8,int8)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=2.0301 rel=0.7299 perlast=[1.5123, 1.139, 2.0301]
+
+## e2_compare_onehot_only_int32 | fix_batch: ok (same outputs)
+  a: ok 2720B ops=['RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE']
+     notTFLM=[] in=['serving_default_ids:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.0 rel=0.0 perlast=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  b: ok 2720B ops=['RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE']
+     notTFLM=[] in=['serving_default_ids:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.0 rel=0.0 perlast=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+## e2_compare_onehot_only_float | fix_batch: ok (same outputs)
+  a: ok 2800B ops=['RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE']
+     notTFLM=[] in=['serving_default_ids:0:int8[np.int32(1), np.int32(8)] q=(7.960784, -128.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int8,int8)->bool', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=1.0 rel=1.0 perlast=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  b: ok 2896B ops=['QUANTIZE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE']
+     notTFLM=[] in=['serving_default_ids:0:float32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'DEQUANTIZE(int8)->float32', 'EQUAL(int8,int8)->bool', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=1.0 rel=1.0 perlast=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+## e2_compare_onehot_noOOV_only_int32 | fix_batch: ok (same outputs)
+  a: ok 1544B ops=['RESHAPE', 'EQUAL', 'CAST', 'QUANTIZE']
+     notTFLM=[] in=['serving_default_ids:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'EQUAL(int32,int32)->bool', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32']
+     inf=ok maxerr=0.0 rel=0.0 perlast=[0.0, 0.0, 0.0, 0.0, 0.0]
+  b: ok 1544B ops=['RESHAPE', 'EQUAL', 'CAST', 'QUANTIZE']
+     notTFLM=[] in=['serving_default_ids:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'EQUAL(int32,int32)->bool', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32']
+     inf=ok maxerr=0.0 rel=0.0 perlast=[0.0, 0.0, 0.0, 0.0, 0.0]
+
+## e3_category_encoding | fix_batch: ok (same outputs)
+  a: ok 2608B ops=['CAST', 'QUANTIZE', 'RESHAPE', 'DEQUANTIZE', 'CAST', 'ONE_HOT', 'FULLY_CONNECTED']
+     notTFLM=['ONE_HOT'] in=['serving_default_idx:0:int32[np.int32(1), np.int32(1)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(float32)->int64', 'CAST(int32)->float32', 'DEQUANTIZE(int8)->float32', 'FULLY_CONNECTED(int8,int8)->int8', 'ONE_HOT(int64,int32,int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8']
+     inf=ok maxerr=1.17828 rel=0.7456 perlast=[1.1783, 0.5147, 0.3974]
+  b: ok 2608B ops=['CAST', 'QUANTIZE', 'RESHAPE', 'DEQUANTIZE', 'CAST', 'ONE_HOT', 'FULLY_CONNECTED']
+     notTFLM=['ONE_HOT'] in=['serving_default_idx:0:int32[np.int32(1), np.int32(1)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(float32)->int64', 'CAST(int32)->float32', 'DEQUANTIZE(int8)->float32', 'FULLY_CONNECTED(int8,int8)->int8', 'ONE_HOT(int64,int32,int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8']
+     inf=ok maxerr=1.17828 rel=0.7456 perlast=[1.1783, 0.5147, 0.3974]
+
+## e3_category_encoding_only | fix_batch: ok (same outputs)
+  a: ok 2192B ops=['CAST', 'QUANTIZE', 'RESHAPE', 'DEQUANTIZE', 'CAST', 'ONE_HOT']
+     notTFLM=['ONE_HOT'] in=['serving_default_idx:0:int32[np.int32(1), np.int32(1)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(float32)->int64', 'CAST(int32)->float32', 'DEQUANTIZE(int8)->float32', 'ONE_HOT(int64,int32,int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8']
+     inf=ok maxerr=0.50196 rel=0.502 perlast=[0.502, 0.502, 0.502, 0.502, 0.502, 0.502]
+  b: ok 2192B ops=['CAST', 'QUANTIZE', 'RESHAPE', 'DEQUANTIZE', 'CAST', 'ONE_HOT']
+     notTFLM=['ONE_HOT'] in=['serving_default_idx:0:int32[np.int32(1), np.int32(1)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(float32)->int64', 'CAST(int32)->float32', 'DEQUANTIZE(int8)->float32', 'ONE_HOT(int64,int32,int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8']
+     inf=ok maxerr=0.50196 rel=0.502 perlast=[0.502, 0.502, 0.502, 0.502, 0.502, 0.502]
+
+## e3_embedding | fix_batch: ok (same outputs)
+  a: ok 2480B ops=['LESS', 'ADD', 'SELECT', 'GATHER', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=['SELECT'] in=['serving_default_idx:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['ADD(int32,int32)->int32', 'FULLY_CONNECTED(int8,int8)->int8', 'GATHER(int8,int32)->int8', 'LESS(int32,int32)->bool', 'RESHAPE(int8,int32)->int8', 'SELECT(bool,int32,int32)->int32']
+     inf=ok maxerr=0.00761 rel=0.0431 perlast=[0.0076, 0.0006, 0.0007]
+  b: ok 2480B ops=['LESS', 'ADD', 'SELECT', 'GATHER', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=['SELECT'] in=['serving_default_idx:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['ADD(int32,int32)->int32', 'FULLY_CONNECTED(int8,int8)->int8', 'GATHER(int8,int32)->int8', 'LESS(int32,int32)->bool', 'RESHAPE(int8,int32)->int8', 'SELECT(bool,int32,int32)->int32']
+     inf=ok maxerr=0.00073 rel=0.0045 perlast=[0.0007, 0.0007, 0.0006]
+
+## e3_embedding_tf_gather | fix_batch: ok (same outputs)
+  a: ok 1880B ops=['GATHER', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_idx:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'GATHER(int8,int32)->int8', 'RESHAPE(int8,int32)->int8']
+     inf=ok maxerr=0.00761 rel=0.0431 perlast=[0.0076, 0.0006, 0.0007]
+  b: ok 1880B ops=['GATHER', 'RESHAPE', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_idx:0:int32[np.int32(1), np.int32(8)] q=(0.0, 0.0)'] out=['0']
+     io=['FULLY_CONNECTED(int8,int8)->int8', 'GATHER(int8,int32)->int8', 'RESHAPE(int8,int32)->int8']
+     inf=ok maxerr=0.00073 rel=0.0045 perlast=[0.0007, 0.0007, 0.0006]
+
+## e4_window_float32 | fix_batch: FAILED: ValueError: Requested the deserialization of a `Lambda` layer whose `function` is a Python lambda. This carries a potential risk of arbitrary code execution and thus it is disallowed by default. If you trust the source of the artifact, you can override this error by passing `safe_mode=False` to the 
+  a: ok 7080B ops=['STRIDED_SLICE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'STRIDED_SLICE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_window:0:int8[np.int32(1), np.int32(64), np.int32(5)] q=(12.095985, -93.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int8,int8)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8', 'STRIDED_SLICE(int8,int32,int32,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.37999 rel=0.9764 perlast=[0.2796, 0.2922, 0.38]
+  b: ok 7160B ops=['QUANTIZE', 'STRIDED_SLICE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'STRIDED_SLICE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_window:0:float32[np.int32(1), np.int32(64), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int8,int8)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int8,int32)->int8', 'STRIDED_SLICE(int8,int32,int32,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.42066 rel=1.0043 perlast=[0.2402, 0.4172, 0.4207]
+
+## e4_window_int32 | fix_batch: FAILED: ValueError: Requested the deserialization of a `Lambda` layer whose `function` is a Python lambda. This carries a potential risk of arbitrary code execution and thus it is disallowed by default. If you trust the source of the artifact, you can override this error by passing `safe_mode=False` to the 
+  a: ok 7200B ops=['STRIDED_SLICE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'STRIDED_SLICE', 'CAST', 'QUANTIZE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_window:0:int32[np.int32(1), np.int32(64), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CAST(int32)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'STRIDED_SLICE(int32,int32,int32,int32)->int32', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.39795 rel=0.7377 perlast=[0.2512, 0.1246, 0.398]
+  b: ok 7200B ops=['STRIDED_SLICE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'STRIDED_SLICE', 'CAST', 'QUANTIZE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_window:0:int32[np.int32(1), np.int32(64), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CAST(int32)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'STRIDED_SLICE(int32,int32,int32,int32)->int32', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.2649 rel=0.5879 perlast=[0.2608, 0.0723, 0.2649]
+
+## e4_window_int32_same_scale | fix_batch: FAILED: ValueError: Requested the deserialization of a `Lambda` layer whose `function` is a Python lambda. This carries a potential risk of arbitrary code execution and thus it is disallowed by default. If you trust the source of the artifact, you can override this error by passing `safe_mode=False` to the 
+  a: ok 7200B ops=['STRIDED_SLICE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'STRIDED_SLICE', 'CAST', 'QUANTIZE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_window:0:int32[np.int32(1), np.int32(64), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CAST(int32)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'STRIDED_SLICE(int32,int32,int32,int32)->int32', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.00523 rel=0.0135 perlast=[0.0051, 0.0036, 0.0052]
+  b: ok 7200B ops=['STRIDED_SLICE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'STRIDED_SLICE', 'CAST', 'QUANTIZE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_window:0:int32[np.int32(1), np.int32(64), np.int32(5)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CAST(int32)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'STRIDED_SLICE(int32,int32,int32,int32)->int32', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.02717 rel=0.0647 perlast=[0.0272, 0.0192, 0.0101]
+
+## e5_two_inputs | fix_batch: n/a (fix_batch handles only model.inputs[0])
+  a: ok 6256B ops=['RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_a_numeric:0:int8[np.int32(1), np.int32(64), np.int32(4)] q=(11.033151, -88.0)', 'serving_default_b_can_id:0:int32[np.int32(1), np.int32(64)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.44214 rel=1.0216 perlast=[0.2115, 0.4052, 0.4421]
+  b: ok 6360B ops=['QUANTIZE', 'RESHAPE', 'EQUAL', 'CAST', 'SUM', 'QUANTIZE', 'SUB', 'DEQUANTIZE', 'CONCATENATION', 'QUANTIZE', 'SUB', 'MUL', 'CONCATENATION', 'RESHAPE', 'CONV_2D', 'RESHAPE', 'MEAN', 'FULLY_CONNECTED']
+     notTFLM=[] in=['serving_default_a_numeric:0:float32[np.int32(1), np.int32(64), np.int32(4)] q=(0.0, 0.0)', 'serving_default_b_can_id:0:int32[np.int32(1), np.int32(64)] q=(0.0, 0.0)'] out=['0']
+     io=['CAST(bool)->float32', 'CONCATENATION(float32,float32)->float32', 'CONCATENATION(int8,int8)->int8', 'CONV_2D(int8,int8,int32)->int8', 'DEQUANTIZE(int8)->float32', 'EQUAL(int32,int32)->bool', 'FULLY_CONNECTED(int8,int8)->int8', 'MEAN(int8,int32)->int8', 'MUL(int8,int8)->int8', 'QUANTIZE(float32)->int8', 'RESHAPE(int32,int32)->int32', 'RESHAPE(int8,int32)->int8', 'SUB(int8,int8)->int8', 'SUM(float32,int32)->float32']
+     inf=ok maxerr=0.46586 rel=1.0112 perlast=[0.2298, 0.3372, 0.4659]
