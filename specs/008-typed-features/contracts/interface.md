@@ -2,15 +2,19 @@
 
 ## `model/interface.json`
 
+The values below illustrate the shape. The real ones come from a run (quickstart §3).
+
 ```json
 {
   "model": {"name": "picket-mlp", "version": "0.2.0"},
   "window_size": 64,
   "inputs": [
     {"name": "can_id", "type": "category", "position": 1, "dtype": "int32", "shape": [1, 64],
-     "vocab": [291, 608, 790, 1072, 0, 1073],
+     "fitted": {"vocab": [291, 608, 790, 1072, 0, 1073], "cut": 0, "unknown_index": 0},
+     "encoder": {"type": "dense", "embedding_size": 4},
      "text_codes": null, "missing": 0},
     {"name": "dlc", "type": "number", "position": 3, "dtype": "float32", "shape": [1, 64],
+     "fitted": {"normalization": "zscore", "shift": 7.12, "scale": 1.89},
      "missing": 0.0}
   ],
   "output": {"name": "label", "type": "category", "position": 0, "dtype": "float32",
@@ -27,6 +31,9 @@
 - **`text_codes`**: for a `category` or `binary` column whose values in the data are text, the
   table text → int32 code that the firmware passes. `null` when the values are already integers.
 - **`missing`**: the value to pass when a reading is absent (the fitted fill value).
+- **`fitted`**: everything learned from the training part (FR-012). It is applied inside the model;
+  it is here so that a reader can see what the model does to a raw value, not for the firmware to
+  repeat.
 - **`output.dtype`** is float32 (DEQUANTIZE inside the model). The `decision` is:
   - `argmax` for `category`;
   - `threshold: 0.5` for `binary`;

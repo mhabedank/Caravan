@@ -200,7 +200,7 @@ that `render` shows minmax on every number feature that does not override it.
   (the number of consecutive rows per sample, windows never overlapping, as today). The split MUST
   be declared as Ludwig declares it: `preprocessing.split` with `type` `random`, `stratify` or
   `fixed`, `probabilities` for the first two and `column` for the latter two. The fixed split MUST
-  read the column's values as Ludwig does.
+  read Ludwig's values `0`, `1`, `2`, and also the words `train`, `validation`, `test`.
 - **FR-006**: A `defaults` section keyed by type MUST set preprocessing defaults for all features of
   that type, overridable per feature.
 - **FR-007**: The schema version MUST change, and a manifest in the previous form MUST be refused
@@ -319,6 +319,9 @@ that `render` shows minmax on every number feature that does not override it.
   - overlapping windows;
   - several output features;
   - output calibration.
+- **Derived labels are ordered by frequency** in the training part, Ludwig's order, no longer
+  alphabetically as in feature 006. A model that relied on the old order pins
+  `preprocessing.vocab`. The change note says so.
 - **Two deliberate differences from Ludwig:**
   - statistics come from the training part only;
   - index 0 of a category is always "unknown".

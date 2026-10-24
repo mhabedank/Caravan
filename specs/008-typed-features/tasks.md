@@ -5,7 +5,7 @@
 **Tests**: requested by the constitution's workflow gates. Tests come before their implementation.
 
 **Cost rule (constitution 4.1.0)**: commit and push to `008-typed-features` without a PR. One PR when
-every task is done and the local validation (T049) is green.
+every task is done and the local validation (T050) is green.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -99,9 +99,19 @@ every task is done and the local validation (T049) is green.
   - keep `tests/fixtures/manifests/invalid/v-1-previous-version.yaml` as a `v0.1` manifest.
 
   Update `tests/support.py` constants and `tests/contract/test_example_matches_fixture.py`.
-- [ ] T010 [US1] Update every core test that reads manifest paths (`render`, `validate`, cache-key
-  projection, every-field-is-read, rule coverage) to the `v0.2` paths. Then run
-  `pytest tests/unit tests/contract tests/integration tests/layering` green.
+- [ ] T010 [US1] Bring the core tests built on the `v0.1` declaration form to `v0.2`:
+  - **Delete** `tests/unit/test_io_declarations.py`, which T002 replaces.
+  - **Rewrite to `v0.2` paths:**
+    - `tests/unit/test_resolve_v01.py` (renamed `test_resolve_v02.py`, `merge_fitted` instead of
+      `merge_derived`);
+    - `tests/unit/test_projection_index.py`, `tests/unit/test_cache_key_projection.py`,
+      `tests/unit/test_every_field_is_read.py`, `tests/unit/test_errors.py`,
+      `tests/unit/test_windows.py`, `tests/unit/test_fixed_split.py`;
+    - `tests/contract/test_conv1d_manifest.py`, `tests/integration/test_validate.py`,
+      `tests/layering/test_hostile_import.py`.
+
+  Then run `pytest tests/unit tests/contract tests/integration tests/layering` green. The train
+  tests built on the `v0.1` form are rewritten where their stage changes: T018, T021 and T023.
 
 **Checkpoint**: the core suites green on 3.13 and 3.15 without extras.
 
@@ -148,8 +158,15 @@ int8 with derived labels.
     - an unseen code lands in slot 0;
     - `Standardize` matches `(x − shift) / scale` within the int8 step.
   - **Serialisation:** all three survive `keras.models.load_model` and `fix_batch` (registered,
-    constructor arguments, no `Lambda`).
-- [ ] T014 [P] [US2] Write `tests/train/test_typed_pilot.py` for `examples/picket-mlp.yaml`, with
+    constructor arguments, no `Lambda`). Extend `tests/train/test_batch_fix.py` for a five-input
+  model with mixed dtypes.
+- [ ] T014 [P] [US2] Extend `tests/unit/test_cache_key_projection.py` (FR-019, Principle III):
+  - a change of the fitted values merged into the resolved manifest (a vocabulary entry, a shift)
+    changes the keys of `build`, `train` and `quantize`, but not of `data`;
+  - a change of `output_features[0].accuracy_drop_max` or `mae_increase_max` changes only
+    `quantize` and `export`, never `build` or `train`;
+  - a change of `random_seed` re-runs `data`, because the split moves.
+- [ ] T015 [P] [US2] Write `tests/train/test_typed_pilot.py` for `examples/picket-mlp.yaml`, with
   labels derived and nothing pinned:
   - **SC-003:** `caravan export` passes the int8 gate;
   - **SC-004:** feeding the exported model the raw CSV values of each test window by input name
@@ -158,16 +175,16 @@ int8 with derived labels.
 
 ### Implementation
 
-- [ ] T015 [US2] Write `src/caravan/data/fit.py` (core, standard library) per `data-model.md`,
+- [ ] T016 [US2] Write `src/caravan/data/fit.py` (core, standard library) per `data-model.md`,
   *Fitted preprocessing*. Make T012 pass.
-- [ ] T016 [US2] Rewrite `src/caravan/data/reader.py` to read typed columns:
+- [ ] T017 [US2] Rewrite `src/caravan/data/reader.py` to read typed columns:
   - `number` as float32, with missing cells filled per strategy;
   - `category` and `binary` as the raw value, kept as text until mapped by the fitted tables;
   - the output column per its type;
   - the split column as today, accepting `0/1/2` and `train/validation/test` (research R8);
   - columns no feature reads are returned as `ignored`;
   - DS-12 for a named column the data lacks.
-- [ ] T017 [US2] Rewrite `src/caravan/stages/data.py`:
+- [ ] T018 [US2] Rewrite `src/caravan/stages/data.py`:
   - reads `input_features`, `output_features[0].name`, `output_features[0].type`,
     `output_features[0].preprocessing`, `preprocessing.window_size`, `preprocessing.split` and
     `random_seed`;
@@ -175,8 +192,10 @@ int8 with derived labels.
   - writes `data/schema.json` and `data/preprocessing.json`.
 
   Make `src/caravan/cli/pipeline.py` call `merge_fitted`, so every later stage's key includes the
-  fitted values.
-- [ ] T018 [US2] Write `src/caravan/templates/builders/preprocessing.py` (train extra) with
+  fitted values. Rewrite `tests/train/test_data_stage.py` and `tests/train/test_declared_io_end_to_end.py`
+  for the typed form; the latter is renamed `test_typed_end_to_end.py`, with the same assertion that
+  derived and pinned vocabularies give the same samples and split.
+- [ ] T019 [US2] Write `src/caravan/templates/builders/preprocessing.py` (train extra) with
   registered layers:
   - `Standardize(shift, scale)`;
   - `VocabularyOneHot(vocab)`: int32 compare, unknown slot at index 0;
@@ -184,33 +203,35 @@ int8 with derived labels.
   - `DenseEncoder(embedding_size)`: `Dense` without bias on the last axis.
 
   Add the module to the layering tests' extra-only list. Make T013 pass.
-- [ ] T019 [US2] Write `src/caravan/templates/builders/frontend.py`. It builds one `keras.Input` per
+- [ ] T020 [US2] Write `src/caravan/templates/builders/frontend.py`. It builds one `keras.Input` per
   input feature, with shape `(window_size,)` and dtype float32 for `number` and int32 otherwise,
-  named after the feature. Then the layer of T018 and the encoder, concatenated to
+  named after the feature. Then the layer of T019 and the encoder, concatenated to
   `(window_size, channels)` and fed to the template body. Rewrite `rewire` and `construct` in
   `src/caravan/stages/build.py` to use it, with the head per output type (`data-model.md`, *Model
   inputs and outputs*). The `build` reads become `input_features`, `output_features[0].name`,
   `output_features[0].type`, `output_features[0].preprocessing`, `preprocessing.window_size`,
-  `model.*` and `random_seed`.
-- [ ] T020 [US2] Rewrite `src/caravan/data/reader_bridge.py` `assemble_samples` to return a dict of
+  `model.*` and `random_seed`. Rewrite `tests/train/test_rewire_names.py` and
+  `tests/train/test_conv1d_build.py` for several named inputs.
+- [ ] T021 [US2] Rewrite `src/caravan/data/reader_bridge.py` `assemble_samples` to return a dict of
   per-feature window arrays keyed by feature name (codes mapped by the fitted tables), plus the
   targets. Update `src/caravan/stages/train.py` to train on the dict with the `category` loss. Its
   reads become `trainer.*`, `random_seed`, `preprocessing.*`, `input_features` and the output's
-  name/type/preprocessing/loss.
-- [ ] T021 [US2] Update `src/caravan/convert/batch.py` `fix_batch`: every input is rebuilt at batch
+  name/type/preprocessing/loss. Update `tests/train/conftest.py` (its manifest template) and
+  `tests/train/test_gate_failure.py` to `v0.2`.
+- [ ] T022 [US2] Update `src/caravan/convert/batch.py` `fix_batch`: every input is rebuilt at batch
   1 with its own dtype and name, and a model containing a `Lambda` is refused. Update
   `src/caravan/convert/tflite.py`:
   - the representative dataset yields dicts keyed by input name;
   - `inference_input_type` is unset;
   - outputs are float32.
-- [ ] T022 [US2] Update `src/caravan/stages/quantize.py` and `src/caravan/runtime/inspect.py`:
+- [ ] T023 [US2] Update `src/caravan/stages/quantize.py` and `src/caravan/runtime/inspect.py`:
   - **"fully quantized" means** every tensor int8 or int32 except the model's float32/int32 inputs
     (each followed by QUANTIZE for float) and its float32 outputs (after DEQUANTIZE) (research R5);
   - **measurement:** LiteRT is fed by input name;
   - **calibration:** a dict per window;
   - **the gate for `category`:** as today, read from `output_features[0].accuracy_drop_max`.
 
-  Make T014 pass.
+  Make T015 pass.
 
 **Checkpoint**: quickstart §3 and §4 hold. The full suite with the train extra is green, except the
 tests still written for the `v0.1` export (fixed in Phase 5).
@@ -225,7 +246,7 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 
 ### Tests
 
-- [ ] T023 [P] [US3] Write `tests/train/test_input_order.py`. Export the five-input pilot and
+- [ ] T024 [P] [US3] Write `tests/train/test_input_order.py`. Export the five-input pilot and
   assert:
   - the converted file's input order differs from the manifest's (as measured), and the test says
     so if it ever stops differing;
@@ -233,33 +254,42 @@ tests still written for the `v0.1` export (fixed in Phase 5).
     `[1, window_size]` and type;
   - feeding inputs by the contract's positions reproduces the trained model's classes on the test
     windows.
-- [ ] T024 [P] [US3] Extend `tests/unit/test_interface_emit.py`:
+- [ ] T025 [P] [US3] Extend `tests/unit/test_interface_emit.py`:
   - the header has one `#define <MODEL>_INPUT_<NAME> <position>` per input, with the element type
     in a comment;
+  - every input carries `fitted`: shift and scale for `number`; `vocab` and `cut` for `category`;
+    the spelling table for `binary` (FR-012);
   - text categories carry their `text_codes` table;
   - binary features carry their spelling table;
   - number features carry `missing`;
   - the output gives `decision`;
   - the JSON is deterministic.
-- [ ] T025 [P] [US3] Extend `tests/unit/test_skeleton.py`: the runner fills each input by its
+- [ ] T026 [P] [US3] Extend `tests/unit/test_skeleton.py`: the runner fills each input by its
   constant with raw values (`fill_int32` / `fill_float`) and contains no scale, zero point, mean or
   vocabulary.
 
 ### Implementation
 
-- [ ] T026 [US3] Update `src/caravan/runtime/flatbuffer.py` `read_bindings` to return every input's
+- [ ] T027 [US3] Update `src/caravan/runtime/flatbuffer.py` `read_bindings` to return every input's
   name, position, dtype and shape from the signature.
-- [ ] T027 [US3] Rewrite `src/caravan/export/interface.py` (`interface_document`,
-  `header_additions`, `source_additions`) to `contracts/interface.md`. Update
+  - **New fixture model:** add a five-input, mixed-dtype model to `tests/fixtures/models/make.py`
+    (float32 and int32 inputs, float32 output) and regenerate the committed fixture models.
+  - **Verify suite:** update it for several inputs: `tests/verify/test_flatbuffer_reading.py`,
+    `tests/verify/test_inspect.py`, `tests/verify/test_interface_positions.py` and
+    `tests/verify/test_measure.py`.
+  - **Check:** the `verify` suite runs on 3.14 with only the runtime extra (CI job `measure`).
+- [ ] T028 [US3] Rewrite `src/caravan/export/interface.py` (`interface_document`,
+  `header_additions`, `source_additions`) to `contracts/interface.md`. A `category` input's header
+  comment says the code is an integer, never a rounded number. Update
   `src/caravan/export/skeleton.py` and `src/caravan/export/c_array.py`. The `export` reads become
   `model.name`, `model.version`, `export.*`, `input_features`, the output's
   name/type/preprocessing/threshold, and `preprocessing.window_size`.
-- [ ] T028 [US3] Update the fit floors (`src/caravan/stages/fit.py` `layer_records`,
+- [ ] T029 [US3] Update the fit floors (`src/caravan/stages/fit.py` `layer_records`,
   `src/caravan/targets/fit.py`): flash counts the preprocessing constants and the embedding; RAM
   counts every input tensor at 4 bytes × window_size and the concatenated features (research R11).
   Update `tests/unit/test_fit_floors.py` with the arithmetic for a five-input model.
 
-**Checkpoint**: T023–T025 green; quickstart §5.
+**Checkpoint**: T024–T026 green; quickstart §5.
 
 ---
 
@@ -271,16 +301,16 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 
 ### Tests
 
-- [ ] T029 [P] [US1] Write `tests/unit/test_regression_metrics.py` for
+- [ ] T030 [P] [US1] Write `tests/unit/test_regression_metrics.py` for
   `src/caravan/metrics/regression.py` (core): MAE, MSE, RMSE and R² on hand-computed cases,
   including a constant target, where R² is undefined and reported as such.
-- [ ] T030 [P] [US1] Add `tests/support.py` helpers that derive test-time datasets from the
+- [ ] T031 [P] [US1] Add `tests/support.py` helpers that derive test-time datasets from the
   committed fixture, so that no new dataset is committed:
   - **`write_binary_dataset(dest)`**: the output `is_attack` is `no` for normal records and `yes`
     for the rest;
   - **`write_number_dataset(dest)`**: the output `payload_mean` is the mean of `b0..b2` over each
     window's records, written per record, so a window's records agree.
-- [ ] T031 [P] [US1] Write `tests/train/test_output_types.py`:
+- [ ] T032 [P] [US1] Write `tests/train/test_output_types.py`:
   - **binary:** trains, its gate uses accuracy, the export's contract says `threshold: 0.5`, and
     the header has the threshold;
   - **number:** trains with `mean_squared_error`, its gate uses the MAE increase in the column's
@@ -289,21 +319,21 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 
 ### Implementation
 
-- [ ] T032 [US1] Write `src/caravan/metrics/regression.py` (standard library). Make T029 pass.
-- [ ] T033 [US1] Add the `binary` and `number` heads to `src/caravan/templates/builders/frontend.py`:
+- [ ] T033 [US1] Write `src/caravan/metrics/regression.py` (standard library). Make T030 pass.
+- [ ] T034 [US1] Add the `binary` and `number` heads to `src/caravan/templates/builders/frontend.py`:
   - `binary`: sigmoid unit;
   - `number`: linear unit, then `Standardize`'s inverse when the output `normalization` is set, then
     MAXIMUM/MINIMUM for `clip`.
 
   In `src/caravan/stages/train.py`, add each type's loss (`binary_crossentropy` with
   `positive_class_weight`; MSE, MAE or Huber) and metrics.
-- [ ] T034 [US1] Add the gate per type in `src/caravan/stages/quantize.py`:
+- [ ] T035 [US1] Add the gate per type in `src/caravan/stages/quantize.py`:
   - `binary`: accuracy at `threshold`;
   - `number`: MAE trained against quantized, with `mae_increase_max`;
   - the report's `quantization.gate` gives `metric`, `trained`, `quantized`, `change`, `budget` and
     `verdict`.
 
-  Make T031 pass.
+  Make T032 pass.
 
 **Checkpoint**: quickstart §6.
 
@@ -311,14 +341,14 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 
 ## Phase 7: The port and the documents
 
-- [ ] T035 [P] Change `ports/pace-cnn/convert.py`:
+- [ ] T036 [P] Change `ports/pace-cnn/convert.py`:
   - it writes raw values (no standardisation) and the split as `train`/`validation`/`test`;
   - it keeps every hash check;
   - it detects the repository by a `pyproject.toml` naming `caravan-ml` above the script, not by
     `parents[2]`, so a copy outside the checkout works (the defect found on 2026-10-24).
 
   Add `tests/unit/test_port_convert.py` for that check; it needs no archive.
-- [ ] T036 [P] Rewrite `ports/pace-cnn/pace-cnn.yaml` in `v0.2`:
+- [ ] T037 [P] Rewrite `ports/pace-cnn/pace-cnn.yaml` in `v0.2`:
   - nine `number` input features;
   - `activity` as a `category` output with `accuracy_drop_max: 0.03`;
   - `preprocessing: {window_size: 128, split: {type: fixed, column: split}}`;
@@ -327,13 +357,18 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 
   Update `ports/pace-cnn/README.md`: the standardisation now happens in the model, and that row is
   removed from the difference table.
-- [ ] T037 Run the port with the working tree on the UCI HAR archive (as feature 007 R10). Record
+- [ ] T038 Run the port with the working tree on the UCI HAR archive (as feature 007 R10). The
+  archive lives only in a session's scratch directory. If it is gone, download it again from
+  <https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones>; the
+  converter checks its hash. Record
   int8 and float accuracy on the 2,947 test windows, model size and operators in
   `specs/008-typed-features/research.md` as R16. Check SC-006 (≥ 0.918).
-- [ ] T038 [P] Add a `caravan/v0.1 → caravan/v0.2` section to `docs/manifest-changes.md`: the table
+- [ ] T039 [P] Add a `caravan/v0.1 → caravan/v0.2` section to `docs/manifest-changes.md`: the table
   of research R1, the by-hand edit of the pilot, and every exception to Ludwig's naming with its
-  reason (SC-002).
-- [ ] T039 [P] Rewrite `docs/try-it.md` "Your own data" and "Run" for `v0.2`:
+  reason (SC-002). Also say that derived labels are now ordered by frequency in the training part
+  (Ludwig's order), no longer alphabetically, so a model that relied on the old order pins
+  `preprocessing.vocab`.
+- [ ] T040 [P] Rewrite `docs/try-it.md` "Your own data" and "Run" for `v0.2`:
   - how columns become features;
   - what each type does;
   - what is ignored;
@@ -341,28 +376,28 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 
   Rewrite the README's manifest example and status. `tests/train/test_try_it_guide.py` and
   `tests/integration/test_readme.py` keep passing.
-- [ ] T040 [P] Update `docs/releases/0.1.0.md`:
+- [ ] T041 [P] Update `docs/releases/0.1.0.md`:
   - the known limits lose "unscaled inputs" and "one input" and gain the model size of the typed
     pilot;
   - the change notes name `v0.2`.
 
   Update `docs/roadmap.md`: feature 008 under v0.1.
-- [ ] T041 [P] Mark the retired feature-006 terms in `specs/006-declared-io/` with one line at the
+- [ ] T042 [P] Mark the retired feature-006 terms in `specs/006-declared-io/` with one line at the
   top of `spec.md`: superseded by feature 008 for the declaration form.
 
 ---
 
 ## Phase 8: Validation
 
-- [ ] T042 Run `ruff check` and `ruff format --check`.
-- [ ] T043 Run the full suite on 3.13 with both extras.
-- [ ] T044 Run the core suites on 3.15 without extras.
-- [ ] T045 Run `tests/verify tests/unit tests/contract` on 3.14 with `verify`.
-- [ ] T046 Run the whole tree from a clean wheel on 3.14.
-- [ ] T047 Run `actionlint` on the workflows (unchanged, a guard).
-- [ ] T048 Run quickstart §1–§7 by hand and fill the figures marked *to be measured* in
+- [ ] T043 Run `ruff check` and `ruff format --check`.
+- [ ] T044 Run the full suite on 3.13 with both extras.
+- [ ] T045 Run the core suites on 3.15 without extras.
+- [ ] T046 Run `tests/verify tests/unit tests/contract` on 3.14 with `verify`.
+- [ ] T047 Run the whole tree from a clean wheel on 3.14.
+- [ ] T048 Run `actionlint` on the workflows (unchanged, a guard).
+- [ ] T049 Run quickstart §1–§7 by hand and fill the figures marked *to be measured* in
   `quickstart.md`.
-- [ ] T049 Push `008-typed-features`, open one PR (constitution 4.1.0), see CI green and report to
+- [ ] T050 Push `008-typed-features`, open one PR (constitution 4.1.0), see CI green and report to
   the owner. Merging and the release of `v0.1.0` (feature 007, T038–T043) follow on the owner's
   go-ahead.
 
@@ -377,26 +412,26 @@ tests still written for the `v0.1` export (fixed in Phase 5).
 - **US4, Phase 3:** T011 with T008.
 - **US2, Phase 4:**
   - needs Phase 2;
-  - T012–T014 before T015–T022;
-  - T015 → T016 → T017; T018 → T019 → T020 → T021 → T022.
+  - T012–T015 before T016–T023;
+  - T016 → T017 → T018; T019 → T020 → T021 → T022 → T023.
 - **US3, Phase 5:**
-  - needs T021, T022;
-  - T023–T025 before T026–T028.
+  - needs T022, T023;
+  - T024–T026 before T027–T029.
 - **Output types, Phase 6:**
-  - needs T019–T022;
-  - T029–T031 before T032–T034.
+  - needs T020–T023;
+  - T030–T032 before T033–T035.
 - **Phase 7:**
-  - T035, T036 and T038–T041 can start after Phase 2;
-  - T037 needs Phases 4–6.
+  - T036, T037 and T039–T042 can start after Phase 2;
+  - T038 needs Phases 4–6.
 - **Phase 8:** last.
 
 ## Parallel opportunities
 
 - T002, T003, T004.
-- T012, T013, T014.
-- T023, T024, T025.
-- T029, T030, T031.
-- T035, T036, T038, T039, T040, T041.
+- T012, T013, T014, T015.
+- T024, T025, T026.
+- T030, T031, T032.
+- T036, T037, T039, T040, T041, T042.
 
 ## Implementation Strategy
 
