@@ -394,7 +394,7 @@ FR-020).
   archive.ics.uci.edu. Record from the run report: float and int8 accuracy on the 2,947 test
   windows, the gate verdict, model size, operators, fit floors, and the wall time. Compare with
   `zoo/models/pace-cnn/results/0.1.0/quality.json` and `releases/0.1.0.yaml`.
-- [ ] T038 [US4] For every Caravan defect the port shows: write a failing test, fix on a branch, PR,
+- [X] T038 [US4] For every Caravan defect the port shows: write a failing test, fix on a branch, PR,
   CI green, merge. Then repeat T032–T033 with `rc2` and T037. Findings that are the model's, not
   Caravan's, go to the release note only (FR-015).
 
@@ -402,7 +402,7 @@ FR-020).
 
 ## Phase 9: The release
 
-- [ ] T039 Complete `docs/releases/0.1.0.md`:
+- [X] T039 Complete `docs/releases/0.1.0.md`:
   - the port's result from T037, with numbers and provenance labels, and the comparison with the
     published `pace-cnn` stated as a comparison;
   - the gate checklist with links to the green `release.yml` runs (R7).

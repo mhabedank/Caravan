@@ -262,3 +262,34 @@ a directory layout would tie the split to file paths and to the order files are 
 - *A split by group (a `subject` column, parts drawn at random by group).* Rejected for now: it is
   the more general tool, but `pace-cnn` needs the zoo's exact subjects to be comparable, which only
   a fixed split gives. It can come when a model needs it.
+
+## R10. A pre-run of the port, before the candidate (measured 2026-10-24)
+
+Run with the working tree that becomes `v0.1.0rc1` (version string `0.1.0rc1`, Python 3.13.16,
+TensorFlow 2.21.0), not yet from the released wheel. That run is T037 and replaces these figures
+in the release note.
+
+**Data.** `convert.py` reproduced the zoo's benchmark exactly: archive hash, and the subjects and
+data hashes of all three parts. That gave 10,299 windows, 1,318,272 records, and parts
+6,288 / 1,064 / 2,947, with no window discarded.
+
+**Run.** `caravan export` took 34 s wall time, 20 epochs, best epoch 16.
+
+| Figure | Port | Zoo `pace-cnn` 0.1.0 |
+|---|---|---|
+| test accuracy, trained (float) | 0.9162 | 0.9226 |
+| test accuracy, int8 | 0.9182 | 0.9230 |
+| test macro-F1, trained (float) | 0.9164 | 0.9224 |
+| int8 gate | pass, quantization cost −0.0020 against 0.03 | — |
+| weakest class | sitting, recall 0.692 (137 of 491 as standing) | sitting, F1 0.810 |
+| model file | 15,120 bytes, 6 operators in 10 nodes | 14,472 bytes |
+| esp32 kernels | 4 of 6 accelerated (MEAN, RESHAPE reference) | — |
+| fit floors | flash 6,888 B, RAM 3,200 B | — |
+
+The port's figures carry the run report's provenance: host, measured on the test split, dataset
+`sha256:79d3e4ee…`. The zoo's are its published host figures.
+
+**Result.** No Caravan defect. The fixed split, the converter's normalisation and a real
+nine-channel, six-class dataset went through every stage. The remaining gap of about 0.005 is
+within what the accepted differences of R8 predict: no learning-rate schedule, dropout placement
+and calibration sample.
