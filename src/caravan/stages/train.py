@@ -167,9 +167,7 @@ def stage(context: StageContext) -> StageFunction:
             seed=seed,
             labels=split_labels(output["type"], window_plan.labels),
         )
-        features, targets = assemble_samples(
-            records, window_plan, inputs["input_features"], output
-        )
+        features, targets = assemble_samples(records, window_plan, inputs["input_features"], output)
 
         # The build stage's artifacts are already in the run directory, whether this run
         # produced them or reused them from the cache.

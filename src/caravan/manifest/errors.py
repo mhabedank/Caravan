@@ -232,9 +232,7 @@ ALL_RULES: frozenset[str] = (
 #: the oldest known one, was retired by constitution 4.0.0: an undeclared version is now refused
 #: with V-1 (Principle IX). CF-10, which allowed exactly one input and one output, was retired by
 #: feature 008: several input features are allowed, and exactly one output is CF-17.
-RETIRED_RULES: frozenset[str] = frozenset(
-    {"CF-3", "CF-5", "CF-7", "CF-8", "CF-10", "DS-9", "V-2"}
-)
+RETIRED_RULES: frozenset[str] = frozenset({"CF-3", "CF-5", "CF-7", "CF-8", "CF-10", "DS-9", "V-2"})
 
 
 class RunRuleFailure(Exception):

@@ -89,7 +89,7 @@ def _boards(info: ValidationInfo) -> BoardRegistry:
 
 
 class TypeDefaults(BaseModel):
-    """What every input feature of one type gets unless it states its own (Ludwig's ``defaults``)."""
+    """What every input feature of one type gets unless it states its own (Ludwig's defaults)."""
 
     model_config = ConfigDict(extra="forbid")
 

@@ -63,9 +63,7 @@ class VocabularyOneHot(keras.layers.Layer):
 
     def call(self, inputs: Any) -> Any:
         table = keras.ops.convert_to_tensor(np.array(self.codes, dtype=np.int32))
-        hits = keras.ops.cast(
-            keras.ops.equal(keras.ops.expand_dims(inputs, -1), table), "float32"
-        )
+        hits = keras.ops.cast(keras.ops.equal(keras.ops.expand_dims(inputs, -1), table), "float32")
         # The identity on 0 and 1, and the point where the conversion quantizes (see above).
         hits = keras.ops.relu(hits)
         unknown = keras.ops.subtract(1.0, keras.ops.sum(hits, axis=-1, keepdims=True))

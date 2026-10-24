@@ -17,22 +17,19 @@ def test_the_resolved_manifest_has_no_implicit_values(tmp_path, capsys) -> None:
 
     # Every field of the schema appears, at every level (SC-007).
     assert set(data) == set(Manifest.model_fields)
-    assert data["train"]["seed"] == 42
-    assert data["dataset"]["split"] == {
-        "train": 0.7,
-        "val": 0.15,
-        "test": 0.15,
-        "stratified": True,
+    assert data["random_seed"] == 42
+    assert data["preprocessing"]["split"] == {
+        "type": "random",
+        "probabilities": [0.7, 0.15, 0.15],
         "column": None,
     }
     assert data["export"]["formats"] == ["flatbuffer", "c_array"]
     assert data["export"]["quantization"] == "int8"
     # The template's own default is expanded too, not left to the training stage to guess.
     assert data["model"]["params"] == {"hidden": [8], "dropout": 0.0}
-    # What the data will say is marked, not left empty (feature 006, FR-013).
-    assert data["inputs"][0]["columns"] == "derived"
-    assert data["outputs"][0]["labels"] == "derived"
-    assert data["outputs"][0]["column"] == "label"
+    # What the training part will say is marked, not left empty (features 006, 008).
+    assert data["output_features"][0]["preprocessing"]["vocab"] == "derived"
+    assert data["input_features"][0]["preprocessing"]["normalization"] == "zscore"
 
 
 def test_resolving_twice_is_byte_identical(capsys) -> None:

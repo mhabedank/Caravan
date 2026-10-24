@@ -15,7 +15,9 @@ import math
 from collections.abc import Sequence
 
 
-def regression_metrics(truth: Sequence[float], predicted: Sequence[float]) -> dict[str, float | None]:
+def regression_metrics(
+    truth: Sequence[float], predicted: Sequence[float]
+) -> dict[str, float | None]:
     """MAE, MSE, RMSE and R² of one set of predictions, in the column's unit."""
     if len(truth) != len(predicted):
         raise ValueError("the truth and the predictions differ in length")

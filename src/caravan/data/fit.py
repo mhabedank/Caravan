@@ -5,10 +5,10 @@ what the model is trained on, so these rules are tested on every Python in the m
 can reproduce them without a framework.
 
 Every function here is handed the values of the **training part only**. Ludwig fits on all parts
-together, which leaks the test part into the preprocessing (research note, section 5); Caravan does
-not. What a function returns is what ``data/preprocessing.json`` records and what the pipeline merges
-into the resolved manifest under the feature's ``preprocessing.fitted``, so it is part of the keys of
-every later stage (Principle III).
+together, which leaks the test part into the preprocessing (research note, section 5); Caravan
+does not. What a function returns is what ``data/preprocessing.json`` records and what the
+pipeline merges into the resolved manifest under the feature's ``preprocessing.fitted``, so it is
+part of the keys of every later stage (Principle III).
 
 Values arrive as the reader gives them: a number as a float, ``nan`` when the cell was empty; a
 category or binary value as the text of its cell, ``""`` when empty.
@@ -161,12 +161,9 @@ def fit_category(
         vocab: list[Any] = [int(value) for value in vocab_text]
         codes = list(vocab)
         text_codes = None
-        if explicit_fill:
-            missing = int(str(fill_value))
-        else:
-            # Any integer that is not in the vocabulary lands in "unknown"; this one is stated so a
-            # firmware author need not choose.
-            missing = min(-1, min(codes, default=0) - 1)
+        # Any integer that is not in the vocabulary lands in "unknown"; without a fill value of the
+        # author's, this one is stated so a firmware author need not choose.
+        missing = int(str(fill_value)) if explicit_fill else min(-1, min(codes, default=0) - 1)
     else:
         vocab = list(vocab_text)
         codes = list(range(1, len(vocab) + 1))
@@ -223,7 +220,9 @@ def fit_binary(
         table = {spelling: int(_standard(spelling)) for spelling in spellings}  # type: ignore[arg-type]
         true_spelling = next((s for s in spellings if table[s] == 1), None)
     elif len(spellings) <= 2:
-        table = {spelling: int(index == len(spellings) - 1) for index, spelling in enumerate(spellings)}
+        table = {
+            spelling: int(index == len(spellings) - 1) for index, spelling in enumerate(spellings)
+        }
         true_spelling = spellings[-1]
         note = (
             f"{true_spelling!r} is read as true because it sorts second; state "

@@ -195,7 +195,8 @@ def _ragged(path: Path, number: int, found: int, declared: int, row: list[str]) 
     run_rule_error(
         RULE_DATASET_CELL,
         "dataset",
-        f"{path.name}, record {number}: {found} values where the header declares {declared} columns",
+        f"{path.name}, record {number}: {found} values where the header declares "
+        f"{declared} columns",
         found=row,
     )
 

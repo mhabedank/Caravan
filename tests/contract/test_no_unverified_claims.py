@@ -60,6 +60,8 @@ def test_the_skeleton_claims_no_build() -> None:
         array_name="g_model_data",
         accelerated=1,
         operators_total=2,
+        inputs=[{"name": "speed", "element_type": "float32", "shape": [1, 64], "position": 0}],
+        output={"name": "state", "element_type": "float32", "shape": [1, 4], "position": 0},
     )
     assert "has NOT compiled, linked or run this file" in text
     lowered = text.lower()

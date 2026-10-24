@@ -116,7 +116,7 @@ constexpr int kArenaBytes = {arena};
 alignas(16) static uint8_t g_arena[kArenaBytes];
 
 /* Every input takes raw values, as your sensors give them, one window at a time; the model
- * scales and encodes them itself. model_data.h says what each one is:
+ * prepares them itself. model_data.h says what each one is:
 {nl.join(describe)}
  * The output gives {out_count} x {out_type}. */
 {nl.join(declarations)}

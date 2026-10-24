@@ -310,9 +310,7 @@ def stage(context: StageContext) -> StageFunction:
             seed=seed,
             labels=split_labels(output["type"], window_plan.labels),
         )
-        features, targets = assemble_samples(
-            records, window_plan, inputs["input_features"], output
-        )
+        features, targets = assemble_samples(records, window_plan, inputs["input_features"], output)
 
         calibration = plan_calibration(inputs["export.representative_samples"], split.train, seed)
         representative = _representative(features, calibration) if calibration.used else None
@@ -405,8 +403,7 @@ def stage(context: StageContext) -> StageFunction:
             record["layer_errors"] = [row.as_dict() for row in rows]
             _write_failure(context.run_dir, record, rows)
             detail = (
-                f"On {gate.samples} test samples one changed prediction is "
-                f"{gate.resolution:.3f}; "
+                f"On {gate.samples} test samples one changed prediction is {gate.resolution:.3f}; "
                 if output["metric"] == "accuracy"
                 else f"Measured on {gate.samples} test samples; "
             )

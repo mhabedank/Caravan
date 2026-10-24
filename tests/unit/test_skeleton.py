@@ -30,6 +30,21 @@ GRAPH = Graph(
 )
 
 
+def binding(name: str, dtype: str, shape: list[int], position: int) -> dict:
+    return {"name": name, "element_type": dtype, "shape": shape, "position": position}
+
+
+#: Five inputs, as the typed pilot has them: numbers as float32, codes as int32 (feature 008).
+INPUTS = [
+    binding("b2", "float32", [1, 64], 0),
+    binding("can_id", "int32", [1, 64], 1),
+    binding("b1", "float32", [1, 64], 2),
+    binding("dlc", "float32", [1, 64], 3),
+    binding("b0", "float32", [1, 64], 4),
+]
+OUTPUT = binding("label", "float32", [1, 4], 0)
+
+
 def generate(identifier: str = "stm32h743") -> str:
     board = default_registry().get(identifier)
     assert board is not None
@@ -40,8 +55,8 @@ def generate(identifier: str = "stm32h743") -> str:
         array_name=array_name("model_data"),
         accelerated=2,
         operators_total=3,
-        input_name="frames",
-        output_name="attack",
+        inputs=INPUTS,
+        output=OUTPUT,
     )
 
 
@@ -97,11 +112,28 @@ def test_the_clock_reads_as_a_number_a_person_would_write() -> None:
     assert "480 MHz" in generate("stm32h743")
 
 
-def test_it_binds_by_the_named_positions_never_by_a_literal_index() -> None:
-    # Principle VIII in 3.0.0: a runner binds by name. The converter does not keep the declared
-    # order (feature 006, research R4), so a literal 0 would be right only by luck.
+def test_it_binds_every_input_by_its_named_position_never_by_a_literal_index() -> None:
+    # Principle VIII: a runner binds by name. The converter does not keep the manifest's order
+    # (feature 006, research R4), so a literal index would be right only by luck.
     for identifier in ("s32k144", "stm32h743", "esp32"):
         text = generate(identifier)
         assert "input(0)" not in text and "output(0)" not in text
-        assert "interpreter.input(g_model_data_input_frames)" in text
-        assert "interpreter.output(g_model_data_output_attack)" in text
+        for name in ("b2", "can_id", "b1", "dlc", "b0"):
+            assert f"interpreter.input(g_model_data_input_{name})" in text
+        assert "interpreter.output(g_model_data_output_label)" in text
+
+
+def test_each_input_is_filled_with_raw_values_of_its_own_type() -> None:
+    # SC-005 (feature 008): float for a number, int32 for a code, nothing scaled by the firmware.
+    text = generate()
+    assert "Fill_can_id(interpreter.input(g_model_data_input_can_id)->data.i32, 64);" in text
+    assert "Fill_dlc(interpreter.input(g_model_data_input_dlc)->data.f, 64);" in text
+    assert "static void Fill_can_id(int32_t* values, int count);" in text
+    assert "static void UseOutput(const float* output, int count);" in text
+
+
+def test_it_contains_no_scale_zero_point_mean_or_vocabulary() -> None:
+    # SC-005: everything that turns a raw value into what the network sees is inside the model.
+    text = generate().lower()
+    for word in ("scale", "zero_point", "zero point", "mean", "vocab", "int8_t*"):
+        assert word not in text, word

@@ -179,7 +179,8 @@ def _stated_defaults(entry: TypeDefaults) -> dict[str, Any]:
     """A ``defaults`` entry as written: it is applied to the features above, and shown for that."""
     out: dict[str, Any] = {
         "preprocessing": {
-            key: getattr(entry.preprocessing, key) for key in sorted(entry.preprocessing.model_fields_set)
+            key: getattr(entry.preprocessing, key)
+            for key in sorted(entry.preprocessing.model_fields_set)
         }
     }
     if entry.encoder is not None:
@@ -190,7 +191,7 @@ def _stated_defaults(entry: TypeDefaults) -> dict[str, Any]:
 
 
 def merge_fitted(resolved: Mapping[str, Any], fitted: Mapping[str, Any]) -> dict[str, Any]:
-    """The resolved manifest with what fitting on the training part found (``data/preprocessing.json``).
+    """The resolved manifest with what fitting the training part found (data/preprocessing.json).
 
     Each feature gains ``preprocessing.fitted``, and the ``derived`` markers are replaced: a
     category's vocabulary, the dense encoder's ``embedding_size`` and the output's label order. A

@@ -212,9 +212,7 @@ def stage(context: StageContext) -> StageFunction:
             c_array.header(
                 MODEL_STEM,
                 len(blob),
-                interface.header_additions(
-                    array_name, model_identity, bindings, features, output
-                ),
+                interface.header_additions(array_name, model_identity, bindings, features, output),
             ),
             encoding="utf-8",
         )

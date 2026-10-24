@@ -186,14 +186,16 @@ def header_additions(
     if output["type"] == "category":
         labels = list(output["preprocessing"]["fitted"]["labels"])
         lines += [
-            f'/* Class labels of output "{name}", in output-unit order: the answer is the arg-max. */',
+            f'/* Class labels of output "{name}", in output-unit order; the answer is the',
+            " * arg-max. */",
             f"constexpr unsigned int {array_name}_output_{name}_label_count = {len(labels)};",
             f"extern const char* const {array_name}_output_{name}_labels[];",
         ]
     elif output["type"] == "binary":
         lines += [
             f'/* Output "{name}" is true when its score is at least this. */',
-            f"constexpr float {array_name}_output_{name}_threshold = {float(output['threshold'])!r}f;",
+            f"constexpr float {array_name}_output_{name}_threshold = "
+            f"{float(output['threshold'])!r}f;",
         ]
     else:
         lines.append(f'/* Output "{name}" is a value in the unit of its column. */')

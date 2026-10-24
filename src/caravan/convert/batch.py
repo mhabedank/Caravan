@@ -45,7 +45,7 @@ def fix_batch(model: Any) -> Any:
             "the model contains a Lambda layer, which the batch fix cannot rebuild faithfully; "
             "use a registered layer whose constants are constructor arguments"
         )
-    batches = {tuple(tensor.shape)[0] for tensor in model.inputs}
+    batches = {next(iter(tensor.shape)) for tensor in model.inputs}
     if batches == {DEPLOYED_BATCH}:
         return model
     fixed_to = sorted(batch for batch in batches if batch is not None)
@@ -64,9 +64,7 @@ def fix_batch(model: Any) -> Any:
         )
         for tensor in model.inputs
     ]
-    fixed = keras.models.clone_model(
-        model, input_tensors=inputs if len(inputs) > 1 else inputs[0]
-    )
+    fixed = keras.models.clone_model(model, input_tensors=inputs if len(inputs) > 1 else inputs[0])
     # ``clone_model`` copies the architecture, not the values. Without this the exported model
     # would be an untrained one with the right shape, which is the kind of mistake that passes
     # every structural test and fails the accuracy gate for a reason nobody can find.

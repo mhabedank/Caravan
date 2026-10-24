@@ -135,9 +135,7 @@ def run_data(records: Any, inputs: StageInputs) -> tuple[dict[str, Any], dict[st
     features = inputs["input_features"]
     output_type = inputs["output_features[0].type"]
     split_spec = inputs["preprocessing.split"]
-    plan = plan_windows(
-        records.labels, inputs["preprocessing.window_size"], parts=records.parts
-    )
+    plan = plan_windows(records.labels, inputs["preprocessing.window_size"], parts=records.parts)
     labels = split_labels(output_type, plan.labels)
     split = split_for(plan, split_spec, seed=int(inputs["random_seed"]), labels=labels)
 

@@ -128,7 +128,6 @@ class InputFeature(BaseModel):
     encoder: Encoder | None = None
 
 
-
 def input_key_problem(
     feature_type: str, preprocessing: InputPreprocessing, encoder: Encoder | None
 ) -> tuple[str, str] | None:
@@ -144,6 +143,13 @@ def input_key_problem(
                 f"does not apply to a {feature_type} feature; it applies to "
                 f"{' and '.join(applies)}",
             )
+    fill = preprocessing.fill_value
+    if (
+        feature_type == "number"
+        and "fill_value" in preprocessing.model_fields_set
+        and (isinstance(fill, bool) or not isinstance(fill, int | float))
+    ):
+        return ("preprocessing.fill_value", "a number feature is filled with a number")
     strategy = preprocessing.missing_value_strategy
     if strategy is not None and strategy not in STRATEGIES[feature_type]:
         return (

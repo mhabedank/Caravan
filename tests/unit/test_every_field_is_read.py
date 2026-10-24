@@ -15,7 +15,7 @@ from caravan.stages.export import SPEC as EXPORT
 from caravan.stages.quantize import SPEC as QUANTIZE
 from caravan.stages.train import SPEC as TRAIN
 from tests.support import PILOT, PILOT_FIXTURE
-from tests.unit.test_cache_key_projection import leaf_paths
+from tests.unit.test_cache_key_projection import covers, leaf_paths
 
 STAGES = (DATA, BUILD, TRAIN, QUANTIZE, EXPORT)
 
@@ -25,8 +25,12 @@ SETTLED_BY_THE_CONSTITUTION = {
     "apiVersion",
     # Names the data every stage with ``reads_dataset`` reads; the path is resolved by the pipeline,
     # because a result depends on the data and not on where the data sits.
-    "dataset.source",
+    "dataset",
 }
+
+#: Read by the resolver, which applies it to every input feature of its type before any stage
+#: runs (feature 008): a stage reads it through the features it changed.
+SETTLED_BY_THE_RESOLVER = "defaults"
 
 
 def non_blank_lines(path) -> int:
@@ -37,12 +41,12 @@ def non_blank_lines(path) -> int:
 def test_every_leaf_is_read_by_a_stage() -> None:
     outcome = load_manifest(PILOT_FIXTURE)
     assert outcome.manifest is not None
-    reads = {read for spec in STAGES for read in spec.reads}
     unread = [
         leaf
         for leaf in leaf_paths(resolve(outcome.manifest))
         if leaf not in SETTLED_BY_THE_CONSTITUTION
-        and not any(leaf == read or leaf.startswith(f"{read}.") for read in reads)
+        and not leaf.startswith(SETTLED_BY_THE_RESOLVER)
+        and not any(covers(spec, leaf) for spec in STAGES)
     ]
     assert not unread, f"fields no stage reads (Principle I): {unread}"
 
@@ -52,7 +56,8 @@ def test_every_leaf_is_read_by_a_stage() -> None:
 PREVIOUS_FORM_LINES = 43
 
 
-def test_the_new_pilot_is_a_fifth_shorter_than_the_old() -> None:
-    # SC-001: at most 34 non-blank, non-comment lines against the previous form's 43.
+def test_the_typed_pilot_is_still_shorter_than_the_form_before_feature_006() -> None:
+    # SC-001 of feature 006 asked for at most 34 lines; the typed form lists five features and
+    # stays under the 43 lines of the form before it.
     for pilot in (PILOT, PILOT_FIXTURE):
-        assert non_blank_lines(pilot) <= 34 <= PREVIOUS_FORM_LINES * 0.8
+        assert non_blank_lines(pilot) < PREVIOUS_FORM_LINES

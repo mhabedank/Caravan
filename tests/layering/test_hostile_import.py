@@ -90,9 +90,15 @@ def test_the_stage_modules_import_with_every_framework_unimportable(
         "caravan.stages.fit",
         "caravan.targets.fit",
         "caravan.export.interface",
-        "caravan.manifest.schema.io",
         "caravan.manifest.schema.removed",
         "caravan.manifest.version",
+        # Feature 008: the typed features, the fitting and the regression metrics are core too.
+        "caravan.manifest.schema.features",
+        "caravan.manifest.schema.preprocessing",
+        "caravan.manifest.schema.trainer",
+        "caravan.data.fit",
+        "caravan.data.reader_bridge",
+        "caravan.metrics.regression",
     ):
         monkey = importlib.import_module(name)
         assert monkey is not None

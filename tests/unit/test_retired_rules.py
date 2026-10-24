@@ -3,9 +3,9 @@
 CF-3, CF-5, CF-7, CF-8 and DS-9 belonged to the compliance layer or to the section of a stage that
 does not exist yet. V-2 read a manifest without a version as the oldest known one, which
 constitution 4.0.0 forbids. CF-10 allowed one input and one output; feature 008 allows several
-input features and gives the single output its own rule, CF-17. Reusing one would make an old run report mean something it never
-meant, so the identifiers are reserved: in no rule group, in no fixture's expectation, raised by no
-module.
+input features and gives the single output its own rule, CF-17. Reusing one would make an old run
+report mean something it never meant, so the identifiers are reserved: in no rule group, in no
+fixture's expectation, raised by no module.
 """
 
 from __future__ import annotations

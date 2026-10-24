@@ -177,7 +177,7 @@ def findings_from_validation_error(
     return findings
 
 
-# --- the keys caravan/v0.2 moved -------------------------------------------------------------------
+# --- the keys caravan/v0.2 moved ------------------------------------------------------------------
 
 
 def moved_keys(data: dict[str, Any]) -> tuple[dict[str, Any], list[Finding], set[str]]:

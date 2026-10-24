@@ -38,14 +38,14 @@ def test_the_report_carries_exactly_the_contract_fields_in_order(tmp_path, capsy
 
 def test_the_report_carries_the_declared_schema_version(tmp_path, capsys) -> None:
     main(["validate", str(PILOT_FIXTURE), "--runs-dir", str(tmp_path)])
-    assert report_of(tmp_path)["schema_version"] == "caravan/v0.1"
+    assert report_of(tmp_path)["schema_version"] == "caravan/v0.2"
 
 
 def test_a_refused_version_is_recorded_as_written(tmp_path, capsys) -> None:
     main(["validate", str(INVALID / "v-1-previous-version.yaml"), "--runs-dir", str(tmp_path)])
     report = report_of(tmp_path)
     assert report["outcome"] == "invalid"
-    assert report["schema_version"] == "caravan/v0"
+    assert report["schema_version"] == "caravan/v0.1"
     assert [finding["rule"] for finding in report["findings"]] == ["V-1"]
 
 
