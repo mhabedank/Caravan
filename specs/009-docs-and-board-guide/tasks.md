@@ -448,19 +448,19 @@ fixture reaching `caravan export` by following the guide.
   Fix every warning, then open `_site/index.html` and check:
   - each main section is one click away (SC-005);
   - every page shows the version.
-- [ ] T043 Re-read every number the new pages quote (sizes, counts, versions) against its source (a
+- [X] T043 Re-read every number the new pages quote (sizes, counts, versions) against its source (a
   run report, a registry, a test). Remove any number without one (Principle IV, gate before
   reporting a number).
-- [ ] T044 Re-run the constitution check of `plan.md` against what was built. Note any change in
+- [X] T044 Re-run the constitution check of `plan.md` against what was built. Note any change in
   research R8 or in the plan.
-- [ ] T045 Local validation, as CI will run it:
+- [X] T045 Local validation, as CI will run it:
   - `uv run ruff check src tests && uv run ruff format --check src tests`;
   - `pytest tests/unit tests/contract tests/integration tests/layering` on 3.13, 3.14 and 3.15;
   - `--extra verify pytest tests/verify tests/unit tests/contract` on 3.13 and 3.14;
   - the train suite on 3.13;
   - the site build with `-W`;
   - the firmware build of T019 for both environments, from a clean `examples/lora32/src/model/`.
-- [ ] T046 Mark every task `[X]`, commit, push, and open one draft PR for the feature. Its body
+- [X] T046 Mark every task `[X]`, commit, push, and open one draft PR for the feature. Its body
   follows the repository's PR template if one exists. Watch CI and drive it to green.
 
 ---
