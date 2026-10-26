@@ -82,8 +82,10 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - Unchanged, a re-run reuses export too.
   - A `number` output (use `write_number_dataset` from `tests/support.py`) gives rule
     `test order`, float expectations, and agreement by `score_step`.
-- [ ] T008 [P] [US1] Extend `tests/unit/test_c_array_compiles.py` (or add a train-suite sibling if
-  it needs a real export). Compile `model_data.cc` and a translation unit including
+- [ ] T008 [P] [US1] Write `tests/train/test_test_windows_compile.py`. It belongs in the train
+  suite only, because `test_windows.h` needs a real export. Skip with a reason when `g++` is
+  missing, matching `tests/unit/test_c_array_compiles.py`; the release `check` job runs on
+  ubuntu-latest, which has it. Compile `model_data.cc` and a translation unit including
   `test_windows.h` with the host `g++ -std=c++17 -fsyntax-only -Wall -Wextra -Werror`, against a
   stub `tensorflow/lite/micro/micro_interpreter.h` that declares only what
   contracts/test-windows.md uses (`MicroInterpreter::input`, `TfLiteTensor` with `type`, `bytes`,
@@ -133,7 +135,8 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - Update `FLOOR_CAVEAT` in `src/caravan/export/artifacts.py` so it names the runner's report
     beside emulated verification.
 - [ ] T014 [US1] Set `test_windows: 16` under `export:` in `examples/picket-mlp.yaml`, with a
-  one-line comment. Check that `tests/integration/test_try_it_guide.py` and the README step still
+  one-line comment. Add `model/test_windows.h` to the "What you get" list of `docs/try-it.md`:
+  16 windows of the test part with the host's int8 answers, for the board guide. Check that `tests/integration/test_try_it_guide.py` and the README step still
   pass.
 - [ ] T015 [US1] Create the PlatformIO project `examples/lora32/` per data-model §4 and research R3
   and R5:
@@ -190,8 +193,9 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - Fix every error or warning that originates in Caravan's generated files, in Caravan's
     generators, not in the firmware (FR-008).
   - Record each one in research R8 with the message and the fix.
-  - Record the cold build time and the flash and RAM figures `pio` prints, labeled as the build's
-    figures, not a board measurement.
+  - Record the cold build time, and the flash and static RAM figures `pio` prints, labeled
+    `estimated`: they come from the linker for this firmware. The RAM figure excludes heap and the
+    arena's actual use. A board measurement only comes from T047 (Principle IV).
 - [ ] T020 [US1] Write `docs/guides/lora32.md`:
   - **Prerequisites:** try-it done, the board, a USB cable.
   - **How to tell the revision** (research R5) and which environment to pick.
@@ -219,7 +223,9 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
     - `workflow_call`;
     - `pull_request` with `paths`: `src/caravan/export/**`, `src/caravan/stages/export.py`,
       `src/caravan/data/test_part.py`, `examples/lora32/**`, `examples/picket-mlp.yaml`,
-      `docs/guides/lora32.md`, `.github/workflows/firmware.yml`;
+      `.github/workflows/firmware.yml`. No documentation path: a change to `docs/guides/lora32.md`
+      alone starts nothing (constitution, Resources & Cost Discipline). Its blocks are checked by
+      the next code PR on these paths and by every release;
     - `workflow_dispatch`.
   - **Job:** ubuntu-latest, `astral-sh/setup-uv`, Python 3.13, `uv sync --extra train --extra
     verify`.
@@ -328,13 +334,20 @@ publishes a release.
   - **Deploy job:** `actions/deploy-pages@v5` in environment `github-pages`.
   - **Permissions:** `contents: read`, `pages: write`, `id-token: write`.
   - Precede the build with `actions/configure-pages@v6` (no `enablement`).
-- [ ] T032 [US2] Call the docs workflow in `.github/workflows/release.yml`: a job `docs` that `uses:
+- [ ] T032 [US2] In `.github/workflows/release.yml`, add a step to the `check` job after the
+  suite: `uv sync --group docs` and `uv run sphinx-build -W -b html docs _site`. A broken link or an
+  unlisted page then blocks the release before anything is tagged (FR-020). Then call the docs
+  workflow: a job `docs` that `uses:
   ./.github/workflows/docs.yml`, with `needs: [check, release]` and `tag:
   ${{ needs.check.outputs.tag }}`. Its permissions block grants `pages: write` and
   `id-token: write` to that job only.
-- [ ] T033 [US2] Add to the CI paths of `.github/workflows/ci.yml` (both `push` and
-  `pull_request`), beside `docs/try-it.md`: `docs/reference/**`, `docs/compatibility.md`,
-  `docs/conf.py`, `docs/index.md`, with a comment that the suite checks them (research R7).
+- [ ] T033 [US2] Leave the CI paths of `.github/workflows/ci.yml` unchanged: no new documentation
+  path (constitution, Resources & Cost Discipline; research R7).
+  - The completeness test (T024) runs on every PR that touches code, which is where code and pages
+    drift apart.
+  - It also runs in the release workflow's `check` job, which runs the whole suite.
+  - Add a comment to `ci.yml` next to the existing exceptions saying that the new pages are
+    deliberately not listed, and why.
 
 **Checkpoint**: quickstart §1 passes. A removed option fails the test, and an unlisted page fails
 the build.
@@ -401,6 +414,9 @@ fixture reaching `caravan export` by following the guide.
 
   Each choice links its entry in the manifest reference. Absorb the "Your own data" section of
   `docs/try-it.md`, so nothing is duplicated.
+
+  The worked example manifest is one ```yaml block whose first line is
+  `# example: own-project`. T038 reads exactly that block.
 - [ ] T037 [US4] Replace the "Your own data" section of `docs/try-it.md` with two sentences and a
   link to the own-project guide. The step blocks are untouched. Run
   `uv run pytest tests/integration/test_try_it_guide.py -q`.
@@ -463,7 +479,8 @@ fixture reaching `caravan export` by following the guide.
   (SC-007). Defects are fixed or listed under "Known limits" on the compatibility page.
 - [ ] T050 The owner sets Settings → Pages → Source to "GitHub Actions" (research R2). After that,
   dispatch `docs.yml` once with the latest release tag (quickstart §6).
-- [ ] T051 On the owner's go-ahead only: release `v0.1.0rc3` (version bump PR, release workflow).
+- [ ] T051 Needs T050 first: the release workflow's docs job fails while Pages is not set to
+  "GitHub Actions". On the owner's go-ahead only: release `v0.1.0rc3` (version bump PR, release workflow).
   The release now builds the firmware before publishing and deploys the site after.
 
 ---
@@ -484,7 +501,7 @@ fixture reaching `caravan export` by following the guide.
 - **US3** needs T025 (page in the toctree), and T034 needs T019's date. T035 is independent.
 - **US4** needs T028 (it links the manifest reference). T038 needs T036.
 - **Polish** after all stories. T046 last.
-- **Phase 8** after the merge.
+- **Phase 8** after the merge. T050 before T051.
 
 ## Parallel Opportunities
 

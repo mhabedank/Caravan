@@ -70,8 +70,8 @@ it.
 
 | Check | Where | Fails when |
 |---|---|---|
-| `sphinx-build -W` | docs workflow; locally `uv run --group docs sphinx-build -W -b html docs _site` | a broken link or anchor, a page outside the toctree and not `orphan` |
-| `tests/contract/test_docs_reference.py` | the default test job | a verb, option, field path, rule identifier, template, board or feature type is missing from its page |
+| `sphinx-build -W` | release `check` job (blocks the release), docs workflow; locally `uv run --group docs sphinx-build -W -b html docs _site` | a broken link or anchor, a page outside the toctree and not `orphan` |
+| `tests/contract/test_docs_reference.py` | the default test job on code PRs; the release `check` job | a verb, option, field path, rule identifier, template, board or feature type is missing from its page |
 | `try-it.md` step blocks | release `verify` job (existing) | the guide as written fails against the release |
 | `guides/lora32.md` step blocks + `pio run` | firmware workflow | the firmware does not build for either LoRa32 environment |
 

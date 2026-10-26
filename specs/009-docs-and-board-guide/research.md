@@ -227,9 +227,11 @@ It is triggered:
   that does not build blocks the release; the existing `verify` job runs after publication and
   could not.
 - **on pull requests that touch what the firmware compiles:** `src/caravan/export/**`,
-  `src/caravan/stages/export.py`, `examples/lora32/**`, `examples/picket-mlp.yaml`,
-  `docs/guides/lora32.md` and the workflow itself. That is code, so it is not a documentation-only
-  change. A broken header is caught at review, not at release.
+  `src/caravan/stages/export.py`, `src/caravan/data/test_part.py`, `examples/lora32/**`,
+  `examples/picket-mlp.yaml` and the workflow itself. A broken header is caught at review, not at
+  release. `docs/guides/lora32.md` is deliberately not a trigger: a change to it alone is a
+  documentation-only change and must start nothing. Its blocks are checked by the next code PR on
+  these paths and by every release.
 
 **Step blocks.** The board guide marks its blocks with `# step: board-…`. `tests/support_docs.py`
 reads step names matching `[a-z]+` today, so it is widened to `[a-z-]+`. The hardware blocks
@@ -258,9 +260,14 @@ extras. It checks four things:
 
 Each failure names exactly what is missing, and where (spec, Story 2, scenario 5).
 
-**CI paths.** `docs/reference/**`, `docs/compatibility.md` and `docs/guides/lora32.md` join the
-exceptions in `ci.yml` that make a documentation change run the suite. This is the precedent of
-`docs/try-it.md` (feature 007, SC-003): a document the suite checks is not "documentation only".
+**CI paths, unchanged.** No new page joins the exceptions in `ci.yml`. A change that touches only
+documentation starts no workflow (Resources & Cost Discipline).
+- The drift the test exists for comes from code: a new option, field or rule. Every PR that
+  touches code runs the suite, and so the test.
+- A pure documentation change that breaks a reference is caught at the latest by the release
+  workflow's `check` job, which runs the whole suite and now also `sphinx-build -W` before anything
+  is tagged.
+- The `docs/try-it.md` exception from feature 007 stays as it was. This feature adds none.
 
 **Rejected alternative: generating the references.** Generated text is accurate but says only what
 the code says. The references need the why, examples and fixes. A check of hand-written pages keeps

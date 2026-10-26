@@ -97,7 +97,7 @@ and two workflows.
 | XII — small core | no verb, no runtime dependency, no extra. The site tools are a dependency group. The firmware's dependencies are the firmware's | pass |
 | Pipeline contract | the header is a declared artifact (`artifacts_from`), and its count is in `export.json` | pass |
 | Verification ladder | the ESP32 has no emulated rung. The board run is the measured rung and is recorded with board, firmware, clock and toolchain | pass |
-| Resources & cost | documentation-only changes run nothing. The firmware build runs on release and on PRs touching the export. The site publishes on release or by hand. No cash cost | pass |
+| Resources & cost | documentation-only changes run nothing: no new path in `ci.yml`, and no documentation path among the firmware workflow's triggers. The firmware build runs on release and on PRs touching the export. The site publishes on release or by hand. No cash cost | pass |
 | Credentials | none in the firmware or the repository. No radio and no Wi-Fi | pass |
 
 **Post-design re-check** (after research, data model and contracts): all rows still pass. Three
@@ -178,10 +178,10 @@ tests/
 └── support_docs.py                   # step names may contain hyphens
 
 .github/workflows/
-├── ci.yml        # + docs/reference/**, docs/compatibility.md, docs/guides/lora32.md in the paths
+├── ci.yml        # paths unchanged: documentation-only changes start nothing
 ├── docs.yml      # NEW: build with -W and deploy; workflow_call + workflow_dispatch
 ├── firmware.yml  # NEW: guide blocks + pio run, both envs; workflow_call + pull_request paths
-└── release.yml   # release needs firmware; docs after release
+└── release.yml   # check also builds the site with -W; release needs firmware; docs after release
 
 pyproject.toml    # + [dependency-groups] docs
 README.md         # shortened, points to the site
