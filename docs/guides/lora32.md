@@ -111,8 +111,9 @@ RAM:   [==        ]  19.5% (used 63960 bytes from 327680 bytes)
 Flash: [====      ]  35.1% (used 368153 bytes from 1048576 bytes)
 ```
 
-These are the linker's figures for this firmware with the example model, not a measurement on the
-board. The RAM figure includes the 48 KB reserved for the model's working memory.
+These are the linker's figures for this firmware with the example model, so they are `estimated`,
+not a measurement on the board. The RAM figure includes the 48 KB reserved for the model's working
+memory.
 
 **Warnings.** Warnings about `shadows a parameter` come from the TensorFlow Lite Micro sources, not
 from your model, and are harmless.

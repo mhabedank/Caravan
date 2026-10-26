@@ -117,7 +117,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - Reuse `_C_TYPES` and the input bindings of `src/caravan/export/skeleton.py` rather than
     redefining them.
 - [X] T012 [US1] Wire it into `src/caravan/stages/export.py`:
-  - `SPEC.reads_dataset=True`;
+  - `SPEC.reads_dataset` stays `False` (research R4: the upstream key already moves with the data);
   - add the reads `export.test_windows`, `preprocessing.split`, `random_seed`;
   - in `_skeletons`/`artifacts_from`, add `model/test_windows.h` when `export.test_windows > 0`.
   - In `run`, when `> 0`: call `caravan.data.test_part.test_part(context.records(), …)`, then

@@ -132,7 +132,11 @@ stage reads it. When it is above 0, the stage:
 
 The shared part is moved out of `stages/quantize.py` into one function both stages call, so the two
 cannot drift.
-- The export `StageSpec` changes to `reads_dataset=True`.
+- The export `StageSpec` keeps `reads_dataset=False` (changed during implementation; the plan said
+  `True`). The quantize stage upstream reads the dataset, so its key, and through it the export's,
+  already moves with every change to the data. Declaring it again would change only the key's
+  text. An existing contract test (`test_the_stage_does_not_read_the_dataset`) made the point.
+  The records are read only when windows are asked for.
 - It also gains the reads `preprocessing.split`, `random_seed` and `export.test_windows`.
 - The header is declared through `artifacts_from`, so a header that should exist and does not fails
   the run.

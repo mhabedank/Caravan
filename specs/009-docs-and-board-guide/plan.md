@@ -100,6 +100,19 @@ and two workflows.
 | Resources & cost | documentation-only changes run nothing: no new path in `ci.yml`, and no documentation path among the firmware workflow's triggers. The firmware build runs on release and on PRs touching the export. The site publishes on release or by hand. No cash cost | pass |
 | Credentials | none in the firmware or the repository. No radio and no Wi-Fi | pass |
 
+**Post-implementation re-check** (T044, 2026-10-26): all rows still pass. Two things changed in
+the building, both recorded in research:
+- the export stage kept `reads_dataset=False` (R4);
+- the test-windows header gained `kOutputPosition` and `kExportedBy`, so the firmware needs no
+  model-specific name (R8).
+
+Neither touches a principle.
+- **Numbers on the new pages:** each has a source. The linker figures are labeled `estimated`, the
+  arena figures in the guide's pictures are marked as placeholders, and no page carries a timing
+  figure.
+- **The firmware:** contains no credential and no radio or network code.
+- **The pages:** are in English.
+
 **Post-design re-check** (after research, data model and contracts): all rows still pass. Three
 design choices were checked against the constitution specifically:
 - **The manifest field instead of a CLI option** (R4): Principle I, Principle III, and the pipeline
@@ -135,7 +148,7 @@ src/caravan/
 ├── manifest/schema/export.py      # + test_windows (0–64; >0 needs c_array)
 ├── data/test_part.py              # NEW: the test part, shared by quantize and export
 ├── stages/quantize.py             # uses data/test_part.py
-├── stages/export.py               # reads_dataset, new reads, writes model/test_windows.h
+├── stages/export.py               # new reads (split, seed, test_windows), writes model/test_windows.h
 ├── export/test_windows.py         # NEW: selection, host reference, header text
 ├── export/skeleton.py             # + arena_used_bytes report
 └── runtime/inspect.py             # + the output's score step (the int8 tensor before DEQUANTIZE)
