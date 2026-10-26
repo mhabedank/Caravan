@@ -176,3 +176,49 @@ def inspect_model(path: Path) -> ModelInspection:
         outputs=tuple(_record(detail) for detail in interpreter.get_output_details()),
         tensors=tuple(_record(detail) for detail in interpreter.get_tensor_details()),
     )
+
+
+def output_score_step(path: Path, output_name: str) -> float:
+    """One quantization step of a model output, in the output's own unit (feature 009).
+
+    The output reaches the boundary as float32 through a DEQUANTIZE, so its resolution is the scale
+    of the int8 tensor that DEQUANTIZE reads; an output that is itself int8 carries its own scale.
+    Read from the file's graph, like everything in this module. It is what "the board's score
+    differs from the host's by at most one step" is measured in.
+    """
+    from ai_edge_litert import schema_py_generated as schema
+    from ai_edge_litert.interpreter import Interpreter
+
+    runner = Interpreter(model_path=str(path)).get_signature_runner()
+    details = runner.get_output_details()
+    if output_name not in details:
+        raise KeyError(f"the model has no output named {output_name!r}: {sorted(details)}")
+    index = int(details[output_name]["index"])
+
+    model = schema.Model.GetRootAsModel(bytearray(path.read_bytes()), 0)
+    graph = model.Subgraphs(0)
+
+    def scale_of(tensor_index: int) -> float | None:
+        quantization = graph.Tensors(tensor_index).Quantization()
+        if quantization is None or quantization.ScaleLength() == 0:
+            return None
+        scale = float(quantization.Scale(0))
+        return scale or None
+
+    own = scale_of(index)
+    if own is not None:
+        return own
+    dequantize = schema.BuiltinOperator.DEQUANTIZE
+    for node in range(graph.OperatorsLength()):
+        operator = graph.Operators(node)
+        if index not in operator.OutputsAsNumpy().tolist():
+            continue
+        if model.OperatorCodes(operator.OpcodeIndex()).BuiltinCode() == dequantize:
+            source = scale_of(int(operator.Inputs(0)))
+            if source is not None:
+                return source
+        break
+    raise ValueError(
+        f"output {output_name!r} is neither quantized nor produced by a DEQUANTIZE of a quantized "
+        "tensor, so it has no quantization step"
+    )

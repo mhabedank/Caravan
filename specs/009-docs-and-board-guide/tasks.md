@@ -15,13 +15,13 @@ need the owner and the board, and follow the merge.
 
 ## Phase 1: Setup
 
-- [ ] T001 Add a `docs` group to `[dependency-groups]` in `pyproject.toml`:
+- [X] T001 Add a `docs` group to `[dependency-groups]` in `pyproject.toml`:
   `sphinx==9.2.0`, `myst-parser==5.1.0` (research R1).
   - It is not an extra and does not touch `[project.optional-dependencies]`.
   - Add `_site/` to `.gitignore`.
   - Run `uv lock` and confirm the dependency-budget test still passes:
     `uv run pytest tests -k budget -q`.
-- [ ] T002 [P] Widen the step-name pattern in `tests/support_docs.py` from `[a-z]+` to `[a-z-]+`,
+- [X] T002 [P] Widen the step-name pattern in `tests/support_docs.py` from `[a-z]+` to `[a-z-]+`,
   and update its docstring. Add a case to the existing tests of `support_docs` (find them with
   `grep -rl support_docs tests`): a block `# step: board-copy` is read.
 
@@ -29,11 +29,11 @@ need the owner and the board, and follow the merge.
 
 ## Phase 2: Foundational (blocks US1)
 
-- [ ] T003 Write `tests/train/test_test_part.py`. On the synthetic fixture, with the example
+- [X] T003 Write `tests/train/test_test_part.py`. On the synthetic fixture, with the example
   manifest's resolved inputs, the new `caravan.data.test_part.test_part(records, inputs, output)`
   returns exactly the windows and targets the quantize stage measured, in the same order. Compare
   against the sample count that `quantization.json` records for a run of the example.
-- [ ] T004 Create `src/caravan/data/test_part.py` holding the test-part formation now inside
+- [X] T004 Create `src/caravan/data/test_part.py` holding the test-part formation now inside
   `src/caravan/stages/quantize.py` (`plan_windows`, `split_for`, `assemble_samples`, `select` of
   the test indices):
   - It returns test features, test targets and the label list.
@@ -41,7 +41,7 @@ need the owner and the board, and follow the merge.
     tests pass unchanged.
   - The module imports numpy only inside functions, like its neighbours, and is declared where
     feature 008 declared the extra-only modules for the layering test.
-- [ ] T005 [P] Add `output_score_step(model_path, output_name) -> float` to
+- [X] T005 [P] Add `output_score_step(model_path, output_name) -> float` to
   `src/caravan/runtime/inspect.py`: the scale of the int8 tensor that the output's DEQUANTIZE reads,
   or of the output itself when it is int8. Test it in `tests/verify/` on
   `tests/fixtures/models/example-typed.tflite`: the step is positive, and for a softmax output it
@@ -60,7 +60,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
 
 ### Tests
 
-- [ ] T006 [P] [US1] Add to `tests/unit/test_features_schema.py` (or a new
+- [X] T006 [P] [US1] Add to `tests/unit/test_features_schema.py` (or a new
   `tests/unit/test_export_schema.py`) the cases for `export.test_windows`, data-model §1:
   - default `0`;
   - `0` to `64` accepted;
@@ -68,7 +68,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - `> 0` without `c_array` in `export.formats` refused at `export.test_windows`, naming
     `export.formats`;
   - `render` shows the default.
-- [ ] T007 [P] [US1] Write `tests/train/test_test_windows.py`, on the synthetic fixture with
+- [X] T007 [P] [US1] Write `tests/train/test_test_windows.py`, on the synthetic fixture with
   `test_windows: 8`:
   - `model/test_windows.h` exists and is listed in `export.json` with its digest.
   - `export.json["test_windows"]` records asked 8, written 8, available, rule `round-robin by class`,
@@ -82,7 +82,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - Unchanged, a re-run reuses export too.
   - A `number` output (use `write_number_dataset` from `tests/support.py`) gives rule
     `test order`, float expectations, and agreement by `score_step`.
-- [ ] T008 [P] [US1] Write `tests/train/test_test_windows_compile.py`. It belongs in the train
+- [X] T008 [P] [US1] Write `tests/train/test_test_windows_compile.py`. It belongs in the train
   suite only, because `test_windows.h` needs a real export. Skip with a reason when `g++` is
   missing, matching `tests/unit/test_c_array_compiles.py`; the release `check` job runs on
   ubuntu-latest, which has it. Compile `model_data.cc` and a translation unit including
@@ -90,19 +90,19 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   stub `tensorflow/lite/micro/micro_interpreter.h` that declares only what
   contracts/test-windows.md uses (`MicroInterpreter::input`, `TfLiteTensor` with `type`, `bytes`,
   `data.f`, `data.i32`).
-- [ ] T009 [P] [US1] Extend `tests/unit/test_skeleton.py`:
+- [X] T009 [P] [US1] Extend `tests/unit/test_skeleton.py`:
   - the generated runner calls `interpreter.arena_used_bytes()` after `AllocateTensors()`;
   - it declares `static void ReportArena(size_t bytes);`;
   - its comment says the figure is measured on the board it runs on.
 
 ### Implementation
 
-- [ ] T010 [US1] Add `test_windows: int = Field(default=0, ge=0, le=64)` to `ExportSpec` in
+- [X] T010 [US1] Add `test_windows: int = Field(default=0, ge=0, le=64)` to `ExportSpec` in
   `src/caravan/manifest/schema/export.py`.
   - Add a model validator: `test_windows > 0` without `"c_array"` in `formats` →
     `field_error("export.test_windows", ...)`, naming `export.formats`.
   - Add its comment: why 64, and why the default is 0 (Principle VI).
-- [ ] T011 [US1] Create `src/caravan/export/test_windows.py`:
+- [X] T011 [US1] Create `src/caravan/export/test_windows.py`:
   - **`select(targets, labels, count, output_type)`:** round-robin by class in label order, keeping
     test order within a class. For `number`, the first `count` windows.
   - **`host_reference(model_path, windows, output)`:** scores via `caravan.runtime.measure.run_model`.
@@ -116,7 +116,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
     - floats written with `repr` + `f`.
   - Reuse `_C_TYPES` and the input bindings of `src/caravan/export/skeleton.py` rather than
     redefining them.
-- [ ] T012 [US1] Wire it into `src/caravan/stages/export.py`:
+- [X] T012 [US1] Wire it into `src/caravan/stages/export.py`:
   - `SPEC.reads_dataset=True`;
   - add the reads `export.test_windows`, `preprocessing.split`, `random_seed`;
   - in `_skeletons`/`artifacts_from`, add `model/test_windows.h` when `export.test_windows > 0`.
@@ -125,7 +125,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
     `test_windows` record to `export.json` (data-model §2).
   - Print one summary line in `src/caravan/cli/export.py`: `test windows: 16 of 21 (round-robin
     by class)`.
-- [ ] T013 [US1] Add `ReportArena` to `src/caravan/export/skeleton.py`:
+- [X] T013 [US1] Add `ReportArena` to `src/caravan/export/skeleton.py`:
   - After `AllocateTensors()` succeeds, the runner calls
     `ReportArena(interpreter.arena_used_bytes());`.
   - The declaration and the comment above `kArenaBytes` say:
@@ -134,7 +134,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
     - the floor stays a floor.
   - Update `FLOOR_CAVEAT` in `src/caravan/export/artifacts.py` so it names the runner's report
     beside emulated verification.
-- [ ] T014 [US1] Set `test_windows: 16` under `export:` in `examples/picket-mlp.yaml`, with a
+- [X] T014 [US1] Set `test_windows: 16` under `export:` in `examples/picket-mlp.yaml`, with a
   one-line comment. Add `model/test_windows.h` to the "What you get" list of `docs/try-it.md`:
   16 windows of the test part with the host's int8 answers, for the board guide. Check that `tests/integration/test_try_it_guide.py` and the README step still
   pass.

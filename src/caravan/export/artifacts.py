@@ -18,7 +18,8 @@ from typing import Any
 FLOOR_CAVEAT = (
     "a floor, not the figure this model needs on a target: the runtime also needs scratch "
     "buffers and its own bookkeeping, and it plans the whole arena with its own allocator on "
-    "the device. The figure a board requires is established by emulated verification."
+    "the device. The figure a board requires is established by emulated verification, or by the "
+    "runner's own report of the arena the runtime used, measured on the board (feature 009)."
 )
 
 

@@ -75,6 +75,9 @@ In the run directory:
 - `model/interface.json` — every input by name, with its position, element type, shape and type,
   what was fitted for it, and what to pass when a reading is missing; what the output means
 - `model/fit.json` — the lower bounds on flash and RAM, against each board
+- `model/test_windows.h` — windows of the test part as raw values, with what the int8 model
+  answered on this machine, for a board to run and compare (`export.test_windows`; the board guide,
+  `guides/lora32.md`, uses it)
 - `runner/<board>/main.cc` — a starting point for firmware on each board, filling every input by
   name with raw values
 

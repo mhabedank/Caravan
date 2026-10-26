@@ -46,3 +46,5 @@ export:
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
   representative_samples: 500
+  # Windows of the test part, with the host's int8 answers, for a board (docs/guides/lora32.md).
+  test_windows: 16

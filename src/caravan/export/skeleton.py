@@ -110,7 +110,11 @@ def generate(
  * computed from the model file. It is a floor and NOT the figure this board needs — the runtime
  * also needs scratch buffers and its own bookkeeping, and it plans the whole arena with its own
  * allocator, here, at run time. The value below is the floor with headroom so that you can
- * compile today. If initialisation fails, raise it; to know what it really is, measure it.
+ * compile today. If initialisation fails, raise it.
+ *
+ * What the runtime actually used is reported to ReportArena below, after allocation: that figure
+ * is measured on the board it runs on, and it is the one to set this constant from, with a margin.
+ * The floor stays a floor.
  */
 constexpr int kArenaBytes = {arena};
 alignas(16) static uint8_t g_arena[kArenaBytes];
@@ -121,6 +125,8 @@ alignas(16) static uint8_t g_arena[kArenaBytes];
  * The output gives {out_count} x {out_type}. */
 {nl.join(declarations)}
 static void UseOutput(const {out_type}* output, int count);
+/* Receives interpreter.arena_used_bytes(): the arena this model used, measured on this board. */
+static void ReportArena(size_t bytes);
 
 int main() {{
   const tflite::Model* model = tflite::GetModel({array_name});
@@ -131,6 +137,7 @@ int main() {{
     /* The commonest cause is kArenaBytes being too small. See the note above it. */
     return 1;
   }}
+  ReportArena(interpreter.arena_used_bytes());
 
   TfLiteTensor* output = interpreter.output({array_name}_output_{output["name"]});
   for (;;) {{

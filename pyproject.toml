@@ -69,6 +69,10 @@ Repository = "https://github.com/mhabedank/Caravan"
 [dependency-groups]
 # packaging is used by the dependency-budget test to parse requirement strings.
 dev = ["pytest>=8.3", "ruff>=0.9", "packaging>=24.0"]
+# The documentation site (feature 009, research R1): a build tool for docs/, never installed with the
+# package and not an extra, so the dependency budget of Principle XII is unaffected. Pinned exactly,
+# because the site's checks (-W) depend on the warnings these versions emit.
+docs = ["sphinx==9.2.0", "myst-parser==5.1.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/caravan"]

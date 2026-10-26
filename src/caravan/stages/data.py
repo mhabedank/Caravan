@@ -18,6 +18,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from caravan.data.test_part import split_labels
 from caravan.data.windows import plan_windows, split_for
 from caravan.manifest.resolve import DERIVED
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
@@ -53,16 +54,6 @@ def training_rows(plan: Any, split: Any) -> list[int]:
         start = plan.kept[position]
         rows.extend(range(start, start + length))
     return rows
-
-
-def split_labels(output_type: str, plan_labels: Sequence[str]) -> tuple[str, ...]:
-    """What a stratified split draws per, and what its counts are reported by.
-
-    A ``number`` output has no classes, so its split is drawn as one pool and counted as one.
-    """
-    if output_type == "number":
-        return ()
-    return tuple(sorted(set(plan_labels)))
 
 
 def fit_features(

@@ -18,8 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from caravan.data.reader_bridge import assemble_samples, select
-from caravan.data.windows import plan_windows, split_for
+from caravan.data.test_part import form_parts
 from caravan.env import (
     EnvironmentIncomplete,
     missing_extra_message,
@@ -36,7 +35,6 @@ from caravan.manifest.errors import (
 )
 from caravan.stages._framework import framework_record
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
-from caravan.stages.data import split_labels
 from caravan.stages.train import TRAINED_MODEL
 
 QUANTIZED_MODEL = "model/quantized.tflite"
@@ -300,17 +298,9 @@ def stage(context: StageContext) -> StageFunction:
         output = output_of(inputs)
         seed = int(inputs["random_seed"])
 
-        records = context.records()
-        window_plan = plan_windows(
-            records.labels, inputs["preprocessing.window_size"], parts=records.parts
-        )
-        split = split_for(
-            window_plan,
-            inputs["preprocessing.split"],
-            seed=seed,
-            labels=split_labels(output["type"], window_plan.labels),
-        )
-        features, targets = assemble_samples(records, window_plan, inputs["input_features"], output)
+        # The same windows, samples and split as the export's test windows (feature 009).
+        parts = form_parts(context.records(), inputs, output)
+        split, features = parts.split, parts.features
 
         calibration = plan_calibration(inputs["export.representative_samples"], split.train, seed)
         representative = _representative(features, calibration) if calibration.used else None
@@ -335,8 +325,7 @@ def stage(context: StageContext) -> StageFunction:
                 found=inspection.dtype_counts,
             )
 
-        test_features = select(features, split.test)
-        test_targets = targets[list(split.test)]
+        test_features, test_targets = parts.test()
         if len(test_targets) == 0:  # pragma: no cover - feature 002 refuses an empty split first
             run_rule_error(
                 RULE_GATE_UNMEASURABLE,

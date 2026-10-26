@@ -106,6 +106,7 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
             "formats": list(manifest.export.formats),
             "targets": list(manifest.export.targets),
             "representative_samples": manifest.export.representative_samples,
+            "test_windows": manifest.export.test_windows,
         },
     }
 

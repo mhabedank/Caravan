@@ -57,6 +57,13 @@ def _summary(name: str, run_dir: Path, _measured: dict[str, Any]) -> None:
                 f"      reference kernels: {', '.join(falling_back)}",
                 file=sys.stderr,
             )
+    windows = record.get("test_windows")
+    if windows:
+        print(
+            f"    test windows: {windows['written']} of the test part's {windows['available']}"
+            f" ({windows['selection']}), with the host's int8 answers, in {windows['path']}",
+            file=sys.stderr,
+        )
     # Two lines, not one. The figure on its own would be read as the arena to configure, which is
     # the one thing this stage is not entitled to say.
     print(
