@@ -5,8 +5,9 @@ name: release
 #   - "Run workflow" on main with a version: the tag is created here, after the checks pass. A
 #     session that cannot push tags can still release (feature 007, contracts/release.md).
 # Then: check that the version is the package's, run the whole suite, tag (manual start only),
-# build and check the built package, publish a GitHub release with the wheel and the sdist, and run
-# the try-it guide literally against what was published.
+# build and check the built package, build the board guide's firmware (feature 009), publish a
+# GitHub release with the wheel and the sdist, run the try-it guide literally against what was
+# published, and publish the documentation site for the new tag.
 #
 # Nothing goes to the package index (owner decision, 2026-10-23), and no secret exists beyond this
 # workflow's own token. A failure before `tag` creates nothing, a failure before `release`
@@ -112,9 +113,14 @@ jobs:
           name: dist
           path: dist/
 
+  firmware:
+    # The board guide's firmware must build before anything is published (feature 009, FR-009).
+    needs: [check]
+    uses: ./.github/workflows/firmware.yml
+
   release:
-    needs: [check, build]
-    if: always() && needs.build.result == 'success'
+    needs: [check, build, firmware]
+    if: always() && needs.build.result == 'success' && needs.firmware.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write

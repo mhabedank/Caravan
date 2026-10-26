@@ -138,7 +138,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   one-line comment. Add `model/test_windows.h` to the "What you get" list of `docs/try-it.md`:
   16 windows of the test part with the host's int8 answers, for the board guide. Check that `tests/integration/test_try_it_guide.py` and the README step still
   pass.
-- [ ] T015 [US1] Create the PlatformIO project `examples/lora32/` per data-model §4 and research R3
+- [X] T015 [US1] Create the PlatformIO project `examples/lora32/` per data-model §4 and research R3
   and R5:
   - **`platformio.ini`:**
     - `[env]` with `platform = platformio/espressif32 @ 6.13.0`, `framework = espidf`,
@@ -153,13 +153,13 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - **`.gitignore`:** `src/model/*` except `src/model/README.md`, `.pio/`, `managed_components/`,
     `sdkconfig.*` (except `sdkconfig.defaults`).
   - **`src/model/README.md`:** "the export's files go here; see docs/guides/lora32.md".
-- [ ] T016 [P] [US1] Create `examples/lora32/src/board_pins.h`:
+- [X] T016 [P] [US1] Create `examples/lora32/src/board_pins.h`:
   - the default block: SDA 21, SCL 22, reset −1, address 0x3C, revision name `V1.3/V1.6/V2.x`;
   - the `#ifdef CARAVAN_LORA32_V1` block: SDA 4, SCL 15, reset 16, OLED supply GPIO 21 driven low,
     revision `V1.0`;
   - a comment that GPIO16 is the flash chip select on PICO-D4 revisions and is never driven there;
   - sources named (research R5).
-- [ ] T017 [P] [US1] Create `examples/lora32/src/font5x7.h`:
+- [X] T017 [P] [US1] Create `examples/lora32/src/font5x7.h`:
   - a public-domain 5×7 ASCII font, characters 32–126, with its source and licence named in the
     header comment;
   - `examples/lora32/src/oled.h` / `oled.cc`: `OledInit(pins)` returns bool and never aborts;
@@ -169,7 +169,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - a 1,024-byte framebuffer (page `y/8`, bit `y%8`) pushed with `esp_lcd_panel_draw_bitmap`;
   - a failed init leaves every call a no-op, so the run continues on serial (contracts/
     board-output.md).
-- [ ] T018 [US1] Create `examples/lora32/src/main.cc` (`extern "C" void app_main()`), model-agnostic,
+- [X] T018 [US1] Create `examples/lora32/src/main.cc` (`extern "C" void app_main()`), model-agnostic,
   using only `model_data.h`, `resolver.h` and `test_windows.h`:
   - **Setup:** OLED init, `CaravanResolver()`, `MicroInterpreter` with `kArenaBytes`, then
     `AllocateTensors`.
@@ -181,7 +181,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
     shows. It reads `esp_get_idf_version()`, the CPU frequency, and a `CARAVAN_FIRMWARE` string
     defined in `platformio.ini` (the Caravan version), then holds.
   - No timing is printed (FR-006).
-- [ ] T019 [US1] Build locally against the example's export:
+- [X] T019 [US1] Build locally against the example's export:
   1. `uv run caravan export examples/picket-mlp.yaml`.
   2. Copy `model/{model_data.h,model_data.cc,resolver.h,test_windows.h}` into
      `examples/lora32/src/model/`.
@@ -196,7 +196,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - Record the cold build time, and the flash and static RAM figures `pio` prints, labeled
     `estimated`: they come from the linker for this firmware. The RAM figure excludes heap and the
     arena's actual use. A board measurement only comes from T047 (Principle IV).
-- [ ] T020 [US1] Write `docs/guides/lora32.md`:
+- [X] T020 [US1] Write `docs/guides/lora32.md`:
   - **Prerequisites:** try-it done, the board, a USB cable.
   - **How to tell the revision** (research R5) and which environment to pick.
   - **The USB-serial chip and the driver per OS,** the Linux `dialout` fix, and `pio device list`.
@@ -216,9 +216,9 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
   - **Using your own model:** set `test_windows`, re-export, copy the four files; nothing else
     changes.
   - **Recording a run:** paste the record block into `docs/board-runs/<date>-lora32.md`.
-- [ ] T021 [P] [US1] Create `docs/board-runs/index.md`: what a board run record is (data-model §5),
+- [X] T021 [P] [US1] Create `docs/board-runs/index.md`: what a board run record is (data-model §5),
   that it is the evidence the compatibility page cites, and an empty list to be filled.
-- [ ] T022 [US1] Create `.github/workflows/firmware.yml`:
+- [X] T022 [US1] Create `.github/workflows/firmware.yml`:
   - **Triggers:**
     - `workflow_call`;
     - `pull_request` with `paths`: `src/caravan/export/**`, `src/caravan/stages/export.py`,
@@ -239,7 +239,7 @@ both LoRa32 environments. The guide's blocks build it in a workflow that blocks 
     - then `pio run -e lora32-v1`.
   - **Report:** write the elapsed time and `pio`'s size lines to `$GITHUB_STEP_SUMMARY`.
   - **Permissions:** `contents: read`.
-- [ ] T023 [US1] Wire the firmware check into `.github/workflows/release.yml`: a job `firmware`
+- [X] T023 [US1] Wire the firmware check into `.github/workflows/release.yml`: a job `firmware`
   that `uses: ./.github/workflows/firmware.yml`, with `needs: [check]`. Add it to the `release`
   job's `needs`, so a firmware that does not build blocks the release (FR-009). Keep `verify` as it
   is.

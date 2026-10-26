@@ -23,22 +23,26 @@ header is included from exactly one translation unit. The header says so in a co
 | `kOutputType` | `enum OutputType { kCategory, kBinary, kNumber }` | the output feature's type |
 | `kScoreStep` | `float` | one quantization step of the output, in output units |
 | `kModelName`, `kModelVersion` | `const char*` | aliases of the header's model name and version |
+| `kOutputPosition` | `unsigned int` | the output's position, so a firmware needs no output name of its own |
+| `kExportedBy` | `const char*` | `caravan-ml <version>` that wrote the header, for the run record |
 
 ## Data
 
 | Name | Shape | Meaning |
 |---|---|---|
 | `k<Input>` for each input feature | `[kCount][elements]` of the input's boundary C type | raw values, as a sensor would give them |
-| `kExpected` | `[kCount]` `int` (category, binary) or `float` (number) | what the data says |
+| `kExpected` | `[kCount]` `float`: a class index (category, binary) or the value (number) | what the data says |
 | `kHostScores` | `[kCount][kOutputCount]` `float` | the int8 model's output on the host |
-| `kHostDecision` | `[kCount]` `int` or `float` | the host's decision under `Decide` |
+| `kHostDecision` | `[kCount]` `float` | the host's decision under `Decide` |
 
 ## Functions
 
 ```c++
 // Copies window i into every input tensor, by the named positions of model_data.h.
-// Returns false when an input's type or size is not what the header was generated for.
-inline bool FillWindow(tflite::MicroInterpreter& interpreter, int i);
+// Returns false, naming the input in *failed, when an input's type or size is not what the
+// header was generated for.
+inline bool FillWindow(tflite::MicroInterpreter& interpreter, int i,
+                       const char** failed = nullptr);
 
 // The decision under the output's rule: argmax (category), threshold from model_data.h (binary),
 // the value itself (number). The same rule the host applied to kHostScores.
@@ -53,7 +57,7 @@ inline const char* DecisionName(float decision, char* buf);
 
 | Output type | Agrees when |
 |---|---|
-| category, binary | `Decide(board) == kHostDecision[i]` |
+| category, binary | `Decide(board) == kHostDecision[i]`. Both are class indices held as `float`, and small integers are exact in `float`, so `==` is exact |
 | number | `fabs(Decide(board) - kHostDecision[i]) <= kScoreStep` |
 
 For every type, the largest `|board − host|` over all scores, in units of `kScoreStep`, is reported

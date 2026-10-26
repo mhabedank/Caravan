@@ -1,0 +1,4 @@
+# Pinned: research R3 of feature 009 checked this version's operator resolver against what
+# Caravan's export can emit. dependencies.lock records what it resolved to, esp-nn included.
+dependencies:
+  espressif/esp-tflite-micro: "==1.4.1"

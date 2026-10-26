@@ -285,6 +285,33 @@ the expected sites of defects. Implementation records here what actually failed,
 - **`resolver.h`** is checked against esp-tflite-micro 1.4.1 (all 19 methods present, R3). Each
   method's signature is confirmed at build time.
 
+**What the first cross-compile found (2026-10-26, T019).** The example's export, with 12 test
+windows, was built in `examples/lora32/` with PlatformIO 6.2.0, espressif32 6.13.0 (ESP-IDF 5.5.3,
+Xtensa GCC 14.2) and esp-tflite-micro 1.4.1 (esp-nn 1.4.1, `dependencies.lock`). Both environments,
+`lora32` and `lora32-v1`, link.
+- **No defect in the generated files.** `model_data.h`, `model_data.cc`, `resolver.h` and
+  `test_windows.h` compile with no error and no warning under ESP-IDF's flags. Every warning in the
+  log comes from the component's own TFLM sources (`-Wshadow` in `reference/sub.h`), not from
+  anything Caravan writes.
+- **Two gaps in the header were found by writing a model-agnostic firmware, before the first
+  build.** Both are fixed in the generator:
+  - the output's position was reachable only through a constant named after the output, so a
+    firmware would need the output's name: `kOutputPosition`;
+  - the record needed which Caravan exported the model: `kExportedBy`.
+- **The runner skeleton** gained the arena report. Its `int main()` stays: the skeleton is per
+  board but not per framework, and on ESP-IDF the entry point is `app_main`, which the board
+  guide's firmware shows. The skeleton's comment already says it is a starting point that Caravan
+  has not built.
+- **Build figures, `estimated`** (the linker's static figures for this firmware, not a board
+  measurement; the RAM figure excludes the heap and what the arena actually uses):
+  - flash 368,153 bytes of the 1 MB application partition;
+  - static RAM 63,960 of 327,680 bytes, of which 49,152 are the arena reserved by `kArenaBytes`.
+- **Build time, measured in this sandbox:** about 4.5 minutes per environment from a clean
+  project, with the PlatformIO packages already downloaded. The packages take 2.6 GB on disk.
+- **Not checked:** running the firmware. Espressif's QEMU for the ESP32 could run it as an
+  emulated rung outside Caravan's ladder, but executing a downloaded emulator binary was not
+  permitted in this session. The board run (T047) is the first execution.
+
 ## R9 — Where the existing documents go (FR-022)
 
 | Document | On the site | Change |

@@ -317,6 +317,7 @@ def _write_test_windows(
     if count == 0:
         return None
 
+    from caravan import __version__
     from caravan.data.test_part import form_parts
     from caravan.stages.quantize import _runtime_version
 
@@ -338,6 +339,7 @@ def _write_test_windows(
         "run": context.run_id or context.run_dir.name,
         "dataset_version": context.dataset.version,
         "runtime": _runtime_version(),
+        "caravan": __version__,
     }
     (out_dir / TEST_WINDOWS).write_text(
         windows.header(

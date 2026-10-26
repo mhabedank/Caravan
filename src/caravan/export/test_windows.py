@@ -302,6 +302,10 @@ constexpr OutputType kOutputType = {kind};
 constexpr float kScoreStep = {_c_float(record.score_step)};
 constexpr const char* kModelName = {array_name}_model_name;
 constexpr const char* kModelVersion = {array_name}_model_version;
+/* The output's position, so that a firmware needs no output name of its own. */
+constexpr unsigned int kOutputPosition = {array_name}_output_{output["name"]};
+/* Which Caravan wrote this header, for the board run record. */
+constexpr const char* kExportedBy = "caravan-ml {provenance["caravan"]}";
 
 {nl.join(tables)}
 

@@ -1,0 +1,10 @@
+# The LoRa32: classic ESP32 at 240 MHz, 4 MB flash in DIO mode.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+# The interpreter and the arena live on the main task's stack and in static memory.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# A board run holds its result on screen; the task watchdog would reset it.
+CONFIG_ESP_TASK_WDT_INIT=n
+# ESP-NN's requantization stays bit-exact (CONFIG_NN_SKIP_NUDGE is not set), so the board's scores
+# can equal the host's (research R3).
