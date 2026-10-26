@@ -7,11 +7,10 @@ of side effects and must never reach a training framework (Principle XII); the l
 
 from __future__ import annotations
 
-#: A development version on the way to 0.1.0, which the roadmap defines as the manifest schema,
-#: the mlp and conv1d templates, the build, train and quantize stages and the C-array export.
-#: Only the schema and one template's parameter half exist so far. The string is provenance: it is
+#: The second release candidate of 0.1.0: every stage from the manifest to the C array, with typed
+#: features (feature 008). The string is provenance: it is
 #: written into every run report and every exported artifact's record, so it must not claim a
 #: milestone the code has not reached.
-__version__ = "0.1.0rc1"
+__version__ = "0.1.0rc2"
 
 __all__ = ["__version__"]
