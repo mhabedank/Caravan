@@ -257,7 +257,7 @@ publishes a release.
 
 ### Tests
 
-- [ ] T024 [P] [US2] Write `tests/contract/test_docs_reference.py` (research R7):
+- [X] T024 [P] [US2] Write `tests/contract/test_docs_reference.py` (research R7):
   - **CLI:** every subcommand of `caravan.cli.main.build_parser()` has a `## caravan <verb>`
     section in `docs/reference/cli.md`. Every option string of that subparser (from
     `_actions[*].option_strings`, except `-h`/`--help`) appears inside that section. `--version`
@@ -277,7 +277,7 @@ publishes a release.
 
 ### Implementation
 
-- [ ] T025 [US2] Create `docs/conf.py` (research R1):
+- [X] T025 [US2] Create `docs/conf.py` (research R1):
   - `project = "Caravan"`;
   - `release = version` from `CARAVAN_VERSION`, else parsed from `src/caravan/__init__.py`
     textually, without importing Caravan;
@@ -289,7 +289,7 @@ publishes a release.
   - `html_title = f"Caravan {release}"`.
 
   Show the version in the page footer too: alabaster `html_theme_options` or `html_context`.
-- [ ] T026 [US2] Create `docs/index.md`, the landing page per contracts/docs-site.md:
+- [X] T026 [US2] Create `docs/index.md`, the landing page per contracts/docs-site.md:
   - what Caravan is;
   - what it is not;
   - install (the release URLs, matching README and try-it);
@@ -297,14 +297,14 @@ publishes a release.
   - direct links to the five main sections;
   - the `{toctree}` in the navigation order of the contract;
   - "This site describes Caravan {sub-ref}`release`" or the equivalent substitution.
-- [ ] T027 [P] [US2] Write `docs/reference/cli.md`: one section per verb (`validate`, `render`,
+- [X] T027 [P] [US2] Write `docs/reference/cli.md`: one section per verb (`validate`, `render`,
   `build`, `train`, `quantize`, `export`, `templates`, `boards`) in the shape of
   contracts/docs-site.md.
   - Purpose, arguments, options with defaults, what each reads and writes in the run directory,
     exit codes.
   - The global options and exit codes 0–4 from the docstring of `src/caravan/cli/main.py`, quoted
     exactly.
-- [ ] T028 [P] [US2] Write `docs/reference/manifest.md`:
+- [X] T028 [P] [US2] Write `docs/reference/manifest.md`:
   - every field path of `caravan/v0.2` as a table per section: type, default, allowed values, read
     by, rules;
   - the per-type keys marked with their type;
@@ -313,17 +313,17 @@ publishes a release.
 
   Sources: `src/caravan/manifest/schema/*.py`, `src/caravan/manifest/resolve.py` (defaults) and
   each stage's `SPEC.reads`.
-- [ ] T029 [P] [US2] Write `docs/reference/rules.md`:
+- [X] T029 [P] [US2] Write `docs/reference/rules.md`:
   - one `### <id>` per rule in `src/caravan/manifest/errors.py`, grouped by prefix (V, CF, B, T,
     DS, X and the others present);
   - for each: what it checks, where it is reported, how to fix it;
   - retired identifiers as `### <id> (retired)`, with what replaced them, from
     `docs/manifest-changes.md` and the specs.
-- [ ] T030 [US2] Add the `orphan`/toctree placement for every existing page under `docs/` per
+- [X] T030 [US2] Add the `orphan`/toctree placement for every existing page under `docs/` per
   contracts/docs-site.md, and fix every warning `sphinx-build -W` reports in the existing pages:
   - `try-it.md`, `roadmap.md`, `budgets.md`, `manifest-changes.md`, `releases/0.1.0.md`.
   - Turn links into `design/` and `research/` into absolute GitHub URLs.
-- [ ] T031 [US2] Create `.github/workflows/docs.yml`:
+- [X] T031 [US2] Create `.github/workflows/docs.yml`:
   - **Triggers:**
     - `workflow_call` with input `tag`;
     - `workflow_dispatch` with input `tag`, default empty. Resolve empty to the latest release tag
@@ -334,14 +334,14 @@ publishes a release.
   - **Deploy job:** `actions/deploy-pages@v5` in environment `github-pages`.
   - **Permissions:** `contents: read`, `pages: write`, `id-token: write`.
   - Precede the build with `actions/configure-pages@v6` (no `enablement`).
-- [ ] T032 [US2] In `.github/workflows/release.yml`, add a step to the `check` job after the
+- [X] T032 [US2] In `.github/workflows/release.yml`, add a step to the `check` job after the
   suite: `uv sync --group docs` and `uv run sphinx-build -W -b html docs _site`. A broken link or an
   unlisted page then blocks the release before anything is tagged (FR-020). Then call the docs
   workflow: a job `docs` that `uses:
   ./.github/workflows/docs.yml`, with `needs: [check, release]` and `tag:
   ${{ needs.check.outputs.tag }}`. Its permissions block grants `pages: write` and
   `id-token: write` to that job only.
-- [ ] T033 [US2] Leave the CI paths of `.github/workflows/ci.yml` unchanged: no new documentation
+- [X] T033 [US2] Leave the CI paths of `.github/workflows/ci.yml` unchanged: no new documentation
   path (constitution, Resources & Cost Discipline; research R7).
   - The completeness test (T024) runs on every PR that touches code, which is where code and pages
     drift apart.
@@ -361,7 +361,7 @@ the build.
 **Independent test**: decide from `docs/compatibility.md` alone whether `category` input on
 `stm32h743` works today, and how far it is verified.
 
-- [ ] T034 [US3] Write `docs/compatibility.md`:
+- [X] T034 [US3] Write `docs/compatibility.md`:
   - **Input types:** `number`, `category` (with dense and one-hot encoders), `binary`.
   - **Output types:** `category`, `binary`, `number`, each with its budget key and decision.
   - **Ludwig's absent types,** each with the reason (feature 008 research, section 5).
@@ -380,7 +380,7 @@ the build.
   - **Stages:** implemented vs planned, with a link to the roadmap.
   - **Known limits:** the deferred export-with-runtime-only, and the SC-006 note of `pace-cnn` if
     the owner has decided it.
-- [ ] T035 [US3] Update `docs/roadmap.md` (FR-017):
+- [X] T035 [US3] Update `docs/roadmap.md` (FR-017):
   - a v0.1 row for feature 009 (documentation site, test windows, LoRa32 guide; state `in
     progress`);
   - the rc3 goal paragraph quoting the owner's goal of 2026-10-26;
@@ -398,7 +398,7 @@ the build.
 **Independent test**: quickstart §5 (owner, T049), and, without the board, a CSV not from the
 fixture reaching `caravan export` by following the guide.
 
-- [ ] T036 [US4] Write `docs/guides/own-project.md`:
+- [X] T036 [US4] Write `docs/guides/own-project.md`:
   1. Lay out the CSV directory and its header row.
   2. Choose each column's type, with examples: a code is a `category`, a measurement a `number`,
      yes/no a `binary`.
@@ -417,10 +417,10 @@ fixture reaching `caravan export` by following the guide.
 
   The worked example manifest is one ```yaml block whose first line is
   `# example: own-project`. T038 reads exactly that block.
-- [ ] T037 [US4] Replace the "Your own data" section of `docs/try-it.md` with two sentences and a
+- [X] T037 [US4] Replace the "Your own data" section of `docs/try-it.md` with two sentences and a
   link to the own-project guide. The step blocks are untouched. Run
   `uv run pytest tests/integration/test_try_it_guide.py -q`.
-- [ ] T038 [US4] Validate the own-project guide by following it once with a CSV derived at test time
+- [X] T038 [US4] Validate the own-project guide by following it once with a CSV derived at test time
   from the fixture, renamed columns and a binary output: `write_binary_dataset` in
   `tests/support.py`. Add `tests/train/test_own_project_guide.py`, which writes that CSV and the
   manifest the guide's worked example shows (extract it from the guide's ```yaml block marked
@@ -430,7 +430,7 @@ fixture reaching `caravan export` by following the guide.
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T039 [P] Shorten `README.md` to:
+- [X] T039 [P] Shorten `README.md` to:
   - what Caravan is and is not;
   - the status;
   - the install lines (the `pip install "caravan-ml @ ` line stays first, because the release
@@ -439,12 +439,12 @@ fixture reaching `caravan export` by following the guide.
   - a link to `https://mhabedank.github.io/Caravan/`.
 
   Run the tests that read the README.
-- [ ] T040 [P] Add the `export.test_windows` addition to `docs/manifest-changes.md`: optional,
+- [X] T040 [P] Add the `export.test_windows` addition to `docs/manifest-changes.md`: optional,
   default 0, stays `caravan/v0.2`, refused by an rc2 build as unknown (research R4).
-- [ ] T041 [P] Add an rc3 paragraph to `docs/releases/0.1.0.md`: the site, test windows, the LoRa32
+- [X] T041 [P] Add an rc3 paragraph to `docs/releases/0.1.0.md`: the site, test windows, the LoRa32
   guide, and what the board run will establish. No version bump in this feature, because the
   release is the owner's decision.
-- [ ] T042 Run the site build locally: `uv run --group docs sphinx-build -W -b html docs _site`.
+- [X] T042 Run the site build locally: `uv run --group docs sphinx-build -W -b html docs _site`.
   Fix every warning, then open `_site/index.html` and check:
   - each main section is one click away (SC-005);
   - every page shows the version.

@@ -65,6 +65,10 @@ jobs:
           uv venv --python 3.13 /tmp/train
           VIRTUAL_ENV=/tmp/train uv pip install -e ".[train,verify]" pytest packaging
           VIRTUAL_ENV=/tmp/train /tmp/train/bin/python -m pytest tests -q
+      - name: the documentation site builds, every warning an error (feature 009, FR-020)
+        run: |
+          uv sync --python 3.13 --group docs
+          CARAVAN_VERSION="${{ steps.version.outputs.version }}" uv run sphinx-build -W -b html docs _site
 
   tag:
     # Only for a manual start: the tag on the commit that was just checked. Pushed with this
@@ -176,3 +180,15 @@ jobs:
           line=$(grep -m1 '^pip install "caravan-ml @ ' "$GITHUB_WORKSPACE/source/README.md")
           eval "/tmp/readme/bin/${line}"
           test "$(/tmp/readme/bin/caravan --version)" = "caravan-ml ${VERSION}"
+
+  docs:
+    # The site for the new tag, after the release exists (feature 009, research R2).
+    needs: [check, release]
+    if: always() && needs.release.result == 'success'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.yml
+    with:
+      tag: ${{ needs.check.outputs.tag }}

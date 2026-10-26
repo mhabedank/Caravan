@@ -1,0 +1,81 @@
+name: docs
+
+# The documentation site on GitHub Pages, built from docs/ with Sphinx (feature 009, research R1,
+# R2). It always describes a release: the release workflow calls it with the new tag, and a manual
+# start takes a tag too, the latest release when left empty. Never on a push, so a change that
+# touches only documentation starts nothing (constitution, Resources & Cost Discipline).
+#
+# Once, by the repository's owner: Settings → Pages → Build and deployment → Source: "GitHub
+# Actions". This workflow's own token cannot switch that on.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "The release tag the site describes, e.g. v0.1.0rc3"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release tag the site describes; empty for the latest release"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: the tag this site describes
+        id: tag
+        env:
+          REQUESTED: ${{ inputs.tag }}
+        run: |
+          tag="$REQUESTED"
+          if [ -z "$tag" ]; then
+            tag=$(git tag --list 'v*' --sort=-version:refname | head -1)
+          fi
+          if [ -z "$tag" ] || ! git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+            echo "no release tag '$tag' to describe"; exit 1
+          fi
+          git checkout --quiet "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "site for $tag" >> "$GITHUB_STEP_SUMMARY"
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv python install 3.13
+      - name: build, every warning an error (broken links, pages outside the navigation)
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          uv sync --python 3.13 --group docs
+          CARAVAN_VERSION="${TAG#v}" uv run sphinx-build -W -b html docs _site
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

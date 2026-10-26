@@ -35,6 +35,23 @@ YAML like the zoo's.
 | A fixed split from a column of the data; the framework's output in `framework.log`; the try-it guide; the release workflow | v0.1 | **delivered** (feature 007) | **`pace-cnn`** (the split); the release |
 | Typed features in Ludwig's names: one input per column (`number`, `category`, `binary`), preprocessing fitted on the training part and built into the model, outputs `category`, `binary`, `number`; manifest `caravan/v0.2` | v0.1 | **delivered** (feature 008) | `picket-mlp` (derived labels pass int8); **`pace-cnn`**; owner decision D7, 2026-10-24 |
 | Export with only the runtime installed, when training and quantization are cached | v0.1 | **deferred** by the owner, 2026-10-23 | a known limit of 0.1.0 |
+| The documentation site; test windows in the export (`export.test_windows`); the first exported model on a microcontroller, a LILYGO LoRa32, with its guide and a firmware build before every release | v0.1 | **in progress** (feature 009) | the owner's goal for rc3, 2026-10-26 |
+
+**The goal for rc3, 2026-10-26.** In the owner's words: complete documentation, "eine kleine
+Landingpage, dann Dokumentation der Schnittstelle, also wie funktioniert die CLI, wie funktioniert
+das [YAML]-Format, was sind momentan die Kompatibilitäten … und was wird in Zukunft gehen". Then
+"ein, zwei kleine Projekte … Ende zu Ende wirklich bis auf den Mikrocontroller drauf". Feature 009
+builds both:
+- the site, from `docs/`;
+- the [board guide](guides/lora32.md) for the LoRa32 the owner has.
+
+What a board run establishes is recorded in [board runs](board-runs/index.md), and the
+[compatibility page](compatibility.md) states how far each board has been verified. Tagging rc3 is
+the owner's decision, after their own projects have run.
+
+The working records this roadmap cites live in the repository, not on the site: the
+[design document](https://github.com/mhabedank/Caravan/tree/main/docs/design) and the
+[research notes](https://github.com/mhabedank/Caravan/tree/main/docs/research).
 
 **The release, 2026-10-23.** Candidate `v0.1.0rc1` first: the version to try by hand
 (`docs/try-it.md`) and the version the `pace-cnn` port pins. `v0.1.0` follows once the port has run
