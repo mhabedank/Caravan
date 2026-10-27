@@ -2,7 +2,8 @@
 
 ``docs/try-it.md`` is executed here, block by block, in a directory laid out the way its ``fetch``
 block lays it out. The ``install`` and ``fetch`` blocks need the published release, so the release
-workflow runs those against it; this test checks that they name this version.
+workflow runs those against it. That they name *this* version is checked in
+``tests/contract/test_docs_guide.py``, which needs no framework and so runs everywhere.
 """
 
 from __future__ import annotations
@@ -15,17 +16,12 @@ from pathlib import Path
 
 import pytest
 
-from caravan import __version__
 from tests.support import SYNTHETIC_DATASET
 from tests.support_docs import commands
 from tests.train.test_console_output import FRAMEWORK_LINE
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = ROOT / "docs" / "try-it.md"
-WHEEL = (
-    f"https://github.com/mhabedank/Caravan/releases/download/v{__version__}/"
-    f"caravan_ml-{__version__}-py3-none-any.whl"
-)
 
 
 @pytest.fixture(scope="module")
@@ -77,11 +73,3 @@ def test_the_files_the_guide_lists_exist(tried) -> None:
             assert list(run.glob(name.replace("<board>", "*"))), name
         else:
             assert (run / name).exists(), name
-
-
-def test_the_install_and_fetch_steps_name_this_version() -> None:
-    install = " ".join(commands(GUIDE, "install"))
-    fetch = " ".join(commands(GUIDE, "fetch"))
-    assert WHEEL in install
-    assert f"/archive/refs/tags/v{__version__}.tar.gz" in fetch
-    assert f"Caravan-{__version__}/examples" in fetch

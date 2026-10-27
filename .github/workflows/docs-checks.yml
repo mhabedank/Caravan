@@ -1,0 +1,62 @@
+name: docs-checks
+
+# What a documentation change needs checked, without the framework matrix behind it.
+#
+# Before this workflow, `ci.yml` named three documents as exceptions to its own "documentation runs
+# nothing" rule — `README.md`, `docs/try-it.md` and `docs/releases/**` — because tests read them.
+# The effect was all or nothing: editing a sentence in the README started nine jobs, one of them a
+# five-minute training run, to check a handful of assertions that need no framework at all.
+#
+# So the checks that a document can actually fail live here, on one Python with no extras, and
+# `ci.yml` keeps the matrix for changes that touch code. Two things run:
+#
+#   - the tests that read the pages and compare them with the code — the references against the
+#     parser, the schema, the rule table and the registries; the README's commands and its install
+#     line; the release note's sections; the guide's version strings;
+#   - the site build with every warning an error, which catches a broken link, a dead anchor and a
+#     page no navigation reaches. That check used to happen only on a release tag, so this workflow
+#     gives documentation changes a check they did not have before.
+#
+# What is deliberately NOT here: executing the try-it guide. That needs the training framework and
+# is the five minutes this workflow exists to avoid. It still runs in `ci.yml`'s `train` job on
+# every change that touches code, and the release workflow runs the guide literally — install,
+# fetch and run — against the published release before the release is announced.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "README.md"
+      # The site's build tools are pinned here; a bump must prove the build still passes with -W.
+      - "pyproject.toml"
+      - ".github/workflows/docs-checks.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "README.md"
+      - "pyproject.toml"
+      - ".github/workflows/docs-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv python install 3.13
+      - name: install the default package and the site's build tools
+        run: uv sync --python 3.13 --group docs
+      - name: the pages the suite checks against the code
+        run: >
+          uv run --python 3.13 pytest -q
+          tests/contract/test_docs_reference.py
+          tests/contract/test_docs_guide.py
+          tests/integration/test_readme.py
+          tests/unit/test_release_note.py
+      - name: the site builds, every warning an error (broken links, anchors, orphan pages)
+        # No CARAVAN_VERSION: this build is a check, not the published site, so conf.py reads the
+        # package's own version. The release workflow builds the site that ships.
+        run: uv run --python 3.13 sphinx-build -W -b html docs _site
