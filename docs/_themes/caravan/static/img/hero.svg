@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 700" width="800" height="700"
+     role="img" aria-label="A road running to the horizon with three squares travelling it, each smaller than the one before, and a microcontroller board standing at the roadside where the road ends.">
+  <!-- The first screen of the Caravan site. Flat screenprint, four inks: the poster language the
+       identity is built on, and the one picture that has to carry the idea before a word is read.
+
+       What it says: something leaves your computer large and arrives on a board small. The three
+       squares are one model at three sizes — trained, converted, 8-bit — travelling one road, and
+       the orange thing at the roadside is the board they have to fit. Orange appears here and
+       nowhere else in the interface: in an illustration it marks the subject, which is what the
+       Mobility Model Zoo does with the same ink.
+
+       Two things are deliberate and were not in the first draft. The carriageway is narrow and
+       carries edge lines: a wide bare triangle converging at the top of the frame reads as a
+       mountain, not as a road, and the first version did. And nothing that carries meaning sits
+       outside y 90..610, because `object-fit: cover` crops this to about 1.15:1 on a laptop and
+       1.55:1 on a wide screen. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBEED0"/>
+      <stop offset="1" stop-color="#FDF8EA"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="700" fill="url(#sky)"/>
+  <circle cx="178" cy="178" r="58" fill="#F6DFA8"/>
+
+  <!-- three ranges, each a shade deeper than the one behind it -->
+  <path d="M0 262 L0 206 L76 162 L160 208 L238 164 L322 216 L396 174 L480 220 L558 180 L644 224 L722 186 L800 222 L800 262 Z" fill="#D3EDE2"/>
+  <path d="M0 262 L0 234 L92 192 L192 240 L282 202 L388 246 L466 210 L572 250 L660 216 L752 252 L800 234 L800 262 Z" fill="#B9E2CE"/>
+
+  <rect x="0" y="262" width="800" height="150" fill="#A5DBC6"/>
+  <rect x="0" y="412" width="800" height="288" fill="#8CCBB4"/>
+
+  <!-- the road: one vanishing point at 404,262, the near end cut off by the frame -->
+  <path d="M404 262 L690 700 L118 700 Z" fill="#062544"/>
+  <!-- edge lines, inset and parallel: the cue that makes it a carriageway rather than a slope -->
+  <path d="M404 266 L162 700 L142 700 L399 266 Z" fill="#FBEED0" opacity=".8"/>
+  <path d="M404 266 L646 700 L666 700 L409 266 Z" fill="#FBEED0" opacity=".8"/>
+
+  <!-- the model on the move: one square, three sizes, each further down the road -->
+  <rect x="345" y="492" width="118" height="118" fill="#FBEED0" stroke="#062544" stroke-width="6"/>
+  <rect x="368" y="408" width="72" height="72" fill="#FBEED0" stroke="#062544" stroke-width="5"/>
+  <rect x="383" y="348" width="42" height="42" fill="#FBEED0" stroke="#062544" stroke-width="4"/>
+
+  <!-- poles on the left verge, with the wire between them -->
+  <g stroke="#062544" fill="none">
+    <path d="M58 672 V492 M24 506 H92" stroke-width="10"/>
+    <path d="M171 548 V424 M148 434 H194" stroke-width="7"/>
+    <path d="M234 482 V392 M218 400 H250" stroke-width="5"/>
+    <path d="M58 496 C 110 468, 140 448, 171 428 C 196 412, 216 402, 234 396" stroke-width="3"/>
+  </g>
+
+  <!-- where the road is going: the board, standing at the roadside -->
+  <g>
+    <rect x="566" y="330" width="12" height="54" fill="#062544"/>
+    <rect x="682" y="330" width="12" height="54" fill="#062544"/>
+    <rect x="548" y="196" width="164" height="140" fill="#ED9B20" stroke="#062544" stroke-width="7"/>
+    <rect x="601" y="242" width="58" height="48" fill="#062544"/>
+    <g fill="#062544">
+      <rect x="567" y="214" width="8" height="24"/><rect x="584" y="214" width="8" height="24"/>
+      <rect x="668" y="214" width="8" height="24"/><rect x="685" y="214" width="8" height="24"/>
+      <rect x="567" y="294" width="8" height="24"/><rect x="584" y="294" width="8" height="24"/>
+      <rect x="668" y="294" width="8" height="24"/><rect x="685" y="294" width="8" height="24"/>
+    </g>
+  </g>
+</svg>

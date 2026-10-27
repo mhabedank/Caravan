@@ -11,10 +11,15 @@
 
    WHAT CARAVAN CHANGES, and all it changes (feature 010, D4 — a sibling, not a twin):
    - the mark is Caravan's own, not the zoo's;
-   - --accent-use is reserved for the budget and its verdict. The zoo reserves its warm orange for
-     the vehicle or the machine; Caravan reserves it for a figure that must fit and the gate's
-     answer about whether it did, because that is what this project is about. It appears nowhere
-     else on the site.
+   - --accent-use is reserved, in the INTERFACE, for the budget and its verdict: a figure that must
+     fit and the gate's answer about whether it did, because that is what this project is about.
+     In an illustration it marks the subject of the picture, which is what the zoo does with it;
+     reserving it there too made this site duller than the one it was copied from, for a rule no
+     reader could see. It is never an emphasis, a heading or a button;
+   - the @font-face URLs are relative to this file, not to a `css/` directory. Sphinx serves every
+     static file from one `_static/`, so the zoo's `../fonts/` resolved to the site root and the
+     site served NO webfonts at all — it fell back to the system sans and nobody could see that
+     from the page alone. Found with the browser's failed-request log, not by looking.
 
    Every interface colour is declared here and nowhere else, including the sections that are dark in
    both schemes. A change of identity is then an edit to this file rather than to the pages.
@@ -24,7 +29,7 @@
 /* Feature 023: a grotesque with a width axis; headlines are set narrow. */
 @font-face {
   font-family: "Archivo";
-  src: url("../fonts/Archivo-variable-latin.woff2") format("woff2");
+  src: url("fonts/Archivo-variable-latin.woff2") format("woff2");
   font-weight: 400 800;
   font-stretch: 78% 100%;
   font-style: normal;
@@ -32,7 +37,7 @@
 }
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("../fonts/JetBrainsMono-variable-latin.woff2") format("woff2");
+  src: url("fonts/JetBrainsMono-variable-latin.woff2") format("woff2");
   font-weight: 100 800;
   font-style: normal;
   font-display: swap;

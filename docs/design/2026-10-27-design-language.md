@@ -42,16 +42,21 @@ stylesheet. The zoo's own mark does the same.
 
 ### The accent is reserved
 
-**The budget and its verdict.** A figure that must fit, and the gate's answer about whether it did.
-Nothing else on the site may use it — not a call to action, not an emphasis, not a heading.
+**In the interface: the budget and its verdict.** A figure that must fit, and the gate's answer
+about whether it did. Nothing else in the interface may use it — not a call to action, not an
+emphasis, not a heading. `--accent-use` exists so a check can find violations; `.budget` and
+`.verdict` are the only classes that may read it.
 
-The zoo reserves its warm ink for the vehicle or the machine, the subject of its pictures. Caravan
-has no vehicles; it has budgets, and Principle V says budgets are gates and not warnings. Putting
-the project's own argument in its one warm colour is the closest equivalent, and it keeps the two
-sites apart at a glance.
+**In an illustration: the subject of the picture.** The board in the hero, the board in leg 3's
+motif, the bar that stops the model in leg 4's. This half of the rule was added after the first
+finished page was looked at beside the zoo's. The zoo reserves its warm ink for the vehicle or the
+machine — the thing a picture is *about* — and reserving it everywhere, including in the drawings,
+made this site duller than the one it was copied from for a rule no reader could see.
 
-`--accent-use` exists so a check can find violations. `.budget` and `.verdict` are the only classes
-that may read it.
+The two halves do not fight: in an interface the warm ink means "this is the number that decides",
+and in a drawing it means "this is the thing the drawing is about". What stays banned is the
+middle, where a button or a heading wears it for emphasis and the reservation stops meaning
+anything.
 
 ### Contrast, measured
 
@@ -89,19 +94,26 @@ Body text is 17px at 1.6 line height, 16px below 560px.
 
 | Role | Size | Weight | Width |
 |---|---|---|---|
-| display (the first screen only) | `clamp(34px, 5.4vw, 52px)` | 700 | 80% |
-| h1 | `clamp(30px, 4vw, 38px)` | 700 | 80% |
-| h2 | `clamp(24px, 3vw, 30px)` | 700 | 82% |
-| h3 | 22px | 650 | normal |
+| the hero's headline | `clamp(31px, 3.4vw, 45px)` | 700 | 80% |
+| a band's heading (landing h2) | `clamp(27px, 3.3vw, 36px)` | 700 | 82% |
+| an article's h1 | `clamp(30px, 4vw, 38px)` | 700 | 80% |
+| an article's h2 | `clamp(24px, 3vw, 30px)` | 700 | 82% |
+| h3 | 22px (21px in a card, 19px in a band of three) | 650–700 | normal |
 | h4–h6 | 18px | 650 | normal |
-| lead | 20px | normal | normal |
+| lead | 20px, 17.5px in the hero | normal | normal |
 | body | 17px | normal | normal |
-| small | 15px | normal | normal |
 | caption | 13px, muted | normal | normal |
 | eyebrow | 13px, uppercase, tracked | 650 | normal |
 
-Measure is capped at 720px (`.prose`). Sphinx writes plain headings, so the scale is attached to
-real headings inside `.prose`; the utility classes stay available for a page that sets one by hand.
+The hero's headline is clamped to what its panel can hold, and sets `hyphens: none`: at the size
+the panel first wanted, "microcontroller" hyphenated, and the first screen of the site read
+"A CSV goes in. A model your mi-crocontroller runs comes out." A last-resort `overflow-wrap` is
+kept for a reader at 200% zoom, where a break is better than a page that scrolls sideways.
+
+Measure is capped at 720px for an article (`.prose`) and per element on the landing page, which is
+not an article. Sphinx writes plain headings, so the scale is attached to real headings; the
+utility classes the zoo's stylesheet carries for a generator that writes `<h2 class="h2">` are not
+here, because nothing on this site uses them.
 
 ## Code, tables, figures
 
@@ -118,6 +130,30 @@ real headings inside `.prose`; the utility classes stay available for a page tha
   style carries it too: the provenance labels are dotted for `estimated`, dashed for `emulated`,
   solid for `measured`, so they survive a monochrome print and a reader who cannot separate the
   inks. This is the zoo's own technique, borrowed.
+
+## The landing page
+
+It is the one page that is not an article, and it is built from bands rather than from prose.
+
+- **The first screen is a poster**: a navy panel of text hard against a full-bleed illustration,
+  with an eyebrow above the headline and two calls to action below it. The words come from
+  `index.md`'s own front matter (`eyebrow`, `tagline`, `lead`), so changing them is still an edit
+  to the page; only the shape is in the theme.
+- **Below it, bands.** Each `##` is a band that runs to both edges of the window and sets its own
+  gutter, which is what lets alternate bands carry a background. The measure is restored per
+  element, not per page: a paragraph is capped, a grid of three is not.
+- **Every heading is a real heading.** The first draft built the grids out of `container`
+  directives, and docutils renders a heading inside one as `<p class="rubric">`: the page looked
+  right and had no structure under it. The grids are built from the sections instead, with
+  `attrs_block` putting the class on the section (`{.band .band-3}` above the `##`).
+- **The route's four cards carry a motif** — a flat drawing of what that leg is about. They are
+  backgrounds, not `<img>`s, because the card already says in words what the leg is and a reader
+  on a screen reader should not hear it twice.
+
+The whole landing page is a deliberate second pass. The first one copied the identity's tokens but
+not its compositions, and the result was a documentation page wearing the zoo's colours — exactly
+the half step the zoo's own identity work warns against. Copying a design language means copying
+the shapes it makes, not only the inks it makes them with.
 
 ## The words
 
@@ -142,7 +178,13 @@ The verbal register is the journey the project's name already implies.
 
 ## What a page owes the reader
 
-- A heading structure in order, with no level skipped.
+- A heading structure in order, with no level skipped. **The build checks this**, and it very
+  nearly did not: the landing page's h1 is shown in the theme, and the first attempt wrote the page
+  with no title at all, which made MyST report every page and was "fixed" by silencing the report —
+  along with the check that had caught the manifest reference skipping H2 to H4 forty-three times.
+  The page keeps its title in the source now and the extension drops the duplicate, so nothing is
+  suppressed. The lesson is worth more than the rule: a warning that fires on something correct is
+  a reason to look at the source, not at the warning list.
 - Every abbreviation expanded at its first use on that page (FR-018).
 - Every figure about hardware carrying exactly one provenance label (Principle IV).
 - A text alternative for every image, and the page still complete with images unavailable (FR-037).

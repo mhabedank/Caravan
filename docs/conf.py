@@ -38,15 +38,27 @@ root_doc = "index"
 exclude_patterns = ["_build", "design/**", "research/**"]
 
 myst_heading_anchors = 3
-# colon_fence lets a layout wrapper use `:::` so that code blocks inside it keep ```.
-# attrs_inline lets a link carry a class, which is how the landing page's one primary call to
-# action becomes a button without raw HTML that Sphinx would not resolve or check.
+
+# The landing page's h1 is shown in the theme, inside the hero's dark panel, because the panel is
+# structure rather than content. It is still WRITTEN in `index.md`, as that page's `# ` title, and
+# `_ext/identity.py` drops the title node before the writer turns it into a heading.
 #
-# Note on containers: a heading inside one becomes `<p class="rubric">`, not a heading — docutils
-# does not treat it as a document section. The landing page therefore keeps its headings at the top
-# level and takes its layout from CSS. Found by looking at the rendered page; the accessibility
-# audit did not catch it, because its heading rules check the order of the headings that exist.
-myst_enable_extensions = ["substitution", "colon_fence", "attrs_inline", "attrs_block"]
+# The roundabout route is there to keep a check. With no title in the source, every `##` on the
+# page is a top-level section and Sphinx renders each as an `<h1>`: seven first-level headings on
+# one page. Silencing MyST's complaint about the missing h1 — the first thing tried here — also
+# silenced the heading-order check that had caught the manifest reference skipping H2 to H4
+# forty-three times. With the title where it belongs, nothing is suppressed and that check is back.
+# colon_fence lets a layout wrapper use `:::` so that code blocks inside it keep ```, which is how
+# a leg frames the card at its head and the check at its foot.
+# attrs_block puts a class on the SECTION a heading opens — `{.band .band-3}` on the line above a
+# `##` — which is what gives the landing page its grids.
+#
+# attrs_block rather than a container directive, and the reason is worth keeping: a heading inside
+# a `container` becomes `<p class="rubric">`, not a heading, because docutils does not treat it as
+# a document section. The landing page's first draft was built that way and looked right while
+# having no structure under it at all. Found by reading the rendered HTML; the accessibility audit
+# did not catch it, because its heading rules check the order of the headings that exist.
+myst_enable_extensions = ["substitution", "colon_fence", "attrs_block"]
 myst_substitutions = {"release": release}
 
 # The identity, copied from the Mobility Model Zoo and carried as a theme of our own (feature 010,

@@ -1,13 +1,40 @@
 {%- extends "layout.html" -%}
 {#- The first screen, and the only page on the site that is not an article.
 
-    It takes the whole width: no measure cap, no `.prose` wrapper, because the page is built from
-    sections rather than from running text. The page's own Markdown supplies those sections, so
-    everything here is structure and nothing is content — a change to what the first screen SAYS is
-    a change to `docs/index.md`, not to this file.
+    The hero is here rather than in the Markdown because it is structure, not content: a navy panel
+    hard against a picture, which is the poster composition the identity is built on. What it SAYS
+    comes from the page's own front matter (`eyebrow`, `tagline`, `lead`), so changing the words is
+    still an edit to `docs/index.md`.
+
+    This also keeps the heading levels honest: the h1 is here, the page's own sections are h2, and
+    nothing is wrapped in a container directive — a heading inside one renders as a rubric
+    paragraph rather than a heading, which costs the page its structure.
 -#}
 {%- block main %}
-  <div class="wrap landing">
+  <section class="hero-full" aria-labelledby="hero-title">
+    <div class="hero-panel scheme-dark">
+      <div class="hero-panel-in">
+        {%- if meta and meta.get('eyebrow') %}
+        <p class="eyebrow">{{ meta.get('eyebrow') }}</p>
+        {%- endif %}
+        <h1 id="hero-title">{{ meta.get('tagline', project) }}</h1>
+        {%- if meta and meta.get('lead') %}
+        <p class="lead">{{ meta.get('lead') }}</p>
+        {%- endif %}
+        <div class="row">
+          <a class="btn" href="{{ pathto('route/index') }}">Start the route</a>
+          <a class="btn btn-ghost" href="{{ pathto('compatibility') }}">What is verified today</a>
+        </div>
+        <p class="cap">First model in 15 minutes. On a board in 30.</p>
+      </div>
+    </div>
+    <figure class="hero-stage">
+      <img src="{{ pathto('_static/img/hero.svg', 1) }}" width="800" height="600"
+           alt="A road running to the horizon with three squares of decreasing size travelling
+                along it, and a microcontroller board standing at the end of the route.">
+    </figure>
+  </section>
+  <div class="landing">
     {{ body }}
   </div>
 {%- endblock %}

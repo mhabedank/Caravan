@@ -1,35 +1,70 @@
 ---
 layout: landing
+eyebrow: What it is
+tagline: A CSV goes in. A model your microcontroller runs comes out.
+lead: >-
+  You describe your data once, in one YAML file: which columns the model reads, which column it
+  answers, which boards it has to fit. Caravan trains it, shrinks it to 8-bit integers, stops if
+  shrinking cost more accuracy than you allowed, and writes the C files your firmware compiles.
 description: Caravan turns a CSV and one YAML file into a model your microcontroller runs, and refuses it if shrinking it cost more accuracy than you allowed.
 ---
 
-# A CSV goes in. A model your microcontroller runs comes out.
+# Caravan
 
-{.lead}
-You describe your data once, in one YAML file: which columns the model reads, which column it
-answers, and which boards it has to fit. Caravan trains the model, shrinks it to 8-bit integers,
-**stops if shrinking cost more accuracy than you allowed**, and writes the C files your firmware
-compiles.
+{.band .band-3}
+## Three things every model gets
 
-[Start the route](route/index.md){.btn} <span class="cap">First model in 15 minutes. On a board in 30.</span>
+### The budget is a gate
 
-## What you bring
+Your manifest says how much accuracy making the model 8-bit may cost. Exceed it and the run fails
+and exports nothing. There is no flag that turns it off.
 
-- **A table of your own** — a `.csv`, `.tsv` or `.txt` file with a header row. Sensor readings, log
-  lines, counters; whatever you already have.
-- **Python 3.13.** Training needs exactly this version, because the training framework publishes
-  nothing newer yet. Checking and previewing a manifest work on 3.13, 3.14 and 3.15.
-- **About 2 GB of download, once.** The training dependency is large — roughly 2 GB installed
-  against 7 MB for Caravan itself. Leg 1 says so again before the install command, because it is
-  the longest wait in the half hour and worth starting before you read on.
-- **Linux or macOS.** The route's commands are written for these. On Windows they work under WSL;
-  nothing here has been tested in PowerShell.
-- **A microcontroller — but only from leg 3.** Legs 1 and 2 need nothing but your computer. Leg 3
-  is written for a generic ESP32 development board, which costs under €10.
+### It runs where your data is
 
-You do not bring a model architecture, a training loop, a quantization script or a conversion step.
-Those are what Caravan is.
+Nothing is uploaded and nothing is hosted. Caravan runs on your machine, reads your table, records
+its digest, and writes files you own.
 
+### Every number says where it came from
+
+A figure about hardware carries `estimated`, `emulated` or `measured`. A number without one is not
+printed at all.
+
+{.band .band-tiles .band-alt}
+## The route
+
+Four legs, from nothing to a board answering. Each one ends with something you can point at — a
+file that now exists, a number the run printed, a verdict the pipeline reached. The minutes are
+cumulative from the start of leg 1, with the install already done.
+
+{.leg .leg-1}
+### [Your first model](route/1-first-model.md)
+
+**About 5 minutes.** The worked example, run end to end.
+
+You end with an int8 model, its C array, and the run report that says what shrinking cost.
+
+{.leg .leg-2}
+### [Your own columns](route/2-your-columns.md)
+
+**About 10 minutes, 15 from the start.** Your table, your column types.
+
+You end with a model that reads your data, and your own accuracy figure.
+
+{.leg .leg-3}
+### [Onto a board](route/3-onto-a-board.md)
+
+**About 15 minutes, 30 from the start.** A generic ESP32 under €10.
+
+You end with a board answering, its answers checked against your computer's.
+
+{.leg .leg-4}
+### [When it does not fit](route/4-when-it-does-not-fit.md)
+
+**After the half hour.** A check made to refuse, on purpose.
+
+You end knowing which of the two gates you will meet first, and why it stopped you.
+
+{.band .band-figure}
 ## What it actually does
 
 <figure>
@@ -52,7 +87,7 @@ Those are what Caravan is.
   <g font-family="Archivo, sans-serif" font-size="11">
     <rect x="404" y="20" width="48" height="90" fill="none" stroke="var(--mark,#CA6A0A)" stroke-width="2.5"/>
     <text x="428" y="14" text-anchor="middle" fill="var(--mark,#CA6A0A)" font-weight="700">gate</text>
-    <text x="428" y="128" text-anchor="middle" fill="var(--muted,#4B5450)">fits?</text>
+    <text x="428" y="131" text-anchor="middle" fill="var(--muted,#4B5450)">within budget?</text>
     <text x="48" y="118" text-anchor="middle" fill="var(--muted,#4B5450)">you write</text>
     <text x="182" y="118" text-anchor="middle" fill="var(--muted,#4B5450)">Caravan</text>
     <text x="322" y="118" text-anchor="middle" fill="var(--muted,#4B5450)">Caravan</text>
@@ -68,19 +103,24 @@ Your firmware passes raw sensor values. Each column's preprocessing — scaling 
 a category — is built into the model itself, so there is no preprocessing code to port and no
 chance of your board and your computer disagreeing about it.
 
-## The route
+{.band .band-cols .band-alt}
+## What you bring
 
-Four legs. Each one ends with something you can point at.
+- **A table of your own** — a `.csv`, `.tsv` or `.txt` file with a header row. Sensor readings, log
+  lines, counters; whatever you already have.
+- **Python 3.13.** Training needs exactly this version, because the training framework publishes
+  nothing newer yet. Checking and previewing a manifest work on 3.13, 3.14 and 3.15.
+- **About 2 GB of download, once.** The training dependency is large — roughly 2 GB installed
+  against 7 MB for Caravan itself. It is the longest wait in the half hour, and leg 1 says so again
+  before the install command so you can start it and read on.
+- **Linux or macOS.** The route's commands are written for these. On Windows they work under WSL;
+  nothing here has been tested in PowerShell.
+- **A microcontroller — but only from leg 3.** Legs 1 and 2 need nothing but your computer.
 
-| Leg | You end with | About |
-|---|---|---|
-| [1. Your first model](route/1-first-model.md) | An int8 model and its C array, on disk | 5 min |
-| [2. Your own columns](route/2-your-columns.md) | The same, reading your data, with your accuracy figure | 15 min |
-| [3. Onto a board](route/3-onto-a-board.md) | A microcontroller answering, checked against your computer | 30 min |
-| [4. When it does not fit](route/4-when-it-does-not-fit.md) | A failed gate read, and a budget you chose | after |
+You do not bring a model architecture, a training loop, a quantization script or a conversion step.
+Those are what Caravan is.
 
-The minutes are cumulative from the start of leg 1, with the install already done.
-
+{.band .band-cols}
 ## What Caravan is for
 
 Models small enough to run on a microcontroller, built from tabular data, deployed through the
@@ -88,7 +128,7 @@ board's own open toolchain. It is the build tool for the embedded models of the
 [Mobility Model Zoo](https://github.com/mhabedank/mobility-model-zoo), and it works just as well
 outside it.
 
-Within that, it is deliberately narrow, which is what lets it be short:
+Within that it is deliberately narrow, which is what lets it be short:
 
 - It does not run your model. The board does that, with TensorFlow Lite for Microcontrollers.
 - It does not search for an architecture. You pick a template and its parameters.
