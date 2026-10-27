@@ -8,7 +8,7 @@
 #
 # To use your own data, point `dataset` at a directory of CSV files with a header row, list the
 # columns as features with their types, name the output, and adjust the window and the boards.
-# docs/try-it.md says more.
+# The route's second leg says more: docs/route/2-your-columns.md.
 apiVersion: caravan/v0.2
 
 model:
@@ -46,5 +46,6 @@ export:
   formats: [flatbuffer, c_array]
   targets: [s32k144, stm32h743, esp32]
   representative_samples: 500
-  # Windows of the test part, with the host's int8 answers, for a board (docs/guides/lora32.md).
+  # Windows of the test part, with the host's int8 answers, for a board to compare against
+  # (docs/route/3-onto-a-board.md).
   test_windows: 16

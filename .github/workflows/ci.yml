@@ -4,13 +4,13 @@ name: ci
 # minutes are spent where they verify code. A change that touches code runs everything, including
 # every test that reads a document, because those tests live in the suite this job runs.
 #
-# No document is an exception any more. `README.md`, `docs/try-it.md` and `docs/releases/**` used
+# No document is an exception any more. `README.md`, the entry guide and `docs/releases/**` used
 # to be, since tests read them — but the exception started the whole matrix, nine jobs and a
 # five-minute training run, to check assertions that need no framework. Those checks moved to
 # `docs-checks.yml`, which runs them on one Python with no extras and also builds the site with
 # every warning an error. Editing a page is now cheaper AND better checked than before.
 #
-# One check is not in that workflow: executing the try-it guide needs the framework, so it stays
+# One check is not in that workflow: executing the route's legs needs the framework, so it stays
 # in the `train` job below. A change to the guide alone therefore does not execute it here; the
 # release workflow runs the guide against the published release before announcing it, and any
 # change that touches code brings the `train` job back.

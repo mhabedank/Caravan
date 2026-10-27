@@ -71,14 +71,14 @@ offers exactly one way in.
 seconds, take it away, and ask what it does, what it refuses, and what the next step is. Needs no
 other page finished.
 
-- [ ] T017 [US1] Create `docs/_themes/caravan/landing.html`: no sidebar, the verdict and the primary next step both above the fold at phone width, built on the layout from T014
-- [ ] T018 [US1] Rewrite `docs/index.md` as the landing page: what Caravan takes in, what it produces, and which hardware that output runs on, stated before any scrolling and without requiring the pipeline's internal stage names (FR-001, FR-005)
-- [ ] T019 [US1] State the cost of entry in `docs/index.md` — the reader's own tabular data and a supported Python version — and make the install's download weight discoverable before any install command appears (FR-002)
-- [ ] T020 [US1] Give `docs/index.md` exactly one primary next step, labelled with the time it takes, pointing at the route's first leg (FR-003)
-- [ ] T021 [US1] Move Caravan's scope in `docs/index.md` to after the benefit and rephrase it as scope rather than as a list of refusals (FR-004)
-- [ ] T022 [US1] State on `docs/index.md` which operating systems and Python versions the route is written for, so a reader on an unsupported one learns it before installing anything (FR-002, spec.md edge case "A reader on Windows")
+- [X] T017 [US1] Create `docs/_themes/caravan/landing.html`: no sidebar, the verdict and the primary next step both above the fold at phone width, built on the layout from T014
+- [X] T018 [US1] Rewrite `docs/index.md` as the landing page: what Caravan takes in, what it produces, and which hardware that output runs on, stated before any scrolling and without requiring the pipeline's internal stage names (FR-001, FR-005)
+- [X] T019 [US1] State the cost of entry in `docs/index.md` — the reader's own tabular data and a supported Python version — and make the install's download weight discoverable before any install command appears (FR-002)
+- [X] T020 [US1] Give `docs/index.md` exactly one primary next step, labelled with the time it takes, pointing at the route's first leg (FR-003)
+- [X] T021 [US1] Move Caravan's scope in `docs/index.md` to after the benefit and rephrase it as scope rather than as a list of refusals (FR-004)
+- [X] T022 [US1] State on `docs/index.md` which operating systems and Python versions the route is written for, so a reader on an unsupported one learns it before installing anything (FR-002, spec.md edge case "A reader on Windows")
 - [ ] T023 [US1] Add `tests/contract/test_docs_landing.py`: the landing page carries exactly one primary call to action, that call names a duration, the install weight is stated, and the scope section appears after the benefit section in document order (FR-002, FR-003, FR-004)
-- [ ] T024 [US1] Add the new pages to the toctree in `docs/index.md` so no page is left outside the navigation, and confirm `uv run sphinx-build -W -b html docs _site` is clean
+- [X] T024 [US1] Add the new pages to the toctree in `docs/index.md` so no page is left outside the navigation, and confirm `uv run sphinx-build -W -b html docs _site` is clean
 
 **Checkpoint**: the landing page stands on its own and can be put in front of readers.
 
@@ -92,18 +92,18 @@ int8 model by the fifteen-minute mark.
 **Independent Test**: a clean machine, the install done, a timer started at leg 1; an int8 model
 file exists inside fifteen minutes, and a second one reads the reader's own columns. No hardware.
 
-- [ ] T025 [US2] Create `docs/route/index.md`: what the route is, the four legs, and what each one ends with, so a reader can see the whole half hour before starting
-- [ ] T026 [US2] Write `docs/route/1-first-model.md` — the example installed and run to an int8 model and its C array. Must carry every field the Leg entity requires: `duration` and `promise` before the first instruction, a named `outcome`, the `verification` by which the reader confirms it, the `next` leg and what it adds, and the `exit` for a reader who stops (FR-009, FR-010, FR-011, FR-013)
-- [ ] T027 [US2] Write `docs/route/2-your-columns.md` — the reader's own CSV and column types, re-running to a model of their own with their own accuracy figure, with the same Leg fields (FR-009 to FR-013)
-- [ ] T028 [US2] State in `docs/route/2-your-columns.md` which earlier results the reader's changes invalidate and the single command that re-establishes them (FR-015)
-- [ ] T029 [US2] Answer leg 1's two dead ends in place in `docs/route/1-first-model.md`, both **before** the install command rather than after it fails: a Python version the training extra does not support, and an operating system the route is not written for (FR-016, User Story 2 scenario 6, spec.md edge case "A reader on Windows")
-- [ ] T030 [US2] Answer leg 2's dead ends in place in `docs/route/2-your-columns.md`: a quantization gate that fails on the reader's data, pointing at leg 4; and the data shapes the pipeline refuses — wrong column types, one class, a file too small, no header row — with how each is recognised (FR-016)
-- [ ] T031 [US2] Explain each artifact in the leg that first produces it, replacing `try-it.md`'s closing list of thirty-two output files (FR-014)
-- [ ] T032 [US2] Mark the command blocks of `docs/route/1-first-model.md` and `docs/route/2-your-columns.md` with the `# step:` names the existing block extractor reads, so the commands are executable by a check rather than only readable
-- [ ] T033 [US2] Rename `tests/train/test_try_it_guide.py` to `tests/train/test_route_legs.py` and point it at the two new leg pages: every run command succeeds, the files each leg promises exist, and the export step's console still fits on one screen
-- [ ] T034 [US2] Extend `tests/contract/test_docs_guide.py` to check the legs' install and fetch commands name this version, replacing its reference to `docs/try-it.md`
+- [X] T025 [US2] Create `docs/route/index.md`: what the route is, the four legs, and what each one ends with, so a reader can see the whole half hour before starting
+- [X] T026 [US2] Write `docs/route/1-first-model.md` — the example installed and run to an int8 model and its C array. Must carry every field the Leg entity requires: `duration` and `promise` before the first instruction, a named `outcome`, the `verification` by which the reader confirms it, the `next` leg and what it adds, and the `exit` for a reader who stops (FR-009, FR-010, FR-011, FR-013)
+- [X] T027 [US2] Write `docs/route/2-your-columns.md` — the reader's own CSV and column types, re-running to a model of their own with their own accuracy figure, with the same Leg fields (FR-009 to FR-013)
+- [X] T028 [US2] State in `docs/route/2-your-columns.md` which earlier results the reader's changes invalidate and the single command that re-establishes them (FR-015)
+- [X] T029 [US2] Answer leg 1's two dead ends in place in `docs/route/1-first-model.md`, both **before** the install command rather than after it fails: a Python version the training extra does not support, and an operating system the route is not written for (FR-016, User Story 2 scenario 6, spec.md edge case "A reader on Windows")
+- [X] T030 [US2] Answer leg 2's dead ends in place in `docs/route/2-your-columns.md`: a quantization gate that fails on the reader's data, pointing at leg 4; and the data shapes the pipeline refuses — wrong column types, one class, a file too small, no header row — with how each is recognised (FR-016)
+- [X] T031 [US2] Explain each artifact in the leg that first produces it, replacing `try-it.md`'s closing list of thirty-two output files (FR-014)
+- [X] T032 [US2] Mark the command blocks of `docs/route/1-first-model.md` and `docs/route/2-your-columns.md` with the `# step:` names the existing block extractor reads, so the commands are executable by a check rather than only readable
+- [X] T033 [US2] Rename `tests/train/test_try_it_guide.py` to `tests/train/test_route_legs.py` and point it at the two new leg pages: every run command succeeds, the files each leg promises exist, and the export step's console still fits on one screen
+- [X] T034 [US2] Extend `tests/contract/test_docs_guide.py` to check the legs' install and fetch commands name this version, replacing its reference to `docs/try-it.md`
 - [ ] T035 [US2] Add `tests/contract/test_docs_legs.py`: every leg page states a duration and a promise before its first command block, and ends with a verification step — the Leg invariant that "a leg whose outcome cannot be verified by the reader is not a leg" (data-model.md)
-- [ ] T036 [US2] Delete `docs/try-it.md` and add its address to the redirect map, forwarding to `docs/route/` (contracts/page-inventory.md)
+- [X] T036 [US2] Delete `docs/try-it.md` and add its address to the redirect map, forwarding to `docs/route/` (contracts/page-inventory.md)
 
 **Checkpoint**: a reader reaches their own int8 model from the site alone, and the fifteen-minute
 promise can be timed.
@@ -119,16 +119,16 @@ against the host, within thirty minutes of the start.
 the board first answers and whether its answers agreed. The no-hardware path is tested by following
 the same leg without a board.
 
-- [ ] T037 [P] [US3] Create `examples/esp32/platformio.ini` targeting `esp32dev`, with `sdkconfig.defaults`, `CMakeLists.txt`, `src/CMakeLists.txt` and `src/idf_component.yml` derived from `examples/lora32/`
-- [ ] T038 [US3] Write `examples/esp32/src/main.cc` from `examples/lora32/src/main.cc` (198 lines): keep the inference and the comparison of the board's answers with the host's, and replace every display call with serial output. Carry over no OLED, pin or radio code (research R2)
-- [ ] T039 [P] [US3] Create `examples/esp32/src/model/README.md` saying which four generated files the reader copies here — `model_data.h`, `model_data.cc`, `resolver.h`, `test_windows.h` — and that the directory is otherwise empty
-- [ ] T040 [US3] Write `docs/route/3-onto-a-board.md` with all Leg fields, naming the board it was written against and what a reader holding a different ESP32 board has to change (FR-041), with command blocks marked `# step:` so a check can execute them
-- [ ] T041 [US3] State in `docs/route/3-onto-a-board.md` what agreement to expect between the board and the host, and what a disagreement means (User Story 3 scenario 2)
-- [ ] T042 [US3] Give `docs/route/3-onto-a-board.md` a path for a reader with no hardware that still ends in something countable, and say plainly which claims that path cannot support (FR-016, User Story 3 scenario 3)
-- [ ] T043 [US3] Label every figure leg 3 reports about the board with "exactly one of `estimated`, `emulated`, `measured`" (data-model.md, Hardware claim). The linker's RAM and flash figures are `estimated` — a linker is not a board — and no timing figure appears, because no benchmark exists (Principle IV)
-- [ ] T044 [US3] Extend `.github/workflows/firmware.yml` with a job step that builds `examples/esp32/` for `esp32dev` and executes leg 3's `# step:` blocks as written, beside the steps that already do this for the owner's board — the check that closes FR-042
+- [X] T037 [P] [US3] Create `examples/esp32/platformio.ini` targeting `esp32dev`, with `sdkconfig.defaults`, `CMakeLists.txt`, `src/CMakeLists.txt` and `src/idf_component.yml` derived from `examples/lora32/`
+- [X] T038 [US3] Write `examples/esp32/src/main.cc` from `examples/lora32/src/main.cc` (198 lines): keep the inference and the comparison of the board's answers with the host's, and replace every display call with serial output. Carry over no OLED, pin or radio code (research R2)
+- [X] T039 [P] [US3] Create `examples/esp32/src/model/README.md` saying which four generated files the reader copies here — `model_data.h`, `model_data.cc`, `resolver.h`, `test_windows.h` — and that the directory is otherwise empty
+- [X] T040 [US3] Write `docs/route/3-onto-a-board.md` with all Leg fields, naming the board it was written against and what a reader holding a different ESP32 board has to change (FR-041), with command blocks marked `# step:` so a check can execute them
+- [X] T041 [US3] State in `docs/route/3-onto-a-board.md` what agreement to expect between the board and the host, and what a disagreement means (User Story 3 scenario 2)
+- [X] T042 [US3] Give `docs/route/3-onto-a-board.md` a path for a reader with no hardware that still ends in something countable, and say plainly which claims that path cannot support (FR-016, User Story 3 scenario 3)
+- [X] T043 [US3] Label every figure leg 3 reports about the board with "exactly one of `estimated`, `emulated`, `measured`" (data-model.md, Hardware claim). The linker's RAM and flash figures are `estimated` — a linker is not a board — and no timing figure appears, because no benchmark exists (Principle IV)
+- [X] T044 [US3] Extend `.github/workflows/firmware.yml` with a job step that builds `examples/esp32/` for `esp32dev` and executes leg 3's `# step:` blocks as written, beside the steps that already do this for the owner's board — the check that closes FR-042
 - [ ] T045 [US3] Add the generic project's paths to `firmware.yml`'s `pull_request` path filter, and record its linker figures into the run summary labelled as not measured on a board, as the existing step does
-- [ ] T046 [US3] Confirm the release workflow's call to `firmware.yml` now gates on the generic build too, so a documented path that does not compile blocks the release (FR-042)
+- [X] T046 [US3] Confirm the release workflow's call to `firmware.yml` now gates on the generic build too, so a documented path that does not compile blocks the release (FR-042)
 - [ ] T047 [US3] Add `tests/contract/test_docs_hardware.py`: no figure about a board appears on any page without exactly one provenance label, and no page labels a timing figure `measured` (FR-006, SC-016)
 - [ ] T048 [US3] Add `examples/esp32/.gitignore` and `dependencies.lock` so the toolchain cache key in `firmware.yml` works for the new project as it does for the old
 
@@ -146,11 +146,11 @@ stated in words, and the gate taught by failing it.
 explanation. Then give three described datasets to five readers and see whether they pick the
 template the site's guidance implies.
 
-- [ ] T049 [P] [US4] Write `docs/concepts/templates.md`: what `MLP` stands for and what a multilayer perceptron is in one sentence assuming no machine-learning background, the same for `conv1d`, what shape of data each suits, what each costs in memory and flash, and which to pick for a described dataset (FR-018, FR-019)
-- [ ] T050 [P] [US4] Write `docs/concepts/feature-types.md`: `number`, `category` and `binary`, what each does inside the model, what preprocessing each brings, and what the firmware passes for it
-- [ ] T051 [P] [US4] Write `docs/concepts/budgets-and-gates.md`: what the int8 gate measures, what the fit check measures, why each stops a run rather than warning, and how a reader chooses their own budgets (FR-023)
-- [ ] T052 [P] [US4] Write `docs/concepts/what-a-run-leaves.md`: the run directory's artifacts and what each is for, linked from the legs rather than listed at the end of one (FR-014, FR-024)
-- [ ] T053 [US4] Write `docs/route/4-when-it-does-not-fit.md`: tighten a budget until the gate refuses, read the per-layer table it emits, and choose a budget — with all Leg fields, and placed beyond the thirty-minute promise (FR-016, research R5)
+- [X] T049 [P] [US4] Write `docs/concepts/templates.md`: what `MLP` stands for and what a multilayer perceptron is in one sentence assuming no machine-learning background, the same for `conv1d`, what shape of data each suits, what each costs in memory and flash, and which to pick for a described dataset (FR-018, FR-019)
+- [X] T050 [P] [US4] Write `docs/concepts/feature-types.md`: `number`, `category` and `binary`, what each does inside the model, what preprocessing each brings, and what the firmware passes for it
+- [X] T051 [P] [US4] Write `docs/concepts/budgets-and-gates.md`: what the int8 gate measures, what the fit check measures, why each stops a run rather than warning, and how a reader chooses their own budgets (FR-023)
+- [X] T052 [P] [US4] Write `docs/concepts/what-a-run-leaves.md`: the run directory's artifacts and what each is for, linked from the legs rather than listed at the end of one (FR-014, FR-024)
+- [X] T053 [US4] Write `docs/route/4-when-it-does-not-fit.md`: tighten a budget until the gate refuses, read the per-layer table it emits, and choose a budget — with all Leg fields, and placed beyond the thirty-minute promise (FR-016, research R5)
 - [ ] T054 [US4] Rewrite `docs/reference/manifest.md` so every setting carries the four prose fields the Setting entity requires — what it does, why its default is the default, when to change it, and what goes wrong at its extremes — while keeping its facts scannable for lookup (FR-020, FR-021)
 - [ ] T055 [US4] Replace the rule-code clusters in `docs/reference/manifest.md` cells with links to rules stated in words, so that no lookup entry consists only of type, default and codes (FR-021, FR-022)
 - [ ] T056 [US4] Rewrite `docs/reference/rules.md` so each rule says in words what it rejects and what the reader should do instead, with the identifier demoted to an anchor (FR-022)
@@ -174,16 +174,16 @@ reader sees, with no claim left standing after its evidence is removed.
 **Independent Test**: search the built site for the board's names and for spec directories, feature
 numbers and planning files; both return nothing, and no page lost a claim it needed.
 
-- [ ] T064 [US5] Delete `docs/guides/lora32.md` and the now-empty `docs/guides/` directory, and add its address to the redirect map forwarding to `docs/route/3-onto-a-board` with `noindex` (FR-039, FR-045, research R6)
-- [ ] T065 [US5] Remove the board from the eight remaining pages that name it: `docs/compatibility.md` (3), `docs/roadmap.md` (2), `docs/index.md` (2), `docs/board-runs/index.md` (2), `docs/releases/0.1.0.md` (1), `docs/reference/manifest.md` (1), `docs/reference/cli.md` (1), `docs/manifest-changes.md` (1)
-- [ ] T066 [US5] Rewrite the comment at `src/caravan/manifest/schema/export.py:27` so the header-size bound is justified without naming the owner's board, and the comment in `examples/picket-mlp.yaml:49` so it points at leg 3 instead of the deleted guide
-- [ ] T067 [US5] Re-ground each claim that rested on that board onto the generic ESP32, or restate it as not yet verified — never leave the conclusion standing with its evidence deleted. `docs/compatibility.md` and `docs/board-runs/index.md` carry most of these (FR-040)
-- [ ] T068 [US5] Rewrite `docs/board-runs/index.md` so the record it describes and the run it awaits are about the hardware the site documents, keeping the provenance label on every figure a record would hold (FR-040, FR-044)
-- [ ] T069 [P] [US5] Remove the 18 internal-artifact references from `docs/roadmap.md`, replacing each citation with what the site itself can show, and keep the roadmap's meaning (FR-043, FR-044)
-- [ ] T070 [P] [US5] Remove the 9 internal-artifact references from `docs/manifest-changes.md`, including the `specs/...` paths cited as evidence for schema decisions (FR-043, FR-044)
-- [ ] T071 [P] [US5] Remove the 6 internal-artifact references from `docs/releases/0.1.0.md` (FR-043)
-- [ ] T072 [P] [US5] Remove the 6 internal-artifact references from `docs/budgets.md`, which cite features and research notes as the source of its measurements — the measurements stay, their citation becomes something a reader can see (FR-043, FR-044)
-- [ ] T073 [P] [US5] Remove the 5 internal-artifact references from `docs/reference/rules.md` (FR-043)
+- [X] T064 [US5] Delete `docs/guides/lora32.md` and the now-empty `docs/guides/` directory, and add its address to the redirect map forwarding to `docs/route/3-onto-a-board` with `noindex` (FR-039, FR-045, research R6)
+- [X] T065 [US5] Remove the board from the eight remaining pages that name it: `docs/compatibility.md` (3), `docs/roadmap.md` (2), `docs/index.md` (2), `docs/board-runs/index.md` (2), `docs/releases/0.1.0.md` (1), `docs/reference/manifest.md` (1), `docs/reference/cli.md` (1), `docs/manifest-changes.md` (1)
+- [X] T066 [US5] Rewrite the comment at `src/caravan/manifest/schema/export.py:27` so the header-size bound is justified without naming the owner's board, and the comment in `examples/picket-mlp.yaml:49` so it points at leg 3 instead of the deleted guide
+- [X] T067 [US5] Re-ground each claim that rested on that board onto the generic ESP32, or restate it as not yet verified — never leave the conclusion standing with its evidence deleted. `docs/compatibility.md` and `docs/board-runs/index.md` carry most of these (FR-040)
+- [X] T068 [US5] Rewrite `docs/board-runs/index.md` so the record it describes and the run it awaits are about the hardware the site documents, keeping the provenance label on every figure a record would hold (FR-040, FR-044)
+- [X] T069 [P] [US5] Remove the 18 internal-artifact references from `docs/roadmap.md`, replacing each citation with what the site itself can show, and keep the roadmap's meaning (FR-043, FR-044)
+- [X] T070 [P] [US5] Remove the 9 internal-artifact references from `docs/manifest-changes.md`, including the `specs/...` paths cited as evidence for schema decisions (FR-043, FR-044)
+- [X] T071 [P] [US5] Remove the 6 internal-artifact references from `docs/releases/0.1.0.md` (FR-043)
+- [X] T072 [P] [US5] Remove the 6 internal-artifact references from `docs/budgets.md`, which cite features and research notes as the source of its measurements — the measurements stay, their citation becomes something a reader can see (FR-043, FR-044)
+- [X] T073 [P] [US5] Remove the 5 internal-artifact references from `docs/reference/rules.md` (FR-043)
 - [ ] T074 [US5] Add `tests/contract/test_docs_hygiene.py`: no published page matches the withdrawn board's names, and none matches a spec directory, a feature number, or a plan, task or analysis file; and every built page states the Caravan version it describes. Searches over the built or source pages, failing with the page and the match (SC-010, SC-011, FR-047)
 - [ ] T075 [US5] Add a check to `tests/contract/test_docs_hygiene.py` that every address in contracts/page-inventory.md resolves to a page or to a forward that resolves, and that every forward is `noindex` and in no table of contents (FR-045, SC-013)
 
@@ -219,7 +219,7 @@ level, on a phone and a desktop, in both colour schemes.
 
 - [ ] T087 Extend `.github/workflows/docs-checks.yml` with the browser audit: install the browser, cache it, and run `tests/site/test_a11y.py` beside the page checks already there (contracts/checks.md)
 - [ ] T088 Make `.github/workflows/docs-checks.yml` fail when the job exceeds the ten minutes the constitution bounds it to, measuring and printing its own duration as the install-budget job does for the cold install (FR-050)
-- [ ] T089 Add the new check modules to `docs-checks.yml`'s pytest invocation — `test_docs_landing.py`, `test_docs_legs.py`, `test_docs_glossary.py`, `test_docs_hygiene.py`, `test_docs_hardware.py`, `test_docs_tokens.py` — so a documentation change runs all of them
+- [X] T089 Add the new check modules to `docs-checks.yml`'s pytest invocation — `test_docs_landing.py`, `test_docs_legs.py`, `test_docs_glossary.py`, `test_docs_hygiene.py`, `test_docs_hardware.py`, `test_docs_tokens.py` — so a documentation change runs all of them
 - [ ] T090 Align `README.md` with the new site: the same verdict in the same words as the landing page, the board gone, the internal artifacts gone, and its links pointing at the route rather than the deleted guide
 - [ ] T091 [P] Add this feature's row to `docs/roadmap.md` in the roadmap's own terms, without a feature number (FR-043)
 - [ ] T092 [P] Record in `docs/compatibility.md` what the generic ESP32 path verifies and how far — compiled, not run — keeping each entry's provenance label (Principle IV)

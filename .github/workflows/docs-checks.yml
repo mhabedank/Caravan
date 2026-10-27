@@ -3,7 +3,7 @@ name: docs-checks
 # What a documentation change needs checked, without the framework matrix behind it.
 #
 # Before this workflow, `ci.yml` named three documents as exceptions to its own "documentation runs
-# nothing" rule — `README.md`, `docs/try-it.md` and `docs/releases/**` — because tests read them.
+# nothing" rule — `README.md`, the entry guide and `docs/releases/**` — because tests read them.
 # The effect was all or nothing: editing a sentence in the README started nine jobs, one of them a
 # five-minute training run, to check a handful of assertions that need no framework at all.
 #
@@ -17,9 +17,9 @@ name: docs-checks
 #     page no navigation reaches. That check used to happen only on a release tag, so this workflow
 #     gives documentation changes a check they did not have before.
 #
-# What is deliberately NOT here: executing the try-it guide. That needs the training framework and
+# What is deliberately NOT here: executing the route's legs. That needs the training framework and
 # is the five minutes this workflow exists to avoid. It still runs in `ci.yml`'s `train` job on
-# every change that touches code, and the release workflow runs the guide literally — install,
+# every change that touches code, and the release workflow runs leg 1 literally — install,
 # fetch and run — against the published release before the release is announced.
 on:
   push:

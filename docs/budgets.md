@@ -51,7 +51,7 @@ is carry its own `requires-python`: that field belongs to the whole distribution
 only put environment markers on its dependencies. With a floor of 3.14, `pip install
 caravan-ml[train]` would fail on every interpreter — 3.13 refused by the distribution, 3.14 refused
 by the framework. The published floor is therefore **3.13**, under the five conditions in Principle
-XII as amended in constitution v2.3.0.
+XII, the project's rule on keeping the dependency count small.
 
 What that means in practice:
 
@@ -66,11 +66,11 @@ What that means in practice:
 **The obligation this creates.** When a stable TensorFlow ships a cp314 wheel and depends on a
 released `keras` — 2.22's release candidate says that is near — the extra moves to it, the floor
 returns to `>=3.14`, the 3.13 job is deleted and this section goes away. Until then the obligation
-lives here, in the roadmap and in research R1 of feature 002, which holds the evidence.
+lives here and in the roadmap, which hold the evidence.
 
 ## Two extras, and why the second one is cheap
 
-Feature 003 added `verify`, and the numbers are the argument for it:
+that work added `verify`, and the numbers are the argument for it:
 
 | | `train` | `verify` |
 |---|---|---|
@@ -88,7 +88,7 @@ install on 3.13, rather than the 9 MiB the table above measures from a wheel —
 on a development container alike; both extras together come to 2,028 MiB and 44 packages on 3.13.
 
 The split is not tidiness. Conversion needs the training framework and therefore 3.13 — there is
-no framework-free converter today, which feature 003 checked rather than assumed. But *reading* an
+no framework-free converter today, which was checked rather than assumed. But *reading* an
 exported model needs none, and four stages do nothing else: footprint analysis, emulated
 verification, the benchmark and the model card. Had they borrowed the conversion half they would
 each have been confined to 3.13 and 1,971 MiB, and they would have been built on an interpreter
@@ -143,7 +143,7 @@ packages). It was carried into nine other files before anyone subtracted one fro
 figures are now stated, with the column header saying which is which, and the package list above
 makes the count checkable without a measurement at all.
 
-## What feature 004 added to the budget
+## What the export stage added to the budget
 
 Nothing. The export stage reads a model file and writes text: no new dependency, no new extra, and
 no change to the Python policy. The two kernel coverage files and the resolver method table are
@@ -156,7 +156,7 @@ accuracy gate is the one that says no — but it is recorded because the roadmap
 will be compared against hand-built firmware, and a 5% difference in model size with three fewer
 kernels in flash is the kind of thing that comparison turns on.
 
-## What feature 005 added to the budget
+## What the `conv1d` template added to the budget
 
 Nothing, again. The conv1d template is two source files and nine lines of arithmetic: no
 dependency, no extra, no rule identifier, no change to the Python policy. The dependency count is
@@ -172,4 +172,5 @@ somebody wrote down beforehand.
 
 The dependency and extras limits come from the constitution (Principle XII). Changing one is a
 PATCH amendment with a stated reason, not a decision inside a feature. The install budget numbers
-live in the spec of the feature that measures them (SC-003) and in the CI job that enforces them.
+are enforced by the install-budget job in continuous integration, which fails when either is
+exceeded.

@@ -1,4 +1,4 @@
-"""The guide's install and fetch steps name this version (feature 007, SC-003).
+"""Leg 1's install and fetch steps name this version (feature 007, SC-003; feature 010).
 
 Checking the version strings needs no training framework: it reads the guide and compares text
 with ``caravan.__version__``. It lived in ``tests/train`` next to the tests that *execute* the
@@ -17,7 +17,7 @@ from caravan import __version__
 from tests.support_docs import commands
 
 ROOT = Path(__file__).resolve().parents[2]
-GUIDE = ROOT / "docs" / "try-it.md"
+GUIDE = ROOT / "docs" / "route" / "1-first-model.md"
 WHEEL = (
     f"https://github.com/mhabedank/Caravan/releases/download/v{__version__}/"
     f"caravan_ml-{__version__}-py3-none-any.whl"

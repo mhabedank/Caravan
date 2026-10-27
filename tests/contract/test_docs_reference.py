@@ -167,11 +167,16 @@ def test_every_template_board_and_feature_type_is_on_the_compatibility_page() ->
 # --- the landing page ---------------------------------------------------------------------------
 
 
-def test_the_landing_page_installs_this_version() -> None:
-    # Like the README and the try-it guide (feature 007): a version bump that forgets the site's
-    # install line fails here rather than on a reader's machine.
-    from caravan import __version__
+def test_the_landing_page_does_not_carry_its_own_install_line() -> None:
+    """The install line lives in leg 1 of the route, and only there.
 
+    It used to be on the landing page as well, and two copies are two places to forget on a version
+    bump. The landing page also gets exactly one primary next step (FR-003), which an install
+    command standing beside it would compete with. ``test_docs_guide.py`` pins leg 1's version, so
+    the check that mattered is still made — once.
+    """
     text = (DOCS / "index.md").read_text(encoding="utf-8")
-    wheel = f"releases/download/v{__version__}/caravan_ml-{__version__}-py3-none-any.whl"
-    assert wheel in text, f"docs/index.md does not install {__version__}"
+    assert "pip install" not in text, (
+        "the landing page has an install command again. It belongs to leg 1, where one check keeps "
+        "its version current; a second copy here would drift."
+    )

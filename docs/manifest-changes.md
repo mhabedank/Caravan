@@ -1,7 +1,7 @@
 # Schema changes
 
 The manifest is the public interface of the framework. How it may change depends on where Caravan
-is (constitution 4.0.0, Principle IX).
+is (Principle IX of the project's constitution).
 
 ## Before 1.0.0: variable, with a change note
 
@@ -49,9 +49,9 @@ reach them, so they have no fixture.
 
 ## A rule that is retired stays reserved
 
-`CF-3`, `CF-5`, `CF-7`, `CF-8` and `DS-9` were removed in feature 006 with the compliance layer;
+`CF-3`, `CF-5`, `CF-7`, `CF-8` and `DS-9` were removed with the compliance layer;
 `V-2`, which read a manifest without a version as the oldest known one, was retired by constitution
-4.0.0; `CF-10`, one input and one output, was retired by feature 008, which allows several input
+`CF-10`, one input and one output, was retired by typed features, which allow several input
 features and gives the single output its own rule, `CF-17`. They sit in `RETIRED_RULES`: in no rule group, in no fixture's expectation, raised by no
 module (`tests/unit/test_retired_rules.py`). An identifier that came back with another meaning
 would make an old run report lie.
@@ -59,7 +59,7 @@ would make an old run report lie.
 `tests/unit/test_fixture_coverage.py` enforces both directions: every rule that can reject a
 manifest has a fixture, and no identifier that cannot reject one has a fixture claiming it does.
 
-## `caravan/v0` → `caravan/v0.1` (feature 006, 2026-10-23)
+## `caravan/v0` → `caravan/v0.1` (2026-10-23)
 
 Constitution 3.0.0 removed the compliance layer (Principle VI) and every field no stage reads
 (Principle I), and made the manifest declare what goes into the model and what comes out. The
@@ -111,7 +111,7 @@ binds by (`model/interface.json`, the C header).
   stated another order and drops the list trains a model whose output units are in a different
   order — a different model. Keep the stated list under `outputs[0].labels` to build exactly the
   model it built before. On the synthetic fixture the difference decides whether the int8 gate
-  passes (`specs/006-declared-io/research.md`, R11).
+  passes.
 - **State the budget.** The previous form defaulted `accuracy_drop_max` to 0.02; the new form has
   no default, so write the value you relied on.
 
@@ -119,13 +119,13 @@ A manifest still in the previous form is refused with V-1 at `apiVersion`; a pre
 written into a `caravan/v0.1` manifest is refused at its own path with the reason in the table
 above.
 
-## `caravan/v0.1` → `caravan/v0.2` (feature 008, 2026-10-24)
+## `caravan/v0.1` → `caravan/v0.2` (2026-10-24)
 
 The manifest uses Ludwig's names wherever Ludwig has the concept (owner decision 2026-10-24). Each
 column the model reads is one **input feature** with a **type**, and each type brings its
 preprocessing: fitted on the training part, built into the model, so the firmware passes raw values
-(`specs/008-typed-features/`). The messages for the moved keys come from
-`caravan/manifest/schema/removed.py`.
+— [feature types](concepts/feature-types.md) explains what each one does. The messages for the
+moved keys come from `caravan/manifest/schema/removed.py`.
 
 ### What changes, and the edit an author makes by hand
 
@@ -191,7 +191,7 @@ it under `ignored_columns`.
 
 ### Where Caravan keeps its own name, and why
 
-Every exception to Ludwig's naming (SC-002):
+Every exception to Ludwig's naming:
 
 | Caravan | Why not Ludwig's |
 |---|---|
@@ -217,13 +217,13 @@ Every exception to Ludwig's naming (SC-002):
 A manifest in the previous form is refused with V-1 at `apiVersion`; a previous-form key written
 into a `caravan/v0.2` manifest is refused at its own path, naming the key that replaces it.
 
-## Within `caravan/v0.2`: `export.test_windows` (feature 009, 2026-10-26)
+## Within `caravan/v0.2`: `export.test_windows` (2026-10-26)
 
 An addition, not a breaking change, so the version stays `caravan/v0.2`:
 - **What it is:** `export.test_windows`, an integer from 0 to 64, default 0.
 - **What it does:** above 0, `caravan export` writes `model/test_windows.h`: that many windows of
   the test part, with the int8 model's answers on the host, for a board to run and compare
-  ([the board guide](guides/lora32.md)). It needs `c_array` in `export.formats`.
+  ([leg 3 of the route](route/3-onto-a-board.md)). It needs `c_array` in `export.formats`.
 - **Your edit:** none. Every `caravan/v0.2` manifest keeps its meaning, and a manifest without the
   field writes no windows.
 - **Older builds:** a manifest that uses the field is refused by `v0.1.0rc2` and older builds as an

@@ -1,14 +1,15 @@
 # Caravan
 
-A declarative pipeline for small machine learning models that run on microcontrollers.
+**A CSV goes in. A model your microcontroller runs comes out.**
 
-One YAML manifest per model names the columns the model reads, each with a type, as in Ludwig; the
-column it answers; and the boards it must fit. Each type brings its preprocessing into the model,
-so a firmware passes raw values. The pipeline does the rest: architecture from a template, a fit check against
-the boards before training, training, int8 quantization, export with the model's interface
-contract, footprint analysis, emulated verification, hardware benchmark and, optionally,
-publication. The manifest asks only for what a stage uses: no compliance block, no description
-fields, nothing the data already says.
+You describe your data once, in one YAML file: which columns the model reads, which column it
+answers, and which boards it has to fit. Caravan trains the model, shrinks it to 8-bit integers,
+stops if shrinking cost more accuracy than you allowed, and writes the C files your firmware
+compiles.
+
+Each column's preprocessing is built into the model, so your firmware passes raw sensor values and
+there is no preprocessing code to port. The manifest asks only for what a stage uses: no compliance
+block, no description fields, nothing the data already says.
 
 Caravan is the build tool for the embedded models of the
 [Mobility Model Zoo](https://github.com/mhabedank/mobility-model-zoo) and lives in its own
@@ -28,21 +29,25 @@ registered. Two templates, `mlp` and `conv1d`, and three boards, `s32k144`, `stm
 The manifest names its columns as Ludwig does (`caravan/v0.2`). rc1 read the previous form,
 `caravan/v0.1`. `docs/releases/0.1.0.md` says what is in 0.1.0 and what is not.
 
-rc3 adds the documentation site and test windows in the export. The board guide runs an exported
-model on a LILYGO LoRa32 and compares its answers with the host's (`docs/guides/lora32.md`). The
-first recorded board run is still to come.
+rc3 adds the documentation site and test windows in the export. The route's third leg runs an
+exported model on a generic ESP32 and compares its answers with the host's. The first recorded board
+run is still to come.
 
 Not on the package index. Each version is installed from its GitHub release.
 
 ## Documentation
 
-**<https://mhabedank.github.io/Caravan/>**, built from `docs/`. It has the guides, a CLI reference,
-a manifest reference with every field and rule, what is compatible today, and the roadmap.
+**<https://mhabedank.github.io/Caravan/>**, built from `docs/`. It opens with what Caravan does and
+offers one way in: **the route**, four legs from nothing to a model answering on a board — an int8
+model at fifteen minutes, hardware at thirty. Beside it are the concepts a reader needs to choose
+(what `mlp` means and when to use it, what each feature type does, how the gates work), a CLI and
+manifest reference with every field, what is verified today, and the roadmap.
 
 ## Try it
 
-`docs/try-it.md` goes from an empty directory to an exported model in one sequence of commands.
-With a checkout, the example manifest validates on any supported Python:
+[The route's first leg](https://mhabedank.github.io/Caravan/route/1-first-model.html) goes from an
+empty directory to an exported int8 model, in about five minutes once the install is done. With a
+checkout, the example manifest validates on any supported Python:
 
 ```bash
 # step: readme
@@ -120,7 +125,7 @@ are the author's. Caravan neither asks about them nor claims to have checked the
 | `specs/<nnn>-<name>/` | one feature's spec, plan, research, data model, contracts and tasks |
 | `docs/` | the documentation site's pages; `docs/conf.py` builds them with Sphinx |
 | `docs/roadmap.md` | what is planned per version, and the non-goals, each with its reason |
-| `examples/` | the example manifest, and `lora32/`, the board guide's firmware |
+| `examples/` | the example manifest, and `esp32/`, the firmware the route's third leg builds |
 | `docs/design/` | the design document Caravan was started from, frozen as a dated record |
 | `docs/research/` | sourced research notes that decisions cite |
 | `docs/budgets.md` | the dependency, install and Python-version budgets, with measurements |

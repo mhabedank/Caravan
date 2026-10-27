@@ -1,9 +1,11 @@
 """The command blocks of a document, read the way a reader would copy them (feature 007, SC-003).
 
 A block is a fenced ``bash`` block whose first line is ``# step: <name>``, the name in lower case
-with hyphens allowed (``board-copy``, feature 009). The try-it guide marks its blocks ``install``,
-``fetch`` and ``run``; the tests execute ``run`` blocks against the working
-tree, and the release workflow executes all three against the published release.
+with hyphens allowed (``board-copy``). The route's legs mark their blocks ``install``, ``fetch`` and
+``run`` (leg 1), ``own-columns`` (leg 2), ``board-tools``, ``board-copy``, ``board-build`` and
+``board-flash`` (leg 3) and ``tighten`` (leg 4). The tests execute what needs no board; the release
+workflow executes leg 1's three against the published release, and the firmware workflow builds
+leg 3's.
 
 Run as ``python -m tests.support_docs <file> <step>`` to print that step's blocks, one after the
 other, for a shell to execute.

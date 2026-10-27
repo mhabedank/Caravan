@@ -194,7 +194,7 @@ byte for byte the one the accuracy gate measured.
 - `interface.json`: every input by name, with its position, element type, shape, what was fitted
   for it and what to pass for a missing reading; and what the output means;
 - `test_windows.h`, when `export.test_windows` is above 0: windows of the test part with the int8
-  model's answers on your computer, for a [board run](../guides/lora32.md).
+  model's answers on your computer, for a [board run](../route/3-onto-a-board.md).
 
 Also written:
 - `runner/<board>/main.cc`, one per target board: a starting point for the firmware;

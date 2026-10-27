@@ -24,7 +24,8 @@ MINIMUM_REPRESENTATIVE_SAMPLES = 100
 
 #: The most test windows an export hands a board (feature 009, data-model §1). Not a board limit:
 #: 64 windows of the example are about 82 KB of raw inputs (64 x 64 x (4 + 4 x 4) bytes) against
-#: the LoRa32's 4 MB of flash. The bound keeps the header readable and the board run short.
+#: the 4 MB of flash a common ESP32 module has. The bound keeps the header readable and the board
+#: run short.
 MAXIMUM_TEST_WINDOWS = 64
 
 

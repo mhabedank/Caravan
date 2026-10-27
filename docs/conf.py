@@ -38,7 +38,9 @@ root_doc = "index"
 exclude_patterns = ["_build", "design/**", "research/**"]
 
 myst_heading_anchors = 3
-myst_enable_extensions = ["substitution"]
+# colon_fence lets a layout wrapper use `:::` so that code blocks inside it keep ```. Without it a
+# container holding a code sample means nesting one backtick fence inside another.
+myst_enable_extensions = ["substitution", "colon_fence"]
 myst_substitutions = {"release": release}
 
 # The identity, copied from the Mobility Model Zoo and carried as a theme of our own (feature 010,
@@ -67,4 +69,13 @@ html_context = {
 
 # Addresses that moved (FR-045). Filled as pages move; the extension refuses a forward whose target
 # is not a page, so a typo here fails the build rather than publishing a dead forward.
-caravan_redirects: dict[str, str] = {}
+caravan_redirects: dict[str, str] = {
+    # The single entry page became the route's first two legs.
+    "try-it": "route/index",
+    # The own-project guide was folded into leg 2 and the concept pages it needed.
+    "guides/own-project": "route/2-your-columns",
+    # The owner's personal board came off the site (feature 010, D2). The forward stays because the
+    # address was published and is linked from elsewhere; the stub is noindex and carries no
+    # content, so nothing a reader reads mentions that board.
+    "guides/lora32": "route/3-onto-a-board",
+}

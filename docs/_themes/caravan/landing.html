@@ -1,0 +1,11 @@
+{%- extends "layout.html" -%}
+{#- The first screen, and the only page on the site that is not an article.
+
+    It takes the whole width: no measure cap, no `.prose` wrapper, because the page is built from
+    sections rather than from running text. The page's own Markdown supplies those sections, so
+    everything here is structure and nothing is content — a change to what the first screen SAYS is
+    a change to `docs/index.md`, not to this file.
+-#}
+{%- block main %}
+  {{ body }}
+{%- endblock %}

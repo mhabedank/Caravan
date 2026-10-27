@@ -9,11 +9,11 @@
     stylesheet objects rather than strings, and the older `pathto(css, 1)` dies with a theme error
     that names neither the template nor the line (R1, found by building it).
 
-    A page may ask for the landing shape with `layout: landing` in its front matter; everything
-    else gets the article shape. Both are this file, because the header, the footer, the skip link
-    and the version line are the same on every page and should be written once.
+    A page asks for the landing shape with `layout: landing` in its front matter, and
+    `docs/_ext/identity.py` switches it to `landing.html`, which extends this file and overrides
+    `main`. The header, the footer, the skip link and the version line are written once, here,
+    because they are the same on every page.
 -#}
-{%- set is_landing = (meta is defined and meta and meta.get('layout') == 'landing') -%}
 <!DOCTYPE html>
 <html lang="{{ language or 'en' }}">
 <head>
@@ -57,15 +57,13 @@
   </div>
 </header>
 <main id="main" tabindex="-1">
-  {%- if is_landing %}
-  {{ body }}
-  {%- else %}
+{%- block main %}
   <div class="wrap page">
     <div class="prose">
       {{ body }}
     </div>
   </div>
-  {%- endif %}
+{%- endblock %}
 </main>
 <footer class="wrap">
   <div class="ft">

@@ -70,7 +70,7 @@ Compiling the firmware is no rung: it shows the code builds, not how it behaves.
 
 | Board | State | Evidence |
 |---|---|---|
-| `esp32` | **built, not yet run.** The LoRa32 guide's firmware with the example model compiles and links for both LoRa32 OLED wirings (2026-10-26). No run on a board is recorded yet. | the firmware workflow; `examples/lora32/` |
+| `esp32` | **compiles, not yet run.** The firmware of [leg 3](route/3-onto-a-board.md) is built with the example model by the firmware workflow, on every release and on every change to it. No run on a board is recorded yet. | the firmware workflow; `examples/esp32/` |
 | `s32k144` | **export only.** Caravan writes the C files and the resolver; no firmware has been compiled for it. | — |
 | `stm32h743` | **export only.** As above; emulated verification through Renode is planned. | — |
 
@@ -111,7 +111,7 @@ from the model with the board's flash and RAM.
 | `caravan-ml[verify]` | 3.13, 3.14 | reading and running exported models (`ai-edge-litert`) |
 | `caravan-ml[train,verify]` | 3.13 | every command: training and conversion need TensorFlow, which publishes nothing newer yet |
 
-Installed from the GitHub release, not from the package index ([Try it](try-it.md)).
+Installed from the GitHub release, not from the package index ([leg 1](route/1-first-model.md)).
 
 ## Stages
 
@@ -129,6 +129,5 @@ Installed from the GitHub release, not from the package index ([Try it](try-it.m
   come from the cache, so Python 3.13. Recorded on the [roadmap](roadmap.md) as deferred by the
   owner.
 - **The working-memory figure the export prints is a floor.** A board needs more. The figure that
-  counts is the one the runtime reports on the board ([board guide](guides/lora32.md#smaller-working-memory)).
-- **The OLED of the LoRa32 V1.0 revision** is wired from third-party pin maps. No LILYGO schematic
-  of V1.0 was available to confirm it.
+  counts is the one the runtime reports on the board, which
+  [leg 3](route/3-onto-a-board.md#what-you-have) prints as `arena: used ...`.

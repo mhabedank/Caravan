@@ -183,13 +183,13 @@ still wins, and the type's built-in default applies last. `<type>` is `number`, 
 - that many windows of the test part, every class in turn, as raw values;
 - with what the data says and what the int8 model answered on your computer.
 
-A [board run](../guides/lora32.md) compares the board's answers with these.
+A [board run](../route/3-onto-a-board.md) compares the board's answers with these.
 - When the test part holds fewer windows, all of them are written, and `export.json` says so.
 - The default `0` writes none, so your data enters an export only when you ask.
 
 ## A complete example
 
-The example from [Try it](../try-it.md), on the synthetic data that comes with Caravan:
+The example from [leg 1](../route/1-first-model.md), on the synthetic data that comes with Caravan:
 
 ```yaml
 apiVersion: caravan/v0.2

@@ -30,7 +30,7 @@ with no `apiVersion` is refused too, rather than guessed at.
 
 ### V-2 (retired)
 
-Read a manifest without a version as the oldest known one. Retired by constitution 4.0.0: an
+Read a manifest without a version as the oldest known one. Retired before 0.1.0: an
 undeclared version is now V-1.
 
 ## Templates and boards
@@ -82,7 +82,7 @@ by code ([compatibility](../compatibility.md)).
 ### CF-3 (retired)
 
 Personal data against a risk class: part of a compliance layer Caravan no longer carries
-(constitution 3.0.0, Principle VI).
+(Principle VI of the project's constitution: the data is the author's).
 
 ### CF-4
 
@@ -96,7 +96,7 @@ report says so.
 
 ### CF-5 (retired)
 
-Publication needed a compliance block. Retired with the compliance layer (constitution 3.0.0).
+Publication needed a compliance block. Retired with the compliance layer.
 
 ### CF-6
 
@@ -111,11 +111,11 @@ smallest window that works.
 ### CF-7 (retired)
 
 Every target needed an emulator. Retired: a board without emulator support says so in its
-description and is verified on the next rung (constitution 3.0.0).
+description and is verified on the next rung.
 
 ### CF-8 (retired)
 
-Benchmark-only data could not be published. Retired with the compliance layer (constitution 3.0.0).
+Benchmark-only data could not be published. Retired with the compliance layer.
 
 ### CF-9
 

@@ -30,6 +30,20 @@ def _drop_pygments(app: Sphinx, pagename, templatename, context, doctree) -> Non
     ]
 
 
+def _pick_template(app: Sphinx, pagename, templatename, context, doctree) -> str | None:
+    """A page may ask for the landing shape in its own front matter (feature 010, research R8).
+
+    The landing page is the one page whose shape is not an article: no measure cap and no running
+    text, but sections. Returning a template name here overrides the one Sphinx chose, which keeps
+    the choice with the page that needs it instead of in a list of exceptions in the configuration.
+    """
+    meta = (context or {}).get("meta") or {}
+    if meta.get("layout") == "landing":
+        return "landing.html"
+    return None
+
+
 def setup(app: Sphinx) -> dict[str, Any]:
     app.connect("html-page-context", _drop_pygments)
+    app.connect("html-page-context", _pick_template)
     return {"version": "1", "parallel_read_safe": True, "parallel_write_safe": True}
