@@ -74,7 +74,7 @@ Compiling the firmware is no rung: it shows the code builds, not how it behaves.
 
 | Board | State | Evidence |
 |---|---|---|
-| `esp32` | **compiles, not yet run.** The firmware of [leg 3](route/3-onto-a-board.md) is built with the example model by the firmware workflow, on every release and on every change to it. No run on a board is recorded yet. | the firmware workflow; `examples/esp32/` |
+| `esp32` | **compiles, not yet run.** The firmware of [leg 3](route/3-onto-a-board.md) builds with the example model for `esp32dev`: 62,856 bytes of RAM and 334,717 of flash, both <span class="prov estimated">estimated</span> by the linker (2026-10-27). The firmware workflow repeats the build on every release and on every change to it. No run on a board is recorded yet, so nothing here is <span class="prov measured">measured</span>. | the firmware workflow; `examples/esp32/` |
 | `s32k144` | **export only.** Caravan writes the C files and the resolver; no firmware has been compiled for it. | — |
 | `stm32h743` | **export only.** As above; emulated verification through Renode is planned. | — |
 

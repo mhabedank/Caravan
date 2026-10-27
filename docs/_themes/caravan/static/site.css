@@ -68,11 +68,15 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 .muted { color: var(--muted); }
 .eyebrow { font-size: 13px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .prose { max-width: 720px; }
-.prose > * + * { margin-top: 12px; }
-/* A heading needs air above it, which a uniform rhythm does not give. */
-.prose > h2 { margin-top: 44px; }
-.prose > h3 { margin-top: 32px; }
-.prose > h1 + *, .prose > h2 + *, .prose > h3 + * { margin-top: 12px; }
+.prose > * + *, .prose section > * + * { margin-top: 12px; }
+/* A heading needs air above it, which a uniform rhythm does not give.
+   Docutils wraps each heading and its content in a `<section>`, so the heading is never a child of
+   `.prose` and a rule written as `.prose > h2` matches nothing. It was written that way and did
+   nothing on any page until a measurement showed the gap above a heading was zero. The space
+   belongs to the section, which is the element that actually starts a new part of the page. */
+.prose section > section { margin-top: 44px; }
+.prose section > section section { margin-top: 32px; }
+.prose section > h1, .prose section > h2, .prose section > h3 { margin-top: 0; }
 .prose code { overflow-wrap: anywhere; }
 .prose strong { font-weight: 700; }
 .prose blockquote { border-left: 3px solid var(--border-strong); padding-left: 16px; color: var(--muted); }

@@ -130,7 +130,7 @@ the same leg without a board.
 - [X] T045 [US3] Add the generic project's paths to `firmware.yml`'s `pull_request` path filter, and record its linker figures into the run summary labelled as not measured on a board, as the existing step does
 - [X] T046 [US3] Confirm the release workflow's call to `firmware.yml` now gates on the generic build too, so a documented path that does not compile blocks the release (FR-042)
 - [X] T047 [US3] Add `tests/contract/test_docs_hardware.py`: no figure about a board appears on any page without exactly one provenance label, and no page labels a timing figure `measured` (FR-006, SC-016)
-- [ ] T048 [US3] Add `examples/esp32/.gitignore` and `dependencies.lock` so the toolchain cache key in `firmware.yml` works for the new project as it does for the old
+- [X] T048 [US3] Add `examples/esp32/.gitignore` and `dependencies.lock` so the toolchain cache key in `firmware.yml` works for the new project as it does for the old
 
 **Checkpoint**: the documented hardware path exists, is verified before every release, and the
 thirty-minute promise can be timed.
@@ -155,12 +155,12 @@ template the site's guidance implies.
 - [X] T055 [US4] Replace the rule-code clusters in `docs/reference/manifest.md` cells with links to rules stated in words, so that no lookup entry consists only of type, default and codes (FR-021, FR-022)
 - [X] T056 [US4] Rewrite `docs/reference/rules.md` so each rule says in words what it rejects and what the reader should do instead, with the identifier demoted to an anchor (FR-022)
 - [X] T057 [US4] Add the missing prose to `docs/reference/cli.md` entries: what each command and option is for, not only that it exists (FR-020)
-- [ ] T058 [US4] Link each `docs/concepts/*.md` page from `docs/route/*.md` at the moment the concept first matters, and from the `docs/reference/*.md` entries that need it, without restating the explanation in either place (FR-024)
+- [X] T058 [US4] Link each `docs/concepts/*.md` page from `docs/route/*.md` at the moment the concept first matters, and from the `docs/reference/*.md` entries that need it, without restating the explanation in either place (FR-024)
 - [X] T059 [US4] Name once in `docs/reference/manifest.md` and `docs/concepts/feature-types.md`, where the site uses a term borrowed from another project's vocabulary, that it is borrowed, and explain it in Caravan's own words (FR-025)
 - [X] T060 [US4] Add `tests/contract/test_docs_glossary.py`: every abbreviation appearing on a page is expanded at its first use on that page, driven by a list of abbreviations the site may use (FR-018, SC-007)
 - [X] T061 [US4] Extend `tests/contract/test_docs_reference.py` so that every setting the schema admits has all four prose fields, and a setting with facts alone fails — the Setting invariant from data-model.md (FR-020, SC-008)
 - [X] T062 [US4] Add a check to `tests/contract/test_docs_glossary.py` that every concept is defined on exactly one page, so the Concept invariant holds and two pages cannot drift apart (FR-024)
-- [ ] T063 [US4] Delete `docs/guides/own-project.md`, fold its material into leg 2 and `docs/concepts/feature-types.md`, and add its address to the redirect map forwarding to `docs/route/2-your-columns` (contracts/page-inventory.md)
+- [X] T063 [US4] Delete `docs/guides/own-project.md`, fold its material into leg 2 and `docs/concepts/feature-types.md`, and add its address to the redirect map forwarding to `docs/route/2-your-columns` (contracts/page-inventory.md)
 
 **Checkpoint**: a reader can change the model knowingly instead of copying the example.
 
@@ -200,10 +200,10 @@ screen reader, and no second visual language anywhere.
 level, on a phone and a desktop, in both colour schemes.
 
 - [X] T076 [US6] Extend `docs/_themes/caravan/static/site.css` to every element the pages actually use that the landing page did not exercise: tables, code blocks, admonitions, figures, definition lists and the search page
-- [ ] T077 [US6] Make every table readable at phone width in `docs/_themes/caravan/static/site.css`, and reduce the tables of `docs/reference/manifest.md` and `docs/reference/rules.md` to the columns a reader genuinely scans across, so that no dense multi-column table carries an explanation (FR-038)
-- [ ] T078 [US6] Reserve the single warm accent for the budget and its verdict throughout `docs/` — enforced in `docs/_themes/caravan/static/site.css` — and use it nowhere else (FR-029, contracts/design-tokens.md, R4)
-- [ ] T079 [US6] Remove any colour literal left outside `tokens.css`, including the parts that are dark in both schemes, so a later change of identity is an edit to tokens rather than to pages (contracts/design-tokens.md)
-- [ ] T080 [US6] Give every page under `docs/` a text alternative for each image, ordered heading levels, and no information carried by colour alone (FR-036)
+- [X] T077 [US6] Make every table readable at phone width in `docs/_themes/caravan/static/site.css`, and reduce the tables of `docs/reference/manifest.md` and `docs/reference/rules.md` to the columns a reader genuinely scans across, so that no dense multi-column table carries an explanation (FR-038)
+- [X] T078 [US6] Reserve the single warm accent for the budget and its verdict throughout `docs/` — enforced in `docs/_themes/caravan/static/site.css` — and use it nowhere else (FR-029, contracts/design-tokens.md, R4)
+- [X] T079 [US6] Remove any colour literal left outside `tokens.css`, including the parts that are dark in both schemes, so a later change of identity is an edit to tokens rather than to pages (contracts/design-tokens.md)
+- [X] T080 [US6] Give every page under `docs/` a text alternative for each image, ordered heading levels, and no information carried by colour alone (FR-036)
 - [X] T081 [US6] Confirm every page under `docs/` is complete and legible with images unavailable, and fix what depends on one (FR-037)
 - [X] T082 [US6] Write `tests/site/test_a11y.py`: drive the built site in a headless browser, inject the vendored auditing library, and assert no violation at the A or AA level on every page in both colour schemes (FR-034, SC-012)
 - [X] T083 [US6] Add to `tests/site/test_a11y.py` a check that no page scrolls sideways at phone width or at 200% zoom, including its code blocks and tables (FR-035, SC-012)
@@ -220,11 +220,11 @@ level, on a phone and a desktop, in both colour schemes.
 - [X] T087 Extend `.github/workflows/docs-checks.yml` with the browser audit: install the browser, cache it, and run `tests/site/test_a11y.py` beside the page checks already there (contracts/checks.md)
 - [X] T088 Make `.github/workflows/docs-checks.yml` fail when the job exceeds the ten minutes the constitution bounds it to, measuring and printing its own duration as the install-budget job does for the cold install (FR-050)
 - [X] T089 Add the new check modules to `docs-checks.yml`'s pytest invocation — `test_docs_landing.py`, `test_docs_legs.py`, `test_docs_glossary.py`, `test_docs_hygiene.py`, `test_docs_hardware.py`, `test_docs_tokens.py` — so a documentation change runs all of them
-- [ ] T090 Align `README.md` with the new site: the same verdict in the same words as the landing page, the board gone, the internal artifacts gone, and its links pointing at the route rather than the deleted guide
+- [X] T090 Align `README.md` with the new site: the same verdict in the same words as the landing page, the board gone, the internal artifacts gone, and its links pointing at the route rather than the deleted guide
 - [X] T091 [P] Add this feature's row to `docs/roadmap.md` in the roadmap's own terms, without a feature number (FR-043)
-- [ ] T092 [P] Record in `docs/compatibility.md` what the generic ESP32 path verifies and how far — compiled, not run — keeping each entry's provenance label (Principle IV)
+- [X] T092 [P] Record in `docs/compatibility.md` what the generic ESP32 path verifies and how far — compiled, not run — keeping each entry's provenance label (Principle IV)
 - [X] T093 Run the whole of `specs/010-website-overhaul/quickstart.md` steps 1 to 5 and fix what fails, including the deliberate-break checks it asks for
-- [X] T094 Carry out quickstart.md step 6 — the three promises measured over people, **and** the template choice of SC-009: give five readers three described datasets and record whether four pick the template the site's guidance implies. Record each result with its date, sample size and machine in `docs/design/2026-10-27-promise-measurements.md`, including whether any reader needed a source outside the site to finish a leg (SC-001 to SC-004, SC-006, SC-009)
+- [ ] T094 Carry out quickstart.md step 6 — the three promises measured over people, **and** the template choice of SC-009: give five readers three described datasets and record whether four pick the template the site's guidance implies. Record each result with its date, sample size and machine in `docs/design/2026-10-27-promise-measurements.md`, including whether any reader needed a source outside the site to finish a leg (SC-001 to SC-004, SC-006, SC-009) **Cannot be done by the implementer: it needs five readers who do not know the project. The protocol and an empty results table are in `docs/design/2026-10-27-promise-measurements.md`; the measurement itself is the owner's to run.**
 - [ ] T095 Run the local validation the constitution's gate requires before a pull request is opened — lint, format, and the whole suite in the environments of the matrix in `.github/workflows/ci.yml` — then open one pull request for the feature
 
 ---
