@@ -16,6 +16,7 @@ def inputs(**overrides):
         "export.formats": ["flatbuffer", "c_array"],
         "export.targets": ["s32k144", "stm32h743", "esp32"],
         "export.quantization": "int8",
+        "export.test_windows": 0,
     }
     base.update(overrides)
     return base
@@ -98,3 +99,14 @@ def test_the_tool_version_is_what_covers_the_board_data() -> None:
     assert key() != cache_key(
         export_stage.SPEC.name, inputs(), dataset_version=None, upstream_key="u1-different"
     )
+
+
+def test_test_windows_are_declared_when_asked_for() -> None:
+    # Feature 009: a header the stage forgot to write fails the run, like a skeleton.
+    asked = export_stage.SPEC.declared_artifacts(inputs(**{"export.test_windows": 8}))
+    assert export_stage.TEST_WINDOWS in asked
+    assert export_stage.TEST_WINDOWS not in export_stage.SPEC.declared_artifacts(inputs())
+
+
+def test_a_different_window_count_is_a_different_export() -> None:
+    assert key() != key(**{"export.test_windows": 8})

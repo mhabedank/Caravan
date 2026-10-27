@@ -190,7 +190,10 @@ RERUNS = {
     "model.version": {"export"},
     "output_features[0].preprocessing.vocab": {"data", "build", "train", "quantize", "export"},
     # The seed draws the split, so the training part moves and with it every fitted value (T014).
-    "random_seed": {"data", "build", "train", "quantize"},
+    # The export reads it too since feature 009: its test windows are drawn from the same split.
+    "random_seed": {"data", "build", "train", "quantize", "export"},
+    # Read by the export alone, so changing how many windows a board gets re-runs nothing else.
+    "export.test_windows": {"export"},
     "trainer.epochs": {"train"},
 }
 
@@ -299,4 +302,5 @@ def test_the_split_reruns_the_data_stage() -> None:
     tighter["preprocessing"]["split"]["probabilities"] = [0.6, 0.25, 0.15]
     assert key_for(DATA, tighter) != key_for(DATA, base)
     assert key_for(TRAIN, tighter) != key_for(TRAIN, base)
-    assert key_for(EXPORT, tighter) == key_for(EXPORT, base)
+    # The export reads the split too since feature 009, for its test windows.
+    assert key_for(EXPORT, tighter) != key_for(EXPORT, base)

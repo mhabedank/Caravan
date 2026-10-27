@@ -1,7 +1,8 @@
 """The command blocks of a document, read the way a reader would copy them (feature 007, SC-003).
 
-A block is a fenced ``bash`` block whose first line is ``# step: <name>``. The guide marks its
-blocks ``install``, ``fetch`` and ``run``; the tests execute ``run`` blocks against the working
+A block is a fenced ``bash`` block whose first line is ``# step: <name>``, the name in lower case
+with hyphens allowed (``board-copy``, feature 009). The try-it guide marks its blocks ``install``,
+``fetch`` and ``run``; the tests execute ``run`` blocks against the working
 tree, and the release workflow executes all three against the published release.
 
 Run as ``python -m tests.support_docs <file> <step>`` to print that step's blocks, one after the
@@ -15,7 +16,7 @@ import sys
 from pathlib import Path
 
 BLOCK = re.compile(
-    r"^```bash\n# step: (?P<step>[a-z]+)\n(?P<body>.*?)^```$", re.MULTILINE | re.DOTALL
+    r"^```bash\n# step: (?P<step>[a-z-]+)\n(?P<body>.*?)^```$", re.MULTILINE | re.DOTALL
 )
 
 

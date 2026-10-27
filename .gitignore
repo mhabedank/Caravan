@@ -28,3 +28,5 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+# The documentation site, built by sphinx-build (feature 009).
+_site/

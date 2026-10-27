@@ -216,3 +216,15 @@ Every exception to Ludwig's naming (SC-002):
 
 A manifest in the previous form is refused with V-1 at `apiVersion`; a previous-form key written
 into a `caravan/v0.2` manifest is refused at its own path, naming the key that replaces it.
+
+## Within `caravan/v0.2`: `export.test_windows` (feature 009, 2026-10-26)
+
+An addition, not a breaking change, so the version stays `caravan/v0.2`:
+- **What it is:** `export.test_windows`, an integer from 0 to 64, default 0.
+- **What it does:** above 0, `caravan export` writes `model/test_windows.h`: that many windows of
+  the test part, with the int8 model's answers on the host, for a board to run and compare
+  ([the board guide](guides/lora32.md)). It needs `c_array` in `export.formats`.
+- **Your edit:** none. Every `caravan/v0.2` manifest keeps its meaning, and a manifest without the
+  field writes no windows.
+- **Older builds:** a manifest that uses the field is refused by `v0.1.0rc2` and older builds as an
+  unknown field, at `export.test_windows`, as any field they do not know.

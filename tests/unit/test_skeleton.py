@@ -137,3 +137,21 @@ def test_it_contains_no_scale_zero_point_mean_or_vocabulary() -> None:
     text = generate().lower()
     for word in ("scale", "zero_point", "zero point", "mean", "vocab", "int8_t*"):
         assert word not in text, word
+
+
+# --- feature 009: the arena a board actually used, from the runtime ----------------------------
+
+
+def test_it_reports_the_arena_the_runtime_used_after_allocation() -> None:
+    # Principle IV: the runner obtains the figure from the runtime rather than recomputing it.
+    text = generate()
+    assert "static void ReportArena(size_t bytes);" in text
+    allocate = text.index("AllocateTensors()")
+    report = text.index("ReportArena(interpreter.arena_used_bytes());")
+    assert report > allocate
+
+
+def test_it_says_the_reported_arena_is_measured_on_the_board() -> None:
+    text = generate()
+    assert "measured" in text
+    assert "on the board it runs on" in text

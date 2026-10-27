@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from caravan.runtime.inspect import INTEGER_DTYPES, inspect_model
 
 
@@ -77,3 +79,22 @@ def test_a_float_tensor_inside_the_model_is_still_caught(typed_model) -> None:
     )
     assert not poisoned.fully_integer
     assert inside.name in poisoned.floating_tensors()
+
+
+# --- feature 009: the output's quantization step, for the board's comparison --------------------
+
+
+def test_the_score_step_of_a_softmax_output_is_one_256th(typed_model) -> None:
+    # A softmax output is int8 with scale 1/256 before its DEQUANTIZE; the step is read from the
+    # file, never assumed.
+    from caravan.runtime.inspect import output_score_step
+    from tests.fixtures.models.make import TYPED_OUTPUT
+
+    assert output_score_step(typed_model, TYPED_OUTPUT) == pytest.approx(1 / 256)
+
+
+def test_an_unknown_output_name_is_refused(typed_model) -> None:
+    from caravan.runtime.inspect import output_score_step
+
+    with pytest.raises(KeyError, match="no output named"):
+        output_score_step(typed_model, "nope")

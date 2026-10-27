@@ -23,6 +23,7 @@ from caravan.env import (
     model_runtime_available,
 )
 from caravan.export import c_array, interface, resolver, skeleton
+from caravan.export import test_windows as windows
 from caravan.export.artifacts import ExportSet, RunnerRequirements, record_artifact
 from caravan.manifest.errors import (
     RULE_FORMAT_NOT_IMPLEMENTED,
@@ -46,6 +47,8 @@ ARRAY_SOURCE = f"model/{MODEL_STEM}.cc"
 ARRAY_HEADER = f"model/{MODEL_STEM}.h"
 RESOLVER = f"model/{resolver.HEADER_NAME}"
 RECORD = "export.json"
+#: The test windows for a board (feature 009), written when ``export.test_windows`` is above 0.
+TEST_WINDOWS = f"model/{windows.HEADER_NAME}"
 #: The interface contract (feature 006, contracts/interface.md).
 INTERFACE = "model/interface.json"
 
@@ -59,12 +62,16 @@ def runner_path(target: str) -> str:
 
 
 def _skeletons(inputs: StageInputs) -> tuple[str, ...]:
-    """One runner skeleton per target the manifest names.
+    """One runner skeleton per target the manifest names, and the test windows when asked for.
 
     Computed from the projection, so these files are declared as firmly as the fixed ones: a
-    skeleton the stage forgot to write fails the run rather than going missing from the export set.
+    skeleton or a header the stage forgot to write fails the run rather than going missing from
+    the export set.
     """
-    return tuple(runner_path(target) for target in inputs["export.targets"])
+    skeletons = tuple(runner_path(target) for target in inputs["export.targets"])
+    if inputs["export.test_windows"] > 0:
+        return (*skeletons, TEST_WINDOWS)
+    return skeletons
 
 
 SPEC = StageSpec(
@@ -85,7 +92,17 @@ SPEC = StageSpec(
         "output_features[0].threshold?",
         "output_features[0].clip?",
         "preprocessing.window_size",
+        # For the test windows (feature 009): how many, and the split they are drawn from, formed
+        # by the same code as the quantize stage's test part. Changing the count re-runs this
+        # stage alone; nothing before it reads the field.
+        "export.test_windows",
+        "preprocessing.split",
+        "random_seed",
     ),
+    # Still false with the test windows of feature 009, although they are drawn from the data: the
+    # quantize stage upstream reads the dataset, so its key — and through it this one — already
+    # moves with every change to the data. Declaring it again would change nothing but the key's
+    # text. The records are read only when windows are asked for.
     reads_dataset=False,
     upstream="quantize",
     artifacts=(MODEL, ARRAY_SOURCE, ARRAY_HEADER, RESOLVER, INTERFACE, RECORD),
@@ -260,6 +277,11 @@ def stage(context: StageContext) -> StageFunction:
             )
 
         exported.coverage = tuple(verdicts)
+        written_windows = _write_test_windows(
+            context, inputs, out_dir, model_path, array_name, bindings, output
+        )
+        if written_windows is not None:
+            exported.artifacts.append(record_artifact(out_dir, TEST_WINDOWS, format="test_windows"))
         record = {
             **exported.as_dict(),
             "source_model": {
@@ -268,8 +290,69 @@ def stage(context: StageContext) -> StageFunction:
                 "digest": exported.artifacts[0].digest,
             },
         }
+        if written_windows is not None:
+            record["test_windows"] = written_windows
         (out_dir / RECORD).write_text(
             json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
 
     return run
+
+
+def _write_test_windows(
+    context: StageContext,
+    inputs: StageInputs,
+    out_dir: Path,
+    model_path: Path,
+    array_name: str,
+    bindings: list[dict[str, Any]],
+    output: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Write ``model/test_windows.h`` when the manifest asks for windows; its record, or None.
+
+    The windows come from the test part the quantize stage measured — formed by the same function
+    — and the host's answers from the quantized model this stage just exported, byte for byte.
+    """
+    count = int(inputs["export.test_windows"])
+    if count == 0:
+        return None
+
+    from caravan import __version__
+    from caravan.data.test_part import form_parts
+    from caravan.stages.quantize import _runtime_version
+
+    shaped = {
+        **output,
+        # The decision rule of a binary output needs the threshold the model was gated with.
+        "threshold": output["threshold"] if output["threshold"] is not None else 0.5,
+    }
+    test_features, test_targets = form_parts(context.records(), inputs, shaped).test()
+    record, chosen, expected, scores, decisions = windows.build(
+        model_path=model_path,
+        test_features=test_features,
+        test_targets=test_targets,
+        output=shaped,
+        count=count,
+    )
+    provenance = {
+        "model": f"{inputs['model.name']} {inputs['model.version']}",
+        "run": context.run_id or context.run_dir.name,
+        "dataset_version": context.dataset.version,
+        "runtime": _runtime_version(),
+        "caravan": __version__,
+    }
+    (out_dir / TEST_WINDOWS).write_text(
+        windows.header(
+            record=record,
+            array_name=array_name,
+            bindings=bindings,
+            output=shaped,
+            chosen=chosen,
+            expected=expected,
+            scores=scores,
+            decisions=decisions,
+            provenance=provenance,
+        ),
+        encoding="utf-8",
+    )
+    return record.as_dict()

@@ -5,8 +5,9 @@ name: release
 #   - "Run workflow" on main with a version: the tag is created here, after the checks pass. A
 #     session that cannot push tags can still release (feature 007, contracts/release.md).
 # Then: check that the version is the package's, run the whole suite, tag (manual start only),
-# build and check the built package, publish a GitHub release with the wheel and the sdist, and run
-# the try-it guide literally against what was published.
+# build and check the built package, build the board guide's firmware (feature 009), publish a
+# GitHub release with the wheel and the sdist, run the try-it guide literally against what was
+# published, and publish the documentation site for the new tag.
 #
 # Nothing goes to the package index (owner decision, 2026-10-23), and no secret exists beyond this
 # workflow's own token. A failure before `tag` creates nothing, a failure before `release`
@@ -64,6 +65,10 @@ jobs:
           uv venv --python 3.13 /tmp/train
           VIRTUAL_ENV=/tmp/train uv pip install -e ".[train,verify]" pytest packaging
           VIRTUAL_ENV=/tmp/train /tmp/train/bin/python -m pytest tests -q
+      - name: the documentation site builds, every warning an error (feature 009, FR-020)
+        run: |
+          uv sync --python 3.13 --group docs
+          CARAVAN_VERSION="${{ steps.version.outputs.version }}" uv run sphinx-build -W -b html docs _site
 
   tag:
     # Only for a manual start: the tag on the commit that was just checked. Pushed with this
@@ -112,9 +117,14 @@ jobs:
           name: dist
           path: dist/
 
+  firmware:
+    # The board guide's firmware must build before anything is published (feature 009, FR-009).
+    needs: [check]
+    uses: ./.github/workflows/firmware.yml
+
   release:
-    needs: [check, build]
-    if: always() && needs.build.result == 'success'
+    needs: [check, build, firmware]
+    if: always() && needs.build.result == 'success' && needs.firmware.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -170,3 +180,15 @@ jobs:
           line=$(grep -m1 '^pip install "caravan-ml @ ' "$GITHUB_WORKSPACE/source/README.md")
           eval "/tmp/readme/bin/${line}"
           test "$(/tmp/readme/bin/caravan --version)" = "caravan-ml ${VERSION}"
+
+  docs:
+    # The site for the new tag, after the release exists (feature 009, research R2).
+    needs: [check, release]
+    if: always() && needs.release.result == 'success'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.yml
+    with:
+      tag: ${{ needs.check.outputs.tag }}

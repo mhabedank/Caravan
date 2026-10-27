@@ -1,0 +1,8 @@
+# The export's files: copied from your run, not part of the project.
+src/model/*
+!src/model/README.md
+# What PlatformIO and ESP-IDF generate.
+.pio/
+managed_components/
+sdkconfig.*
+!sdkconfig.defaults
