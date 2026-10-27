@@ -1,7 +1,7 @@
 # Quickstart: validating the overhaul
 
 How to confirm this feature works, from a clean checkout. Everything here runs locally with no
-accounts and no keys, which is itself one of the things being checked (FR-050).
+accounts and no keys, which is itself one of the things being checked (FR-051).
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ uv run --python 3.13 sphinx-build -W -b html docs _site
 
 Expected: `build succeeded`. `-W` is what makes it a check — a broken link, a dead anchor or a page
 no table of contents reaches fails the build (FR-046). Open `_site/index.html` to read the site
-offline, which is the rest of FR-050.
+offline, which is the rest of FR-051.
 
 ## 2. The pages agree with the code
 
@@ -84,7 +84,13 @@ No command covers these. They are the feature's actual success criteria and they
   board and its toolchain ready. Pass is four of five with the board answering inside thirty
   minutes of the same start.
 
-Record each result with its date, the sample size and the machine. A promise measured once and not
+- **The template choice.** Give five readers three described datasets and ask which model template
+  each dataset calls for. Pass is four of five picking the template the site's own guidance implies.
+  This is SC-009, and unlike the three above it tests whether the explanations work, not whether the
+  route does.
+
+Record each result with its date, the sample size and the machine, and note whether any reader
+needed a source outside the site to finish a leg (SC-006). A promise measured once and not
 written down is a promise the next change can break silently.
 
 ## What a reviewer should be able to confirm in ten minutes

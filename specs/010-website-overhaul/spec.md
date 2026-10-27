@@ -43,6 +43,27 @@ firmware build the pipeline has, and that build is for the withdrawn board. So n
 the path the site will teach. FR-042 makes closing that gap part of this feature; which check closes
 it is a planning decision.
 
+## A dependency this feature adds
+
+The constitution's gate for a new dependency asks five things of the spec, and this is them. The
+dependency is a browser driver, used with a vendored auditing library, to check the site's
+accessibility.
+
+- **What it replaces**: nothing. SC-012 requires the accessibility claim to be measured on the
+  rendered page, and the site has no such check today, so the claim is currently unmeasured.
+- **Why the code cannot be owned in a few hundred lines**: the audit is a standing ruleset for the
+  A and AA levels, maintained against the specifications and against browser behaviour. Owning it
+  would mean owning an accessibility standard. Computing contrast from the palette instead is what
+  SC-012 explicitly refuses, because it cannot see text over an image or a focus ring.
+- **Which extra it belongs to**: none. It is a pinned dependency group that checks the site, never
+  installed with the distribution, exactly as the documentation group already is. The
+  distribution's dependency count and its extras are unchanged.
+- **That the budget still holds**: the cold-install budget measures the default distribution, which
+  this does not touch. The install-budget check proves it unchanged.
+- **That it does not constrain the Python policy**: the group is resolved only on the site's own
+  Python, in one job, and never together with the distribution, so it cannot narrow the published
+  version window.
+
 ## Context: what is wrong today
 
 The site is thirteen pages built from `docs/`, in a default theme, written as a precise record for
@@ -422,8 +443,13 @@ checks, on a phone and a desktop, in both colour themes.
 - **FR-047**: The site MUST state which Caravan version it describes on every page.
 - **FR-048**: The site's own build and checks MUST NOT add a runtime dependency to the Caravan
   package, and MUST NOT require any hosted service to build locally.
-- **FR-049**: A change that touches only the site MUST NOT trigger the code test matrix.
-- **FR-050**: The site MUST be buildable and viewable offline on a developer's machine with no
+- **FR-049**: A change that touches only documentation MUST NOT start the framework test matrix,
+  and a change to the spec, the plan, the tasks or the analysis MUST start no job at all. A change
+  to the published site MAY start the one bounded job the constitution allows for documentation.
+- **FR-050**: That documentation job MUST stay inside the bound the constitution sets — one job,
+  one Python version, none of the distribution's extras, and ten minutes — and MUST fail when it
+  exceeds its time, as the install budget fails when the cold install exceeds its own.
+- **FR-051**: The site MUST be buildable and viewable offline on a developer's machine with no
   accounts and no keys.
 
 ### Key Entities

@@ -138,6 +138,49 @@ far the copied identity's prose layer has to be adapted to the generator's marku
 warm accent is reserved for in Caravan; how many legs the series has and where the fifteen-minute
 mark falls between them.
 
+## Validation notes (iteration 4, 2026-10-27)
+
+The cross-artifact analysis found two CRITICAL and four HIGH items; all six are closed. The spec is
+now 51 requirements and 16 criteria, and the task list 95 tasks.
+
+**The two CRITICAL items were decisions, not defects.**
+- The constitution said a documentation-only change "MUST NOT trigger CI", while the intent stated
+  in the same section is that minutes are spent where they verify code. The owner amended it to
+  4.2.0 rather than let the spec reinterpret it: the prohibition now sits on the framework test
+  matrix, spec/plan/tasks commits still start nothing, and published documentation may start one
+  job bounded at one job, one Python version, no extras and ten minutes. FR-049 was rewritten in
+  the constitution's own words — it had narrowed a MUST without authority — and the bound became a
+  new requirement, FR-050, measured by T088. That pushed the offline requirement to FR-051, and
+  every reference to it in the plan and the quickstart was realigned.
+- The dependency gate asks five things of **the spec**, and all five lived only in the plan. They
+  are now in spec.md under "A dependency this feature adds", with the plan pointing at them.
+
+**The four HIGH items were real omissions.**
+- FR-047, the version on every page, had no task at all, and T012 removes the mechanism that
+  satisfies it today. T011 now renders it from the theme and T074 checks every built page for it.
+  This was the one finding that was a silent regression rather than a gap.
+- SC-009, the template choice measured over readers, existed only as prose in a story's independent
+  test. T094 performs it and quickstart step 6 carries it.
+- The Windows edge case had no task; the two "windows" matches in the task list were "test
+  windows", the data concept. T022 names the platforms on the landing page and T029 answers it in
+  leg 1, both before the reader installs anything.
+- T024 was unactionable — "add index.md to the table of contents in index.md's toctree" — a defect
+  introduced while adding explicit paths to nineteen tasks. Rewritten to what was meant.
+
+**What the renumbering cost, and how it was caught.** Inserting three tasks shifted 78 identifiers.
+The remap keyed on each task's text, so the four tasks whose text was amended in the same pass fell
+out of it, and one prose reference was left pointing at the wrong task. It was found by checking
+each reference against what it had pointed at before, not by reading. Verified after the fix: 95
+tasks, numbering sequential and complete, every story-phase task labelled and none outside one,
+every task naming a path, no prose reference to a task that does not exist, and no dangling
+requirement citation in any of the eight artifacts.
+
+**Deliberately left as they are:** the MEDIUM and LOW findings. The series still has no fixed public
+name (the artifacts imply "the route"); the spec's body still says "parts" where the rest says
+"legs", which FR-008 reconciles; SC-014 names four kinds of deliberate break and the quickstart
+describes two; and the provenance rule is stated three times for three scopes. None blocks
+implementation, and the owner asked for the criticals and the highs.
+
 ## Complete
 
-All checklist items pass. The spec is ready for `/speckit-plan`.
+All checklist items pass. The spec is ready for `/speckit-implement`.
