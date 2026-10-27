@@ -54,8 +54,8 @@ version the `pace-cnn` port pins. `v0.1.0` follows once the port has run and eve
 found is fixed; [the release note](releases/0.1.0.md) says what is in it and what is not. Installed
 from the GitHub release; the package index is not used for 0.1.0 (owner decision).
 
-**The `conv1d` decision, 2026-10-22.** The design document put `conv1d` in v0.1. During feature
-001 it was deferred, correctly, because Principle X builds a template when a named model needs one
+**The `conv1d` decision, 2026-10-22.** The design document put `conv1d` in v0.1. It was deferred
+at first, correctly, because Principle X builds a template when a named model needs one
 and nothing did. `pace-cnn` — IMU activity recognition, a time-series model already published at
 0.1.0 — is now the named driver, so `conv1d` returns to v0.1 where the design document had it.
 It arrives with the feature that ports `pace-cnn`, not before.

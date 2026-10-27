@@ -129,7 +129,7 @@ the same leg without a board.
 - [X] T044 [US3] Extend `.github/workflows/firmware.yml` with a job step that builds `examples/esp32/` for `esp32dev` and executes leg 3's `# step:` blocks as written, beside the steps that already do this for the owner's board — the check that closes FR-042
 - [X] T045 [US3] Add the generic project's paths to `firmware.yml`'s `pull_request` path filter, and record its linker figures into the run summary labelled as not measured on a board, as the existing step does
 - [X] T046 [US3] Confirm the release workflow's call to `firmware.yml` now gates on the generic build too, so a documented path that does not compile blocks the release (FR-042)
-- [ ] T047 [US3] Add `tests/contract/test_docs_hardware.py`: no figure about a board appears on any page without exactly one provenance label, and no page labels a timing figure `measured` (FR-006, SC-016)
+- [X] T047 [US3] Add `tests/contract/test_docs_hardware.py`: no figure about a board appears on any page without exactly one provenance label, and no page labels a timing figure `measured` (FR-006, SC-016)
 - [ ] T048 [US3] Add `examples/esp32/.gitignore` and `dependencies.lock` so the toolchain cache key in `firmware.yml` works for the new project as it does for the old
 
 **Checkpoint**: the documented hardware path exists, is verified before every release, and the
@@ -153,7 +153,7 @@ template the site's guidance implies.
 - [X] T053 [US4] Write `docs/route/4-when-it-does-not-fit.md`: tighten a budget until the gate refuses, read the per-layer table it emits, and choose a budget — with all Leg fields, and placed beyond the thirty-minute promise (FR-016, research R5)
 - [X] T054 [US4] Rewrite `docs/reference/manifest.md` so every setting carries the four prose fields the Setting entity requires — what it does, why its default is the default, when to change it, and what goes wrong at its extremes — while keeping its facts scannable for lookup (FR-020, FR-021)
 - [X] T055 [US4] Replace the rule-code clusters in `docs/reference/manifest.md` cells with links to rules stated in words, so that no lookup entry consists only of type, default and codes (FR-021, FR-022)
-- [ ] T056 [US4] Rewrite `docs/reference/rules.md` so each rule says in words what it rejects and what the reader should do instead, with the identifier demoted to an anchor (FR-022)
+- [X] T056 [US4] Rewrite `docs/reference/rules.md` so each rule says in words what it rejects and what the reader should do instead, with the identifier demoted to an anchor (FR-022)
 - [ ] T057 [US4] Add the missing prose to `docs/reference/cli.md` entries: what each command and option is for, not only that it exists (FR-020)
 - [ ] T058 [US4] Link each `docs/concepts/*.md` page from `docs/route/*.md` at the moment the concept first matters, and from the `docs/reference/*.md` entries that need it, without restating the explanation in either place (FR-024)
 - [X] T059 [US4] Name once in `docs/reference/manifest.md` and `docs/concepts/feature-types.md`, where the site uses a term borrowed from another project's vocabulary, that it is borrowed, and explain it in Caravan's own words (FR-025)
@@ -184,8 +184,8 @@ numbers and planning files; both return nothing, and no page lost a claim it nee
 - [X] T071 [P] [US5] Remove the 6 internal-artifact references from `docs/releases/0.1.0.md` (FR-043)
 - [X] T072 [P] [US5] Remove the 6 internal-artifact references from `docs/budgets.md`, which cite features and research notes as the source of its measurements — the measurements stay, their citation becomes something a reader can see (FR-043, FR-044)
 - [X] T073 [P] [US5] Remove the 5 internal-artifact references from `docs/reference/rules.md` (FR-043)
-- [ ] T074 [US5] Add `tests/contract/test_docs_hygiene.py`: no published page matches the withdrawn board's names, and none matches a spec directory, a feature number, or a plan, task or analysis file; and every built page states the Caravan version it describes. Searches over the built or source pages, failing with the page and the match (SC-010, SC-011, FR-047)
-- [ ] T075 [US5] Add a check to `tests/contract/test_docs_hygiene.py` that every address in contracts/page-inventory.md resolves to a page or to a forward that resolves, and that every forward is `noindex` and in no table of contents (FR-045, SC-013)
+- [X] T074 [US5] Add `tests/contract/test_docs_hygiene.py`: no published page matches the withdrawn board's names, and none matches a spec directory, a feature number, or a plan, task or analysis file; and every built page states the Caravan version it describes. Searches over the built or source pages, failing with the page and the match (SC-010, SC-011, FR-047)
+- [X] T075 [US5] Add a check to `tests/contract/test_docs_hygiene.py` that every address in contracts/page-inventory.md resolves to a page or to a forward that resolves, and that every forward is `noindex` and in no table of contents (FR-045, SC-013)
 
 **Checkpoint**: the site is the project's own, and nothing a reader sees points inward.
 
@@ -199,16 +199,16 @@ screen reader, and no second visual language anywhere.
 **Independent Test**: audit each page against the design language and against the accessibility
 level, on a phone and a desktop, in both colour schemes.
 
-- [ ] T076 [US6] Extend `docs/_themes/caravan/static/site.css` to every element the pages actually use that the landing page did not exercise: tables, code blocks, admonitions, figures, definition lists and the search page
+- [X] T076 [US6] Extend `docs/_themes/caravan/static/site.css` to every element the pages actually use that the landing page did not exercise: tables, code blocks, admonitions, figures, definition lists and the search page
 - [ ] T077 [US6] Make every table readable at phone width in `docs/_themes/caravan/static/site.css`, and reduce the tables of `docs/reference/manifest.md` and `docs/reference/rules.md` to the columns a reader genuinely scans across, so that no dense multi-column table carries an explanation (FR-038)
 - [ ] T078 [US6] Reserve the single warm accent for the budget and its verdict throughout `docs/` — enforced in `docs/_themes/caravan/static/site.css` — and use it nowhere else (FR-029, contracts/design-tokens.md, R4)
 - [ ] T079 [US6] Remove any colour literal left outside `tokens.css`, including the parts that are dark in both schemes, so a later change of identity is an edit to tokens rather than to pages (contracts/design-tokens.md)
 - [ ] T080 [US6] Give every page under `docs/` a text alternative for each image, ordered heading levels, and no information carried by colour alone (FR-036)
-- [ ] T081 [US6] Confirm every page under `docs/` is complete and legible with images unavailable, and fix what depends on one (FR-037)
-- [ ] T082 [US6] Write `tests/site/test_a11y.py`: drive the built site in a headless browser, inject the vendored auditing library, and assert no violation at the A or AA level on every page in both colour schemes (FR-034, SC-012)
-- [ ] T083 [US6] Add to `tests/site/test_a11y.py` a check that no page scrolls sideways at phone width or at 200% zoom, including its code blocks and tables (FR-035, SC-012)
-- [ ] T084 [US6] Add `tests/contract/test_docs_tokens.py`: both colour schemes define every token the other defines, no interface colour is declared outside the token set, and the typefaces' notice is present beside them (contracts/design-tokens.md)
-- [ ] T085 [US6] Confirm `docs/_themes/caravan/static/tokens.css` honours the reader's system preference for colour scheme, and that neither scheme is derived from the other (FR-033)
+- [X] T081 [US6] Confirm every page under `docs/` is complete and legible with images unavailable, and fix what depends on one (FR-037)
+- [X] T082 [US6] Write `tests/site/test_a11y.py`: drive the built site in a headless browser, inject the vendored auditing library, and assert no violation at the A or AA level on every page in both colour schemes (FR-034, SC-012)
+- [X] T083 [US6] Add to `tests/site/test_a11y.py` a check that no page scrolls sideways at phone width or at 200% zoom, including its code blocks and tables (FR-035, SC-012)
+- [X] T084 [US6] Add `tests/contract/test_docs_tokens.py`: both colour schemes define every token the other defines, no interface colour is declared outside the token set, and the typefaces' notice is present beside them (contracts/design-tokens.md)
+- [X] T085 [US6] Confirm `docs/_themes/caravan/static/tokens.css` honours the reader's system preference for colour scheme, and that neither scheme is derived from the other (FR-033)
 - [ ] T086 [US6] Read every page against `docs/design/2026-10-27-design-language.md` and fix what does not match, so that any two pages share one type scale, one palette, one treatment of code and one voice (User Story 6 scenario 1)
 
 **Checkpoint**: the site reads as one project made it, and the accessibility claim is a measurement.
@@ -217,8 +217,8 @@ level, on a phone and a desktop, in both colour schemes.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T087 Extend `.github/workflows/docs-checks.yml` with the browser audit: install the browser, cache it, and run `tests/site/test_a11y.py` beside the page checks already there (contracts/checks.md)
-- [ ] T088 Make `.github/workflows/docs-checks.yml` fail when the job exceeds the ten minutes the constitution bounds it to, measuring and printing its own duration as the install-budget job does for the cold install (FR-050)
+- [X] T087 Extend `.github/workflows/docs-checks.yml` with the browser audit: install the browser, cache it, and run `tests/site/test_a11y.py` beside the page checks already there (contracts/checks.md)
+- [X] T088 Make `.github/workflows/docs-checks.yml` fail when the job exceeds the ten minutes the constitution bounds it to, measuring and printing its own duration as the install-budget job does for the cold install (FR-050)
 - [X] T089 Add the new check modules to `docs-checks.yml`'s pytest invocation — `test_docs_landing.py`, `test_docs_legs.py`, `test_docs_glossary.py`, `test_docs_hygiene.py`, `test_docs_hardware.py`, `test_docs_tokens.py` — so a documentation change runs all of them
 - [ ] T090 Align `README.md` with the new site: the same verdict in the same words as the landing page, the board gone, the internal artifacts gone, and its links pointing at the route rather than the deleted guide
 - [ ] T091 [P] Add this feature's row to `docs/roadmap.md` in the roadmap's own terms, without a feature number (FR-043)

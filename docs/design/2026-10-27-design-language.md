@@ -72,8 +72,14 @@ focus ring. These are the figures, not the intentions:
 | focus ring on background | 4.88:1 | 7.64:1 |
 
 The lowest figure in the set is the strong border at 3.44:1, which clears its 3:1 and is the one to
-watch if a neutral is ever adjusted. The table is a snapshot; the browser audit is the check
-(FR-034), because a palette table cannot see text over an image or a focus ring.
+watch if a neutral is ever adjusted.
+
+**This table is a snapshot, and it is not the check.** It lists the interface's pairs, and a page is
+made of more pairs than an interface. The first run of the browser audit proved it: strings in code
+blocks were set in `--s-b`, which is 2.97:1 against the code background in the light scheme and
+fails AA — an ink and a surface that both appear in this table, in a combination that does not.
+Strings are `--gain-ink` now, 6.23:1 and 10.14:1. The audit is the check (FR-034); this table is
+for choosing.
 
 ## Type
 

@@ -43,8 +43,14 @@ permissions:
 jobs:
   pages:
     runs-on: ubuntu-latest
+    # FR-050: the constitution bounds this job at ten minutes, and a bound nothing measures is a
+    # suggestion. Exceeding it fails the job, and the remedy the constitution names is to take
+    # checks out of it rather than to raise the bound.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      - name: start the clock
+        run: echo "started=$(date +%s)" >> "$GITHUB_ENV"
       - uses: astral-sh/setup-uv@v10.3.2
       - run: uv python install 3.13
       - name: install the default package and the site's build tools
@@ -54,9 +60,37 @@ jobs:
           uv run --python 3.13 pytest -q
           tests/contract/test_docs_reference.py
           tests/contract/test_docs_guide.py
+          tests/contract/test_docs_landing.py
+          tests/contract/test_docs_legs.py
+          tests/contract/test_docs_glossary.py
+          tests/contract/test_docs_hygiene.py
+          tests/contract/test_docs_hardware.py
+          tests/contract/test_docs_tokens.py
           tests/integration/test_readme.py
           tests/unit/test_release_note.py
       - name: the site builds, every warning an error (broken links, anchors, orphan pages)
         # No CARAVAN_VERSION: this build is a check, not the published site, so conf.py reads the
         # package's own version. The release workflow builds the site that ships.
         run: uv run --python 3.13 sphinx-build -W -b html docs _site
+      # SC-012 wants the accessibility claim measured on the rendered page, which needs a browser.
+      # The browser is cached because downloading it every time is most of this job's cost.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('pyproject.toml') }}
+      - name: the rendered pages, audited in a browser in both colour schemes
+        run: |
+          uv sync --python 3.13 --group docs --group site-checks
+          uv run --python 3.13 python -m playwright install --with-deps chromium
+          uv run --python 3.13 pytest -q tests/site/test_a11y.py
+      - name: how long this job took, against the ten minutes it is allowed
+        if: always()
+        run: |
+          elapsed=$(( $(date +%s) - started ))
+          printf 'documentation checks: %dm %02ds of the 10m this job is bounded to\n' \
+            $(( elapsed / 60 )) $(( elapsed % 60 )) >> "$GITHUB_STEP_SUMMARY"
+          if [ "$elapsed" -gt 600 ]; then
+            echo "over the ten minutes the constitution bounds this job to. The remedy is to take"
+            echo "checks out of it, not to raise the bound."
+            exit 1
+          fi

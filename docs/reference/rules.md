@@ -275,8 +275,7 @@ reserved rather than renumbering.
 
 ### DS-9 (retired)
 
-Training not permitted by a data declaration. Retired with the compliance layer (constitution
-3.0.0).
+Training not permitted by a data declaration. Retired with the compliance layer.
 
 ### DS-10
 

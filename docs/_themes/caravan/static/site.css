@@ -55,6 +55,12 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
   font-stretch: 82%; }
 .h3, .prose h3 { font-size: 22px; line-height: 1.3; font-weight: 650; letter-spacing: -.01em; }
 .prose h4, .prose h5, .prose h6 { font-size: 18px; line-height: 1.35; font-weight: 650; }
+/* A long single word must break rather than push the page sideways. At 200% zoom on a phone the
+   viewport is about 195px, and "Compatibility" at the h1 size is wider than that on its own — found
+   by the overflow check, not by looking. FR-035 is about any width a reader can reach, including
+   the ones a wide screen never shows you. */
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6,
+.h-display, .h1, .h2, .h3 { overflow-wrap: break-word; hyphens: auto; }
 .lead { font-size: 20px; line-height: 1.55; }
 .small { font-size: 15px; line-height: 1.5; }
 .cap { font-size: 13px; line-height: 1.45; color: var(--muted); }
@@ -180,10 +186,16 @@ div[class^="highlight-"] { margin: 0; }
 .prose > pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; }
 
 /* Syntax colouring from the identity's inks only (FR-030). Four distinctions, not a rainbow: a
-   comment recedes, a string and a keyword take the two cool inks, everything else is body text. A
-   fuller palette would need colours the identity does not have. */
+   comment recedes, a string and a keyword take two inks that are far enough apart, everything else
+   is body text. A fuller palette would need colours the identity does not have.
+
+   A string was --s-b at first, which is 2.97:1 on the code background in the light scheme and
+   therefore fails AA. The browser audit found it; the contrast table in the design language did
+   not, because that table lists the interface's pairs and not every ink against every surface.
+   --gain-ink is 6.23:1 light and 10.14:1 dark, and green against the keyword's blue stays
+   distinguishable. */
 .highlight .c, .highlight .c1, .highlight .cm, .highlight .ch, .highlight .cs { color: var(--muted); font-style: italic; }
-.highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sd, .highlight .se { color: var(--s-b); }
+.highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sd, .highlight .se { color: var(--gain-ink); }
 .highlight .k, .highlight .kn, .highlight .kd, .highlight .kt, .highlight .kc, .highlight .kr,
 .highlight .ow, .highlight .nt { color: var(--s-a); font-weight: 650; }
 .highlight .nv, .highlight .vi, .highlight .na, .highlight .nf, .highlight .nb, .highlight .no,

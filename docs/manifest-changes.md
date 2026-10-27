@@ -50,7 +50,8 @@ reach them, so they have no fixture.
 ## A rule that is retired stays reserved
 
 `CF-3`, `CF-5`, `CF-7`, `CF-8` and `DS-9` were removed with the compliance layer;
-`V-2`, which read a manifest without a version as the oldest known one, was retired by constitution
+`V-2`, which read a manifest without a version as the oldest known one, was retired before
+0.1.0.
 `CF-10`, one input and one output, was retired by typed features, which allow several input
 features and gives the single output its own rule, `CF-17`. They sit in `RETIRED_RULES`: in no rule group, in no fixture's expectation, raised by no
 module (`tests/unit/test_retired_rules.py`). An identifier that came back with another meaning
@@ -61,7 +62,7 @@ manifest has a fixture, and no identifier that cannot reject one has a fixture c
 
 ## `caravan/v0` → `caravan/v0.1` (2026-10-23)
 
-Constitution 3.0.0 removed the compliance layer (Principle VI) and every field no stage reads
+Principle VI removed the compliance layer and every field no stage reads
 (Principle I), and made the manifest declare what goes into the model and what comes out. The
 messages for the removed fields come from `caravan/manifest/schema/removed.py`.
 

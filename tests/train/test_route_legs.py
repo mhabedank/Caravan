@@ -123,7 +123,7 @@ def test_leg_two_promised_numbers_are_printed(walked) -> None:
 
 
 def test_leg_four_makes_the_fit_check_refuse(walked) -> None:
-    """A model far larger than the board's flash cannot fit, so the run must fail before training."""
+    """A model far larger than the board's flash cannot fit, so the run fails before training."""
     done = walked["leg4"]
     assert done is not None, "leg 4 did not run because leg 2 failed"
     assert done.returncode == 0, f"leg 4's own script failed:\n{done.stdout}\n{done.stderr}"

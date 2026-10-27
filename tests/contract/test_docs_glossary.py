@@ -33,6 +33,7 @@ EXPANSIONS = {
     "WCAG": "Web Content Accessibility Guidelines",
 }
 
+
 #: Pages are the published ones. docs/design/ and docs/research/ are working records, excluded from
 #: the site by conf.py, and are not written for a newcomer.
 def pages() -> list[Path]:
