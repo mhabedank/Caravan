@@ -98,6 +98,46 @@ being a technology choice the spec is forbidden to make; the two cross-reference
 gap; whether the generated ESP32 runner skeleton suffices as the deployment leg's starting point;
 how many legs the series has and where the fifteen-minute mark falls between them.
 
+## Validation notes (iteration 3, 2026-10-27)
+
+D1 was reopened and replaced. The owner was not certain about the 8-bit direction, preferred the
+Mobility Model Zoo's existing identity, and chose it with Sphinx retained and a sibling rather than
+twin relationship to the zoo. The design block was rewritten (now FR-026..FR-038) and every
+requirement renumbered to FR-001..FR-050; the five prose cross-references were repaired by what
+they point at rather than by their old numbers, and each was re-verified after renumbering.
+
+**What reading the zoo's identity added to the spec, beyond the swap:**
+- FR-028 exists because of a constitutional constraint, not a preference. Caravan must not depend
+  on the zoo, so the identity can only arrive as a copy: no shared package, no submodule, nothing
+  fetched at build time. The licence obligation travels with it (the typefaces are OFL-1.1 and
+  need their notice), and the spec states that the two identities may drift once copied.
+- FR-030 encodes a lesson the zoo paid for. Its own identity feature records that moving only the
+  mark and the motifs into the poster world made the remaining interface colours read as foreign
+  bodies, and that a half step is worse than either whole. That is why 8-bit is dropped entirely
+  rather than kept for the figures.
+- FR-029 exists because the design would otherwise contradict the project's stated position. The
+  constitution says Caravan may be used outside the zoo; a site indistinguishable from the zoo's
+  would read as a subproject. Its own mark and its own reservation for the single accent keep the
+  position visible in the design.
+- FR-034 and SC-012 were strengthened. The zoo measures contrast in a browser on the rendered page
+  in both schemes, having learned that a palette table is not where the defect appears. The
+  criterion now requires the same, so "meets AA" is a measurement rather than an intention.
+
+**One qualification on "no implementation details".** No requirement names a technology. The
+Decisions section and the Assumptions do name the site generator, because the owner's answer named
+it: keeping it was part of the decision taken, and a spec records the constraints it is given. The
+requirements remain expressed as properties of the published site, so planning still chooses how
+each is met.
+
+**Re-checked after the edit**: 50 requirements, numbering sequential and complete (verified
+mechanically); no [NEEDS CLARIFICATION] markers; all five cross-references resolve; 8-bit survives
+only in the verbatim input quote and in the record of what D1 superseded, which is deliberate.
+
+**Still open by design, for `/speckit-plan`:** which check closes the FR-042 verification gap; how
+far the copied identity's prose layer has to be adapted to the generator's markup; what the single
+warm accent is reserved for in Caravan; how many legs the series has and where the fifteen-minute
+mark falls between them.
+
 ## Complete
 
 All checklist items pass. The spec is ready for `/speckit-plan`.

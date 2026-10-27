@@ -12,22 +12,35 @@
 
 Three questions were put to the owner on 2026-10-27 and answered the same day.
 
-- **D1 — Restrained 8-bit, spoken as a journey.** The visual register is 8-bit; the verbal register
-  comes from the project's own name. Chosen over literal retro-computing and over datasheet
-  austerity, because the 8-bit register earns its place twice — it is what int8 arithmetic and a
-  few kilobytes of RAM actually look like — while the journey gives the series its shape without
-  borrowing any retro vocabulary. Carried by FR-026, FR-027 and FR-008.
+- **D1 — The zoo's screenprint identity, spoken as a journey.** The site takes the Mobility Model
+  Zoo's visual language — flat colour fields, crisp cut edges, deep navy, cream, pale mint and one
+  warm accent, set in the zoo's two typefaces — and keeps the journey as its verbal register.
+  Sphinx stays the generator, so what crosses over is the identity, not the zoo's machinery.
+  Carried by FR-026 to FR-030 and FR-008.
+
+  **This supersedes a first answer taken the same day.** D1 was first decided as a restrained
+  8-bit register, on the reasoning that int8 arithmetic and a few kilobytes of RAM are what 8-bit
+  actually depicts. The owner then reconsidered, and reading the zoo's identity settled it: the
+  poster language is already built, iterated twice over a colour cast and a seam between two
+  identities, and checked for contrast in a browser rather than on a swatch — and a travel poster
+  is the native imagery of a route, so it carries the journey better than 8-bit did. The 8-bit
+  register is dropped whole rather than blended in, for the reason in FR-030.
+- **D4 — A sibling, not a twin.** Caravan shares the palette, the typefaces and the poster
+  language, but carries its own mark, and reserves the single warm accent for something of its own
+  as the zoo reserves its accent for the vehicle. This keeps the project's stated position — that
+  Caravan is usable outside the zoo — legible in the design rather than only in the README.
+  Carried by FR-029.
 - **D2 — The board withdrawal reaches the site only.** Every mention of the owner's personal
   development board comes off the site. Its firmware example and the pre-release firmware build for
   it stay in the repository as the owner's own verification, unmentioned by the site. Carried by
-  FR-035.
+  FR-039.
 - **D3 — The deployment leg targets a generic ESP32 development board.** Already a registered
   export target, widely available, inexpensive, and on the toolchain the project already uses.
-  Carried by FR-037.
+  Carried by FR-041.
 
 **A consequence D3 creates, recorded here rather than discovered in planning.** D2 keeps the only
 firmware build the pipeline has, and that build is for the withdrawn board. So nothing yet verifies
-the path the site will teach. FR-038 makes closing that gap part of this feature; which check closes
+the path the site will teach. FR-042 makes closing that gap part of this feature; which check closes
 it is a planning decision.
 
 ## Context: what is wrong today
@@ -289,7 +302,7 @@ checks, on a phone and a desktop, in both colour themes.
 - **FR-007**: The site MUST carry a series of ordered, short parts that takes a reader from nothing
   to a deployed model, replacing the single long entry page.
 - **FR-008**: The series MUST NOT be called a tutorial, a walkthrough, or "getting started". Its
-  parts MUST be called **legs**, numbered, their vocabulary that of FR-026, and each leg's title
+  parts MUST be called **legs**, numbered, their vocabulary that of FR-027, and each leg's title
   MUST name what the reader ends it with — so that a title read on its own says what the leg is
   worth, in the shape of Django's "Writing your first app, part N".
 - **FR-009**: Each part MUST declare, before its first instruction, what the reader will have at the
@@ -338,66 +351,79 @@ checks, on a phone and a desktop, in both colour themes.
 
 ### Design and metaphor
 
-- **FR-026**: The site MUST adopt one design and metaphor language, applied to every page (D1):
-  a **restrained 8-bit visual register** — a visible grid, a small fixed palette, pixel-exact
-  figures, monospace wherever a number or a command is shown — and a **verbal register drawn from
-  the project's own name**, in which the reader travels a route in numbered legs and what a board
-  can carry is its budget.
-- **FR-027**: The 8-bit register MUST stay a register and not a costume. Period pastiche — scan
-  lines, simulated screen curvature, blinking cursors, decorative glitch, pixel type in body text —
-  MUST NOT appear. Where a reader could take the register for nostalgia, the site MUST say once, in
-  its own words, what it stands for: int8 is the arithmetic every exported model is reduced to, and
-  a few kilobytes is what a board really has.
-- **FR-028**: The design language MUST be written down with enough precision that a later page can
+- **FR-026**: The site MUST take its visual language from the Mobility Model Zoo's screenprint
+  identity (D1): the ink palette of deep navy, cream, pale mint and exactly one warm accent; flat
+  colour fields with crisp cut edges and no gradients; the zoo's two typefaces, the grotesque set
+  narrow for headlines and the monospace for every command and figure; and both colour schemes
+  worked out, neither an afterthought.
+- **FR-027**: The verbal register MUST remain the journey the project's own name implies — a route
+  travelled in numbered legs, and what a board can carry as its budget (FR-008). The poster
+  language carries that register natively, so the two MUST read as one decision and not as a theme
+  applied over a vocabulary.
+- **FR-028**: The identity MUST arrive as a copy, never as a dependency: no shared package, no
+  submodule, and nothing fetched from the zoo when the site is built, because Caravan must not
+  depend on the zoo. The copy MUST carry the typefaces' licence notice, and the written design
+  language MUST record where the identity came from and that the two sites may drift apart.
+- **FR-029**: Caravan MUST read as the zoo's sibling and not its twin (D4). It MUST carry a mark of
+  its own, and the single warm accent MUST be reserved for something of Caravan's own — named once
+  in the written design language, as the zoo reserves its accent for the vehicle.
+- **FR-030**: The interface and the figures MUST come from one world. No element may use a colour
+  absent from the identity, and no second visual language may be mixed in: the zoo established, at
+  its own cost, that a half step reads worse than either whole.
+- **FR-031**: The design language MUST be written down with enough precision that a later page can
   be made to match it without guessing: the type scale, the palette with its contrast figures, the
-  treatment of code, tables and figures, and the voice.
-- **FR-029**: Legibility MUST take precedence over the metaphor wherever the two conflict, and the
+  treatment of code, tables and figures, what the accent is reserved for, the vocabulary of the
+  journey, and the voice.
+- **FR-032**: Legibility MUST take precedence over the identity wherever the two conflict, and the
   written design language MUST say so.
-- **FR-030**: Body text MUST meet the AA contrast level of the published accessibility guidelines in
-  both light and dark themes, and the site MUST honour the reader's system preference for theme.
-- **FR-031**: Every page MUST be usable at phone width and at 200% zoom with no sideways scrolling
+- **FR-033**: Body text MUST meet the AA contrast level of the published accessibility guidelines in
+  both light and dark schemes, and the site MUST honour the reader's system preference for scheme.
+- **FR-034**: The accessibility claims MUST be checked in a browser against the rendered page, in
+  both colour schemes, on every page — not computed from the palette. A failing check MUST fail the
+  site's own checks.
+- **FR-035**: Every page MUST be usable at phone width and at 200% zoom with no sideways scrolling
   and nothing clipped, including code blocks and tables.
-- **FR-032**: Information MUST NOT be carried by colour alone, every image MUST have a text
+- **FR-036**: Information MUST NOT be carried by colour alone, every image MUST have a text
   alternative, and heading levels MUST be ordered on every page.
-- **FR-033**: The site MUST remain complete and legible with images unavailable.
-- **FR-034**: Tables MUST be used only where a reader genuinely scans across columns to compare,
+- **FR-037**: The site MUST remain complete and legible with images unavailable.
+- **FR-038**: Tables MUST be used only where a reader genuinely scans across columns to compare,
   and MUST be readable at phone width; dense multi-column tables MUST NOT be the carrier of
   explanation.
 
 ### What comes off the site
 
-- **FR-035**: Every reference to the withdrawn development board MUST be removed from the site
+- **FR-039**: Every reference to the withdrawn development board MUST be removed from the site
   (D2): its guide, the pages that mention it, the example manifest's comments, and the release
   notes. The withdrawal reaches the site only — the firmware example project and the pre-release
   firmware build for that board stay in the repository as the owner's own verification, and the
   site MUST NOT mention either.
-- **FR-036**: Where a claim rested on that board, the claim MUST be re-grounded on the hardware the
+- **FR-040**: Where a claim rested on that board, the claim MUST be re-grounded on the hardware the
   site still supports or MUST be restated as not yet verified; no conclusion may keep standing
   after the evidence under it is removed.
-- **FR-037**: The deployment leg MUST be written for a **generic ESP32 development board** (D3):
+- **FR-041**: The deployment leg MUST be written for a **generic ESP32 development board** (D3):
   a registered export target, widely available, and on the toolchain the project already uses. The
   leg MUST name the board it was written against, and MUST say what a reader holding a different
   ESP32 board has to change.
-- **FR-038**: What the deployment leg tells a reader to do MUST be verified before a release by a
+- **FR-042**: What the deployment leg tells a reader to do MUST be verified before a release by a
   check that exercises that same path. The firmware build which exists today covers the withdrawn
   board (D2) and therefore does not cover this one; the gap MUST be closed rather than recorded.
-- **FR-039**: The site MUST NOT reference the project's internal development artifacts — spec
+- **FR-043**: The site MUST NOT reference the project's internal development artifacts — spec
   directories, feature numbers, plan, task or analysis files — on any page a reader sees.
-- **FR-040**: Where such a reference carried evidence for a claim, the claim MUST be supported from
+- **FR-044**: Where such a reference carried evidence for a claim, the claim MUST be supported from
   the site itself or dropped with its conclusion; the provenance of every retained hardware figure
   MUST survive the removal.
-- **FR-041**: Removal MUST NOT create dead addresses: every page that is renamed, merged or deleted
+- **FR-045**: Removal MUST NOT create dead addresses: every page that is renamed, merged or deleted
   MUST either keep its address or forward from it.
 
 ### Keeping it true
 
-- **FR-042**: The site MUST continue to fail its build on a broken link, a broken anchor, or a page
+- **FR-046**: The site MUST continue to fail its build on a broken link, a broken anchor, or a page
   that no navigation reaches.
-- **FR-043**: The site MUST state which Caravan version it describes on every page.
-- **FR-044**: The site's own build and checks MUST NOT add a runtime dependency to the Caravan
+- **FR-047**: The site MUST state which Caravan version it describes on every page.
+- **FR-048**: The site's own build and checks MUST NOT add a runtime dependency to the Caravan
   package, and MUST NOT require any hosted service to build locally.
-- **FR-045**: A change that touches only the site MUST NOT trigger the code test matrix.
-- **FR-046**: The site MUST be buildable and viewable offline on a developer's machine with no
+- **FR-049**: A change that touches only the site MUST NOT trigger the code test matrix.
+- **FR-050**: The site MUST be buildable and viewable offline on a developer's machine with no
   accounts and no keys.
 
 ### Key Entities
@@ -443,8 +469,9 @@ checks, on a phone and a desktop, in both colour themes.
   every claim that rested on it is either re-grounded or restated as unverified.
 - **SC-011**: A search of the published site for internal development artifacts returns no matches,
   and every hardware figure that remains still carries its provenance label.
-- **SC-012**: Every page meets the AA contrast level in both themes, is free of sideways scrolling
-  at phone width and 200% zoom, has ordered headings, and has a text alternative for every image.
+- **SC-012**: A browser audit of every page, in both colour schemes, reports no accessibility
+  violation at the A or AA level; and every page is free of sideways scrolling at phone width and
+  200% zoom. Measured on the rendered page, not computed from the palette.
 - **SC-013**: No address that worked before the overhaul returns nothing afterwards.
 - **SC-014**: A deliberate break — a stale command, a wrong version string, a dead link, an
   unreachable page — fails the site's checks rather than publishing.
@@ -475,6 +502,18 @@ checks, on a phone and a desktop, in both colour themes.
   The overhaul adds to them and removes none.
 - **The release workflow keeps publishing the site**, from the same source directory, on the same
   address.
+- **The identity is copied under licences that already permit it.** Both repositories are
+  Apache-2.0 and have the same owner, and the typefaces are OFL-1.1, which allows redistribution
+  with the notice beside them. Copying is also the only form the constitution leaves open: Caravan
+  must not depend on the zoo, so a shared package or a build-time fetch is excluded, and the two
+  identities are free to drift once copied.
+- **Sphinx stays, and the landing page is where that costs something.** Ordered navigation,
+  anchors and warnings-as-errors are what a series of legs needs, and the zoo's own generator is
+  built for a model catalogue instead. The landing page is the one place Sphinx's defaults do not
+  fit, and it is expected to need a template of its own.
+- **A working accessibility harness exists to copy.** The zoo checks every page in a browser
+  against an auditing library, in both colour schemes, and this environment already has a browser
+  for it. FR-034 is therefore a requirement with a known shape rather than a research task.
 - **The metaphor decides the vocabulary, not only the look.** D1 was taken as one decision because
   the series' parts are named out of it; "leg" is therefore a term the whole site owes consistency
   to, and the pipeline's own "stage" keeps its separate meaning.
@@ -483,7 +522,7 @@ checks, on a phone and a desktop, in both colour themes.
   rather than on a second example project, which is what makes thirty minutes plausible; whether
   the skeleton is enough as it stands is for planning to establish.
 - **The site is written for one ESP32 board and says so.** Readers hold many variants; the leg names
-  the one it was written against instead of pretending to cover all of them (FR-037).
+  the one it was written against instead of pretending to cover all of them (FR-041).
 - **The provenance discipline of the project applies to the site**: a marketing page is a published
   table for this purpose, so no hardware number loses its label for the sake of a cleaner headline.
 - **"MLP" is multilayer perceptron and "conv1d" a one-dimensional convolutional network.** The site
