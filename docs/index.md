@@ -36,7 +36,7 @@ Caravan is installed from its GitHub release, not from the package index. In a v
 environment:
 
 ```bash
-pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc2/caravan_ml-0.1.0rc2-py3-none-any.whl"
+pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc3/caravan_ml-0.1.0rc3-py3-none-any.whl"
 ```
 
 **Python versions:**

@@ -14,11 +14,11 @@ Python is too old, the environment is not active — run `deactivate` and the `.
 # step: install
 python3.13 -m venv caravan-try
 . caravan-try/bin/activate
-pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc2/caravan_ml-0.1.0rc2-py3-none-any.whl"
+pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc3/caravan_ml-0.1.0rc3-py3-none-any.whl"
 caravan --version
 ```
 
-`caravan --version` prints `caravan-ml 0.1.0rc2`. The training extra is the large part of the
+`caravan --version` prints `caravan-ml 0.1.0rc3`. The training extra is the large part of the
 install.
 
 ## Fetch the example
@@ -28,8 +28,8 @@ Two directories of the tagged source, the example manifest and the synthetic dat
 
 ```bash
 # step: fetch
-curl -sL https://github.com/mhabedank/Caravan/archive/refs/tags/v0.1.0rc2.tar.gz \
-  | tar xz --strip-components=1 Caravan-0.1.0rc2/examples Caravan-0.1.0rc2/tests/fixtures/datasets/synthetic
+curl -sL https://github.com/mhabedank/Caravan/archive/refs/tags/v0.1.0rc3.tar.gz \
+  | tar xz --strip-components=1 Caravan-0.1.0rc3/examples Caravan-0.1.0rc3/tests/fixtures/datasets/synthetic
 ```
 
 ## Run
