@@ -38,9 +38,15 @@ root_doc = "index"
 exclude_patterns = ["_build", "design/**", "research/**"]
 
 myst_heading_anchors = 3
-# colon_fence lets a layout wrapper use `:::` so that code blocks inside it keep ```. Without it a
-# container holding a code sample means nesting one backtick fence inside another.
-myst_enable_extensions = ["substitution", "colon_fence"]
+# colon_fence lets a layout wrapper use `:::` so that code blocks inside it keep ```.
+# attrs_inline lets a link carry a class, which is how the landing page's one primary call to
+# action becomes a button without raw HTML that Sphinx would not resolve or check.
+#
+# Note on containers: a heading inside one becomes `<p class="rubric">`, not a heading — docutils
+# does not treat it as a document section. The landing page therefore keeps its headings at the top
+# level and takes its layout from CSS. Found by looking at the rendered page; the accessibility
+# audit did not catch it, because its heading rules check the order of the headings that exist.
+myst_enable_extensions = ["substitution", "colon_fence", "attrs_inline", "attrs_block"]
 myst_substitutions = {"release": release}
 
 # The identity, copied from the Mobility Model Zoo and carried as a theme of our own (feature 010,

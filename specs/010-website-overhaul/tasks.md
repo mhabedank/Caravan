@@ -223,8 +223,8 @@ level, on a phone and a desktop, in both colour schemes.
 - [ ] T090 Align `README.md` with the new site: the same verdict in the same words as the landing page, the board gone, the internal artifacts gone, and its links pointing at the route rather than the deleted guide
 - [X] T091 [P] Add this feature's row to `docs/roadmap.md` in the roadmap's own terms, without a feature number (FR-043)
 - [ ] T092 [P] Record in `docs/compatibility.md` what the generic ESP32 path verifies and how far — compiled, not run — keeping each entry's provenance label (Principle IV)
-- [ ] T093 Run the whole of `specs/010-website-overhaul/quickstart.md` steps 1 to 5 and fix what fails, including the deliberate-break checks it asks for
-- [ ] T094 Carry out quickstart.md step 6 — the three promises measured over people, **and** the template choice of SC-009: give five readers three described datasets and record whether four pick the template the site's guidance implies. Record each result with its date, sample size and machine in `docs/design/2026-10-27-promise-measurements.md`, including whether any reader needed a source outside the site to finish a leg (SC-001 to SC-004, SC-006, SC-009)
+- [X] T093 Run the whole of `specs/010-website-overhaul/quickstart.md` steps 1 to 5 and fix what fails, including the deliberate-break checks it asks for
+- [X] T094 Carry out quickstart.md step 6 — the three promises measured over people, **and** the template choice of SC-009: give five readers three described datasets and record whether four pick the template the site's guidance implies. Record each result with its date, sample size and machine in `docs/design/2026-10-27-promise-measurements.md`, including whether any reader needed a source outside the site to finish a leg (SC-001 to SC-004, SC-006, SC-009)
 - [ ] T095 Run the local validation the constitution's gate requires before a pull request is opened — lint, format, and the whole suite in the environments of the matrix in `.github/workflows/ci.yml` — then open one pull request for the feature
 
 ---

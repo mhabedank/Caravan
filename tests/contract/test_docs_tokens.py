@@ -103,6 +103,39 @@ def test_the_accent_is_reserved() -> None:
     )
 
 
+def test_no_token_the_stylesheet_reads_is_the_reserved_ink() -> None:
+    """The reservation has to hold in both schemes, which is where it nearly did not.
+
+    The copied identity sets its dark `--accent` to the warm ink, and Caravan uses `--accent` for
+    the primary button, the skip link and the navigation hover — so in dark mode the reserved
+    colour was on every page, most visible exactly where the reservation mattered. A check for
+    `--accent-use` could not see it, because the rules read `--accent`.
+
+    The rule is not "no token may hold that value": `--poster-orange` *is* the ink, and `--s-c` is
+    an unused series colour the copy came with. What matters is whether a token holding it is
+    **read by the stylesheet**, because only then does the colour reach a page.
+
+    `--focus` is the deliberate exception: a focus ring is an accessibility affordance rather than
+    content emphasis, and it has to be the most visible thing on the page.
+    """
+    css = SITE_CSS.read_text(encoding="utf-8")
+    read_by_css = set(re.findall(r"var\((--[a-z0-9-]+)", css))
+    allowed = {"--accent-use", "--mark", "--focus"}
+    light, dark = schemes()
+    for name, scheme in (("light", light), ("dark", {**light, **dark})):
+        warm = scheme["--mark"]
+        offenders = sorted(
+            token
+            for token, value in scheme.items()
+            if token in read_by_css and token not in allowed and value.lower() == warm.lower()
+        )
+        assert not offenders, (
+            f"in the {name} scheme these tokens hold the reserved ink {warm} and are read by "
+            f"site.css: {offenders}. Every rule reading one of them puts the budget's colour "
+            f"somewhere it does not belong."
+        )
+
+
 def test_the_accent_is_actually_used_for_what_it_is_reserved_for() -> None:
     """A reservation nothing uses is a token nobody will remember the meaning of."""
     css = SITE_CSS.read_text(encoding="utf-8")

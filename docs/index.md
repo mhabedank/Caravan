@@ -3,26 +3,16 @@ layout: landing
 description: Caravan turns a CSV and one YAML file into a model your microcontroller runs, and refuses it if shrinking it cost more accuracy than you allowed.
 ---
 
-::::{container} hero
-:::{container} wrap
 # A CSV goes in. A model your microcontroller runs comes out.
 
-```{container} lead
+{.lead}
 You describe your data once, in one YAML file: which columns the model reads, which column it
 answers, and which boards it has to fit. Caravan trains the model, shrinks it to 8-bit integers,
 **stops if shrinking cost more accuracy than you allowed**, and writes the C files your firmware
 compiles.
-```
 
-```{container} row
 [Start the route](route/index.md){.btn} <span class="cap">First model in 15 minutes. On a board in 30.</span>
-```
-:::
-::::
 
-:::::{container} sec
-::::{container} wrap
-:::{container} prose
 ## What you bring
 
 - **A table of your own** — a `.csv`, `.tsv` or `.txt` file with a header row. Sensor readings, log
@@ -39,13 +29,7 @@ compiles.
 
 You do not bring a model architecture, a training loop, a quantization script or a conversion step.
 Those are what Caravan is.
-:::
-::::
-:::::
 
-:::::{container} sec
-::::{container} wrap
-:::{container} prose
 ## What it actually does
 
 <figure>
@@ -83,13 +67,7 @@ most.</figcaption>
 Your firmware passes raw sensor values. Each column's preprocessing — scaling a number, looking up
 a category — is built into the model itself, so there is no preprocessing code to port and no
 chance of your board and your computer disagreeing about it.
-:::
-::::
-:::::
 
-:::::{container} sec
-::::{container} wrap
-:::{container} prose
 ## The route
 
 Four legs. Each one ends with something you can point at.
@@ -102,13 +80,7 @@ Four legs. Each one ends with something you can point at.
 | [4. When it does not fit](route/4-when-it-does-not-fit.md) | A failed gate read, and a budget you chose | after |
 
 The minutes are cumulative from the start of leg 1, with the install already done.
-:::
-::::
-:::::
 
-:::::{container} sec
-::::{container} wrap
-:::{container} prose
 ## What Caravan is for
 
 Models small enough to run on a microcontroller, built from tabular data, deployed through the
@@ -127,9 +99,6 @@ Cloud, desktop and language models are someone else's problem.
 
 [What is verified today](compatibility.md) is the honest account of how far each part has been
 taken, and [the roadmap](roadmap.md) says what is planned and what was decided against.
-:::
-::::
-:::::
 
 ```{toctree}
 :caption: Start

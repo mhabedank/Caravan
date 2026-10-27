@@ -74,8 +74,8 @@ leg's fifteen. Later builds take seconds.
 **The result** ends in `SUCCESS`, with lines like these:
 
 ```text
-RAM:   [==        ]  19.5% (used 63960 bytes from 327680 bytes)
-Flash: [====      ]  35.1% (used 368153 bytes from 1048576 bytes)
+RAM:   [==        ]  19.2% (used 62856 bytes from 327680 bytes)
+Flash: [===       ]  31.9% (used 334717 bytes from 1048576 bytes)
 ```
 
 Those are the linker's figures for this firmware with this model, so they are
