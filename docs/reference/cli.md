@@ -134,7 +134,8 @@ validation loss stops improving (`trainer.early_stop`).
 
 **Writes.** The trained model, and `metrics.json` with its metrics on the test part:
 - for a category or binary output: accuracy and the confusion matrix;
-- for a number output: MAE, MSE, RMSE and R².
+- for a number output: the mean absolute error (MAE), the mean squared error (MSE), its square
+  root (RMSE) and the coefficient of determination (R²).
 
 Plus everything `build` writes.
 

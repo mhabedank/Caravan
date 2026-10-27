@@ -25,6 +25,10 @@ Each type brings its preprocessing into the model, so a firmware passes raw valu
 | `binary` | the score against `threshold` (0.5) | `accuracy_drop_max` | accuracy, confusion matrix |
 | `number` | the value, in the column's unit | `mae_increase_max` | MAE, MSE, RMSE, R² |
 
+The metrics for a `number` output are the mean absolute error (MAE), the mean squared error (MSE),
+its square root (RMSE), and the coefficient of determination (R²). The budget is set on MAE,
+because it is in the column's own unit: a budget in degrees stays in degrees.
+
 ### Ludwig's types that Caravan does not have
 
 Refused with [CF-14](reference/rules.md#cf-14):

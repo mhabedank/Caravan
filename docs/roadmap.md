@@ -146,7 +146,8 @@ said wrongly before the extra was measured against the index rather than against
 
 **`forest` dropped, 2026-10-22.** The design document planned a tree-model template reaching the
 microcontroller through ONNX. A random forest has no tensor arena, no int8 quantization in the
-TFLite sense and no TFLM kernels, so supporting it means a second export path and a second
+TFLite sense and no kernels in TensorFlow Lite for Microcontrollers (TFLM), so supporting it
+means a second export path and a second
 on-device runtime — which Principle II refuses ("not becoming an inference runtime") and the
 technical baseline rules out by fixing TFLM.
 

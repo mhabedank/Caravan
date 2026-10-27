@@ -122,6 +122,32 @@ def test_every_manifest_field_is_in_the_manifest_reference() -> None:
     assert not missing, f"{MANIFEST.relative_to(DOCS.parent)} lacks: {', '.join(missing)}"
 
 
+def test_every_manifest_setting_has_its_prose() -> None:
+    """FR-020: a setting a reader can write must say what it does, not only what it accepts.
+
+    Four things, for every field: what it changes, why the default is the default, when to change
+    it, and what goes wrong at the extremes. The old reference gave a table row and a cluster of
+    rule codes, which told a reader the option existed and nothing else.
+
+    The ``defaults.<type>.*`` family is exempt by design: each one mirrors the per-feature setting
+    of the same name exactly, and the reference says so once rather than repeating eight entries.
+    """
+    text = MANIFEST.read_text(encoding="utf-8")
+    entries = dict(re.findall(r"^### `([^`]+)`\n(.*?)(?=^### |^## |\Z)", text, re.M | re.S))
+    missing: list[str] = []
+    for path in sorted(field_paths(Manifest)):
+        if path.startswith("defaults."):
+            continue
+        body = entries.get(path)
+        if body is None:
+            missing.append(f"{path}: no entry of its own")
+            continue
+        for label in ("**Does**", "**Default**", "**Change it**", "**Extremes**"):
+            if label not in body:
+                missing.append(f"{path}: no {label.strip('*')} paragraph")
+    assert not missing, "the manifest reference is incomplete:\n  " + "\n  ".join(missing)
+
+
 # --- the rules --------------------------------------------------------------------------------
 
 
