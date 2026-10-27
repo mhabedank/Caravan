@@ -73,20 +73,6 @@ dev = ["pytest>=8.3", "ruff>=0.9", "packaging>=24.0"]
 # package and not an extra, so the dependency budget of Principle XII is unaffected. Pinned exactly,
 # because the site's checks (-W) depend on the warnings these versions emit.
 docs = ["sphinx==9.2.0", "myst-parser==5.1.0"]
-# The site's accessibility check (feature 010, FR-034). A browser driver, used with the ruleset
-# vendored in tests/site/vendor/, to measure the contrast and structure claims on the rendered page
-# rather than compute them from the palette — which is what SC-012 refuses.
-#
-# The constitution's dependency gate is answered in the feature's spec, under "A dependency this
-# feature adds". In short: it replaces nothing, because the claim is unmeasured today; the ruleset
-# cannot be owned in a few hundred lines without owning an accessibility standard; it belongs to no
-# extra and is never installed with the package, exactly as `docs` is not; the cold-install budget
-# measures the default distribution and is untouched; and it is resolved only on the site's own
-# Python, never together with the distribution, so it cannot narrow the published version window.
-#
-# Pinned exactly, because a new ruleset version can report findings the previous one did not, and a
-# check whose rules move under it gives a different answer on an unchanged page.
-site-checks = ["playwright==1.64.1"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/caravan"]
@@ -106,10 +92,9 @@ pythonpath = ["."]
 [tool.ruff]
 line-length = 100
 src = ["src", "tests", "docs/_ext"]
-# Copied files are not ours to format. Nothing here is reached by `ruff check src tests docs/_ext`
-# today — the vendored ruleset is JavaScript and the theme is CSS, HTML and fonts — so this is a
-# guard for the day someone points ruff at the whole tree, not a workaround for a current failure.
-extend-exclude = ["tests/site/vendor", "docs/_themes"]
+# The theme is CSS, HTML and fonts, so ruff never reaches it today. A guard for the day someone
+# points ruff at the whole tree.
+extend-exclude = ["docs/_themes"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]

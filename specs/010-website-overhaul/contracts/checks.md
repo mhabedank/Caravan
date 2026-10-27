@@ -8,23 +8,28 @@ site's own checks are for the site.
 
 Runs on `docs/**`, `README.md` and the site's pinned tools. One Python, no extras.
 
+Amended by D5 after the implementation: what the site gets is a short list of cheap checks, not a
+test suite. These are the ones that survived, and each is here because it catches the pages drifting
+away from the code rather than because it polices prose someone just wrote.
+
 | Check | Asserts | Requirement |
 |---|---|---|
 | Reference against the code | Every command, option, manifest field, rule and board the code has is named on a page | FR-021 |
-| Every setting has its prose | Each setting the schema admits carries all four prose fields, not facts alone | FR-020 |
 | No unexplained abbreviation | Every abbreviation on a page is expanded at its first use on that page | FR-018 |
-| The legs' strings | The install and fetch commands in the route name this version | — |
+| Leg 1's strings | Its install and fetch commands name this version | — |
 | The release note's shape | Its sections are present and the change note is linked | — |
 | Site build, warnings as errors | No broken link, no dead anchor, no page outside a table of contents | FR-046 |
 | Every address resolves | Each address published before the overhaul reaches a page or a forward | FR-045 |
 | Hygiene | No mention of the withdrawn board; no spec directory, feature number, plan or task file | FR-039, FR-043 |
-| Provenance | No figure about a board without exactly one label | FR-006, SC-016 |
-| Tokens | No interface colour outside the token set; the accent only where it is reserved | FR-028, FR-029 |
-| Browser audit | No violation at the A or AA level, on every page, in both colour schemes | FR-034, SC-012 |
 
-The audit is the one addition with a real cost: a browser in continuous integration, taking the job
-from about a minute and a half to an estimated three to four. It is cached, and the job runs only
-when the site changes.
+Together these are about a second, on one Python, with no extras and no browser.
+
+**Deleted by D5**, having served during the overhaul and found real defects there: the browser
+accessibility audit and its vendored ruleset, browser and dependency group; the design-token
+checks; the landing and leg structure checks; the provenance check; and the rule that forced four
+paragraphs per setting. The prose and the design they guarded are unchanged — what is gone is the
+machinery that re-checked them forever. FR-029, FR-006 and the provenance rule are held by review
+against the written design language and the constitution instead.
 
 ## In the firmware job, on a change to what the firmware compiles, and before every release
 

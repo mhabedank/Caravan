@@ -8,13 +8,10 @@ Version 2.0.
 Third-party files in this repository
 ------------------------------------
 
-Neither of the following is part of the distribution: the wheel ships `src/caravan` alone.
+The following is not part of the distribution: the wheel ships `src/caravan` alone.
 
 - docs/_themes/caravan/static/fonts/ — Archivo and JetBrains Mono, variable, Latin subset.
   Copyright 2020 The Archivo Project Authors; copyright 2020 The JetBrains Mono Project Authors.
   SIL Open Font License 1.1, full text in OFL.txt beside the files. These are published with the
   documentation site.
 
-- tests/site/vendor/axe.min.js — axe-core 4.14.0. Copyright 2015-2026 Deque Systems, Inc.
-  Mozilla Public License 2.0, full text in MPL-2.0.txt beside the file. Used only by the site's
-  accessibility check; never published and never installed.

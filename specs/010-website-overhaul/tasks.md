@@ -17,6 +17,7 @@ therefore implementation tasks inside the story whose claim they defend, not a s
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: can run in parallel — different files, no dependency on unfinished work
+- **[~]**: withdrawn after implementation by D5; the reason is on the task
 - **[Story]**: US1 to US6, from spec.md
 
 ## Path Conventions
@@ -77,7 +78,7 @@ other page finished.
 - [X] T020 [US1] Give `docs/index.md` exactly one primary next step, labelled with the time it takes, pointing at the route's first leg (FR-003)
 - [X] T021 [US1] Move Caravan's scope in `docs/index.md` to after the benefit and rephrase it as scope rather than as a list of refusals (FR-004)
 - [X] T022 [US1] State on `docs/index.md` which operating systems and Python versions the route is written for, so a reader on an unsupported one learns it before installing anything (FR-002, spec.md edge case "A reader on Windows")
-- [X] T023 [US1] Add `tests/contract/test_docs_landing.py`: the landing page carries exactly one primary call to action, that call names a duration, the install weight is stated, and the scope section appears after the benefit section in document order (FR-002, FR-003, FR-004)
+- [~] T023 **(withdrawn by D5 — the landing-page structure check)** [US1] Add `tests/contract/test_docs_landing.py`: the landing page carries exactly one primary call to action, that call names a duration, the install weight is stated, and the scope section appears after the benefit section in document order (FR-002, FR-003, FR-004)
 - [X] T024 [US1] Add the new pages to the toctree in `docs/index.md` so no page is left outside the navigation, and confirm `uv run sphinx-build -W -b html docs _site` is clean
 
 **Checkpoint**: the landing page stands on its own and can be put in front of readers.
@@ -102,7 +103,7 @@ file exists inside fifteen minutes, and a second one reads the reader's own colu
 - [X] T032 [US2] Mark the command blocks of `docs/route/1-first-model.md` and `docs/route/2-your-columns.md` with the `# step:` names the existing block extractor reads, so the commands are executable by a check rather than only readable
 - [X] T033 [US2] Rename `tests/train/test_try_it_guide.py` to `tests/train/test_route_legs.py` and point it at the two new leg pages: every run command succeeds, the files each leg promises exist, and the export step's console still fits on one screen
 - [X] T034 [US2] Extend `tests/contract/test_docs_guide.py` to check the legs' install and fetch commands name this version, replacing its reference to `docs/try-it.md`
-- [X] T035 [US2] Add `tests/contract/test_docs_legs.py`: every leg page states a duration and a promise before its first command block, and ends with a verification step — the Leg invariant that "a leg whose outcome cannot be verified by the reader is not a leg" (data-model.md)
+- [~] T035 **(withdrawn by D5 — the leg structure check)** [US2] Add `tests/contract/test_docs_legs.py`: every leg page states a duration and a promise before its first command block, and ends with a verification step — the Leg invariant that "a leg whose outcome cannot be verified by the reader is not a leg" (data-model.md)
 - [X] T036 [US2] Delete `docs/try-it.md` and add its address to the redirect map, forwarding to `docs/route/` (contracts/page-inventory.md)
 
 **Checkpoint**: a reader reaches their own int8 model from the site alone, and the fifteen-minute
@@ -129,7 +130,7 @@ the same leg without a board.
 - [X] T044 [US3] Extend `.github/workflows/firmware.yml` with a job step that builds `examples/esp32/` for `esp32dev` and executes leg 3's `# step:` blocks as written, beside the steps that already do this for the owner's board — the check that closes FR-042
 - [X] T045 [US3] Add the generic project's paths to `firmware.yml`'s `pull_request` path filter, and record its linker figures into the run summary labelled as not measured on a board, as the existing step does
 - [X] T046 [US3] Confirm the release workflow's call to `firmware.yml` now gates on the generic build too, so a documented path that does not compile blocks the release (FR-042)
-- [X] T047 [US3] Add `tests/contract/test_docs_hardware.py`: no figure about a board appears on any page without exactly one provenance label, and no page labels a timing figure `measured` (FR-006, SC-016)
+- [~] T047 **(withdrawn by D5 — the provenance check)** [US3] Add `tests/contract/test_docs_hardware.py`: no figure about a board appears on any page without exactly one provenance label, and no page labels a timing figure `measured` (FR-006, SC-016)
 - [X] T048 [US3] Add `examples/esp32/.gitignore` and `dependencies.lock` so the toolchain cache key in `firmware.yml` works for the new project as it does for the old
 
 **Checkpoint**: the documented hardware path exists, is verified before every release, and the
@@ -185,7 +186,7 @@ numbers and planning files; both return nothing, and no page lost a claim it nee
 - [X] T072 [P] [US5] Remove the 6 internal-artifact references from `docs/budgets.md`, which cite features and research notes as the source of its measurements — the measurements stay, their citation becomes something a reader can see (FR-043, FR-044)
 - [X] T073 [P] [US5] Remove the 5 internal-artifact references from `docs/reference/rules.md` (FR-043)
 - [X] T074 [US5] Add `tests/contract/test_docs_hygiene.py`: no published page matches the withdrawn board's names, and none matches a spec directory, a feature number, or a plan, task or analysis file; and every built page states the Caravan version it describes. Searches over the built or source pages, failing with the page and the match (SC-010, SC-011, FR-047)
-- [X] T075 [US5] Add a check to `tests/contract/test_docs_hygiene.py` that every address in contracts/page-inventory.md resolves to a page or to a forward that resolves, and that every forward is `noindex` and in no table of contents (FR-045, SC-013)
+- [~] T075 **(withdrawn by D5 — the forward/address half of the hygiene check (kept, folded into T074))** [US5] Add a check to `tests/contract/test_docs_hygiene.py` that every address in contracts/page-inventory.md resolves to a page or to a forward that resolves, and that every forward is `noindex` and in no table of contents (FR-045, SC-013)
 
 **Checkpoint**: the site is the project's own, and nothing a reader sees points inward.
 
@@ -205,10 +206,10 @@ level, on a phone and a desktop, in both colour schemes.
 - [X] T079 [US6] Remove any colour literal left outside `tokens.css`, including the parts that are dark in both schemes, so a later change of identity is an edit to tokens rather than to pages (contracts/design-tokens.md)
 - [X] T080 [US6] Give every page under `docs/` a text alternative for each image, ordered heading levels, and no information carried by colour alone (FR-036)
 - [X] T081 [US6] Confirm every page under `docs/` is complete and legible with images unavailable, and fix what depends on one (FR-037)
-- [X] T082 [US6] Write `tests/site/test_a11y.py`: drive the built site in a headless browser, inject the vendored auditing library, and assert no violation at the A or AA level on every page in both colour schemes (FR-034, SC-012)
-- [X] T083 [US6] Add to `tests/site/test_a11y.py` a check that no page scrolls sideways at phone width or at 200% zoom, including its code blocks and tables (FR-035, SC-012)
-- [X] T084 [US6] Add `tests/contract/test_docs_tokens.py`: both colour schemes define every token the other defines, no interface colour is declared outside the token set, and the typefaces' notice is present beside them (contracts/design-tokens.md)
-- [X] T085 [US6] Confirm `docs/_themes/caravan/static/tokens.css` honours the reader's system preference for colour scheme, and that neither scheme is derived from the other (FR-033)
+- [~] T082 **(withdrawn by D5 — the browser audit)** [US6] Write `tests/site/test_a11y.py`: drive the built site in a headless browser, inject the vendored auditing library, and assert no violation at the A or AA level on every page in both colour schemes (FR-034, SC-012)
+- [~] T083 **(withdrawn by D5 — the overflow check)** [US6] Add to `tests/site/test_a11y.py` a check that no page scrolls sideways at phone width or at 200% zoom, including its code blocks and tables (FR-035, SC-012)
+- [~] T084 **(withdrawn by D5 — the design-token check)** [US6] Add `tests/contract/test_docs_tokens.py`: both colour schemes define every token the other defines, no interface colour is declared outside the token set, and the typefaces' notice is present beside them (contracts/design-tokens.md)
+- [~] T085 **(withdrawn by D5 — the browser step in the documentation workflow)** [US6] Confirm `docs/_themes/caravan/static/tokens.css` honours the reader's system preference for colour scheme, and that neither scheme is derived from the other (FR-033)
 - [X] T086 [US6] Read every page against `docs/design/2026-10-27-design-language.md` and fix what does not match, so that any two pages share one type scale, one palette, one treatment of code and one voice (User Story 6 scenario 1)
 
 **Checkpoint**: the site reads as one project made it, and the accessibility claim is a measurement.

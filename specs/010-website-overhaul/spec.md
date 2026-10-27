@@ -43,6 +43,32 @@ firmware build the pipeline has, and that build is for the withdrawn board. So n
 the path the site will teach. FR-042 makes closing that gap part of this feature; which check closes
 it is a planning decision.
 
+## D5 — the site gets checks, not a test suite (2026-10-27)
+
+Taken after the implementation, when the owner saw what the checks had grown into: seven test
+files, 863 lines, a 640 KB vendored ruleset, a browser in continuous integration and a dependency
+group — for a site of twenty-four pages, on a project whose own instruction two days earlier had
+been to spend *fewer* continuous-integration minutes on documentation.
+
+The checks were in this spec, and this spec proposed them. The constitution amendment that made
+room for them was argued as "the checks have to live somewhere", which assumed its conclusion.
+
+**What stays** is what catches drift between the code and the pages, and costs milliseconds: the
+site build with every warning an error; every manifest field, command and rule appearing in the
+reference; the abbreviations; and the withdrawn board and the internal artifacts staying off the
+site.
+
+**What went** is what policed prose and design that had just been written: the browser audit with
+its ruleset, browser and dependency group; the design-token checks; the landing and leg structure
+checks; the provenance check; and the rule that forced four paragraphs per setting.
+
+They were not worthless — during the overhaul they found a 2.97:1 contrast failure, a sideways
+scroll at 200% zoom, four unexplained abbreviations and three internal citations spanning a line
+break. They found those **while the site was being built.** Running them forever afterwards is a
+different proposition, and that is the owner's call rather than the spec's.
+
+FR-006, FR-029, FR-034 and SC-012 are amended below to say what is actually true.
+
 ## A dependency this feature adds
 
 The constitution's gate for a new dependency asks five things of the spec, and this is them. The
@@ -316,7 +342,8 @@ checks, on a phone and a desktop, in both colour themes.
 - **FR-005**: The landing page MUST NOT require the reader to understand the pipeline's internal
   stage names in order to understand the benefit.
 - **FR-006**: Every claim on the landing page MUST be checkable somewhere on the site, and any
-  figure about hardware behaviour MUST carry its provenance label where it appears.
+  figure about hardware behaviour MUST carry its provenance label where it appears. Held by review
+  against the constitution, which governs it regardless, rather than by a check (D5).
 
 ### The series
 
@@ -387,7 +414,8 @@ checks, on a phone and a desktop, in both colour themes.
   language MUST record where the identity came from and that the two sites may drift apart.
 - **FR-029**: Caravan MUST read as the zoo's sibling and not its twin (D4). It MUST carry a mark of
   its own, and the single warm accent MUST be reserved for something of Caravan's own — named once
-  in the written design language, as the zoo reserves its accent for the vehicle.
+  in the written design language, as the zoo reserves its accent for the vehicle. Held by review
+  against that document rather than by a check (D5).
 - **FR-030**: The interface and the figures MUST come from one world. No element may use a colour
   absent from the identity, and no second visual language may be mixed in: the zoo established, at
   its own cost, that a half step reads worse than either whole.
@@ -399,9 +427,12 @@ checks, on a phone and a desktop, in both colour themes.
   written design language MUST say so.
 - **FR-033**: Body text MUST meet the AA contrast level of the published accessibility guidelines in
   both light and dark schemes, and the site MUST honour the reader's system preference for scheme.
-- **FR-034**: The accessibility claims MUST be checked in a browser against the rendered page, in
-  both colour schemes, on every page — not computed from the palette. A failing check MUST fail the
-  site's own checks.
+- **FR-034**: The accessibility claims MUST be established on the rendered page in both colour
+  schemes before the site ships, not computed from the palette — a palette table cannot see text
+  over an image, a focus ring, or a page that scrolls sideways at 200% zoom. **Done once, during
+  the overhaul** (24 pages, both schemes, A and AA, zero violations; two real defects found and
+  fixed). It is not a standing check (D5): re-establishing it is a deliberate act when the identity
+  changes, and the method is recorded in the design language.
 - **FR-035**: Every page MUST be usable at phone width and at 200% zoom with no sideways scrolling
   and nothing clipped, including code blocks and tables.
 - **FR-036**: Information MUST NOT be carried by colour alone, every image MUST have a text
@@ -495,9 +526,10 @@ checks, on a phone and a desktop, in both colour themes.
   every claim that rested on it is either re-grounded or restated as unverified.
 - **SC-011**: A search of the published site for internal development artifacts returns no matches,
   and every hardware figure that remains still carries its provenance label.
-- **SC-012**: A browser audit of every page, in both colour schemes, reports no accessibility
-  violation at the A or AA level; and every page is free of sideways scrolling at phone width and
-  200% zoom. Measured on the rendered page, not computed from the palette.
+- **SC-012**: Every page passed a browser audit at the A and AA levels, in both colour schemes,
+  with no sideways scrolling at phone width or at 200% zoom, measured on the rendered page before
+  the site shipped. **Met on 2026-10-27**: 24 pages × 2 schemes, zero violations, after fixing a
+  2.97:1 string contrast and an overflowing heading. Not re-checked automatically afterwards (D5).
 - **SC-013**: No address that worked before the overhaul returns nothing afterwards.
 - **SC-014**: A deliberate break — a stale command, a wrong version string, a dead link, an
   unreachable page — fails the site's checks rather than publishing.
