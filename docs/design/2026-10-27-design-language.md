@@ -130,8 +130,14 @@ The verbal register is the journey the project's name already implies.
 - What a board can hold is its **budget**, and the gate's answer is its **verdict**.
 - Address the reader as "you". Prefer the concrete noun to the abstraction: "the file the firmware
   compiles", not "the deliverable".
-- No exclamation marks, no "simply", no "just", no "easy". A thing is short or it is not; saying it
-  is easy does not make it so, and a reader who finds it hard has been told they are slow.
+- No exclamation marks, and never tell the reader a task is simple: no "simply", no "just do", no
+  "easy to". A thing is short or it is not; saying it is easy does not make it so, and a reader who
+  finds it hard has been told they are slow.
+
+  The rule is about the *reader's* effort, not the word. "Easy to miss until it bites" and "easy to
+  misread" are warnings — they say the opposite of "this is easy" — and they stay. That distinction
+  was found by auditing the pages against an earlier version of this line, which banned the word
+  outright and flagged two sentences that were doing the right thing.
 - Say the cost before the benefit is claimed, not after.
 
 ## What a page owes the reader

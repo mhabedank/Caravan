@@ -154,7 +154,7 @@ template the site's guidance implies.
 - [X] T054 [US4] Rewrite `docs/reference/manifest.md` so every setting carries the four prose fields the Setting entity requires — what it does, why its default is the default, when to change it, and what goes wrong at its extremes — while keeping its facts scannable for lookup (FR-020, FR-021)
 - [X] T055 [US4] Replace the rule-code clusters in `docs/reference/manifest.md` cells with links to rules stated in words, so that no lookup entry consists only of type, default and codes (FR-021, FR-022)
 - [X] T056 [US4] Rewrite `docs/reference/rules.md` so each rule says in words what it rejects and what the reader should do instead, with the identifier demoted to an anchor (FR-022)
-- [ ] T057 [US4] Add the missing prose to `docs/reference/cli.md` entries: what each command and option is for, not only that it exists (FR-020)
+- [X] T057 [US4] Add the missing prose to `docs/reference/cli.md` entries: what each command and option is for, not only that it exists (FR-020)
 - [ ] T058 [US4] Link each `docs/concepts/*.md` page from `docs/route/*.md` at the moment the concept first matters, and from the `docs/reference/*.md` entries that need it, without restating the explanation in either place (FR-024)
 - [X] T059 [US4] Name once in `docs/reference/manifest.md` and `docs/concepts/feature-types.md`, where the site uses a term borrowed from another project's vocabulary, that it is borrowed, and explain it in Caravan's own words (FR-025)
 - [X] T060 [US4] Add `tests/contract/test_docs_glossary.py`: every abbreviation appearing on a page is expanded at its first use on that page, driven by a list of abbreviations the site may use (FR-018, SC-007)
@@ -209,7 +209,7 @@ level, on a phone and a desktop, in both colour schemes.
 - [X] T083 [US6] Add to `tests/site/test_a11y.py` a check that no page scrolls sideways at phone width or at 200% zoom, including its code blocks and tables (FR-035, SC-012)
 - [X] T084 [US6] Add `tests/contract/test_docs_tokens.py`: both colour schemes define every token the other defines, no interface colour is declared outside the token set, and the typefaces' notice is present beside them (contracts/design-tokens.md)
 - [X] T085 [US6] Confirm `docs/_themes/caravan/static/tokens.css` honours the reader's system preference for colour scheme, and that neither scheme is derived from the other (FR-033)
-- [ ] T086 [US6] Read every page against `docs/design/2026-10-27-design-language.md` and fix what does not match, so that any two pages share one type scale, one palette, one treatment of code and one voice (User Story 6 scenario 1)
+- [X] T086 [US6] Read every page against `docs/design/2026-10-27-design-language.md` and fix what does not match, so that any two pages share one type scale, one palette, one treatment of code and one voice (User Story 6 scenario 1)
 
 **Checkpoint**: the site reads as one project made it, and the accessibility claim is a measurement.
 
@@ -221,7 +221,7 @@ level, on a phone and a desktop, in both colour schemes.
 - [X] T088 Make `.github/workflows/docs-checks.yml` fail when the job exceeds the ten minutes the constitution bounds it to, measuring and printing its own duration as the install-budget job does for the cold install (FR-050)
 - [X] T089 Add the new check modules to `docs-checks.yml`'s pytest invocation — `test_docs_landing.py`, `test_docs_legs.py`, `test_docs_glossary.py`, `test_docs_hygiene.py`, `test_docs_hardware.py`, `test_docs_tokens.py` — so a documentation change runs all of them
 - [ ] T090 Align `README.md` with the new site: the same verdict in the same words as the landing page, the board gone, the internal artifacts gone, and its links pointing at the route rather than the deleted guide
-- [ ] T091 [P] Add this feature's row to `docs/roadmap.md` in the roadmap's own terms, without a feature number (FR-043)
+- [X] T091 [P] Add this feature's row to `docs/roadmap.md` in the roadmap's own terms, without a feature number (FR-043)
 - [ ] T092 [P] Record in `docs/compatibility.md` what the generic ESP32 path verifies and how far — compiled, not run — keeping each entry's provenance label (Principle IV)
 - [ ] T093 Run the whole of `specs/010-website-overhaul/quickstart.md` steps 1 to 5 and fix what fails, including the deliberate-break checks it asks for
 - [ ] T094 Carry out quickstart.md step 6 — the three promises measured over people, **and** the template choice of SC-009: give five readers three described datasets and record whether four pick the template the site's guidance implies. Record each result with its date, sample size and machine in `docs/design/2026-10-27-promise-measurements.md`, including whether any reader needed a source outside the site to finish a leg (SC-001 to SC-004, SC-006, SC-009)

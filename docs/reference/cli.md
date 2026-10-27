@@ -50,6 +50,9 @@ differently.
 
 Checks one manifest without reading the data.
 
+**When you want it.** After every edit. It reads no data, so it is instant, and it catches the
+spelling mistakes and type errors that would otherwise surface a minute into a run.
+
 - **What it checks:** the schema version, every field and its type, the template and its
   parameters, the boards, and the rules that need only the manifest.
 - **What it prints:** `valid`, or one finding per problem. Each finding gives the rule identifier
@@ -69,6 +72,11 @@ Checks one manifest without reading the data.
 **Exit codes.** `0` valid; `1` invalid; `2` usage.
 
 ## caravan render
+
+**When you want it.** When you want to know what you are *actually* running. It fills in every
+default, so it answers "what is the window?" and "what preprocessing will this column get?"
+faster than reading the manifest reference. Also the quickest way to see which values can only come
+from the data: those print as `derived`.
 
 Writes the manifest as the pipeline will use it, every default filled in.
 
@@ -91,6 +99,10 @@ standard output with `--stdout`.
 **Exit codes.** `0`; `1` invalid manifest; `2` usage.
 
 ## caravan build
+
+**When you want it.** To find out whether a model can fit your boards before spending time on
+training. This is the stage that runs the fit check, so a model that is hopeless on your hardware
+fails here in seconds rather than after an hour.
 
 Reads the data and builds the model the manifest describes. Then the **fit check**: is the model
 small enough for every target board?
@@ -122,6 +134,10 @@ small enough for every target board?
 
 ## caravan train
 
+**When you want it.** Rarely on its own — `export` runs it. Reach for it directly when you are
+iterating on the model or the trainer settings and do not yet care about the export, because it
+stops as soon as there is something to look at in `metrics.json`.
+
 Runs `build` if needed, then trains the model on the training part. It stops early when the
 validation loss stops improving (`trainer.early_stop`).
 
@@ -143,6 +159,10 @@ Plus everything `build` writes.
 `4` the `train` extra is missing.
 
 ## caravan quantize
+
+**When you want it.** When you are working on the budget rather than on the model. Because a
+change only this stage reads never retrains, you can try a different `accuracy_drop_max` and get an
+answer in seconds from the cached training.
 
 Runs `train` if needed, then converts the trained model to the manifest's quantization (`int8`).
 
@@ -177,6 +197,10 @@ the `train` or `verify` extra is missing.
 
 ## caravan export
 
+**When you want it.** Almost always. It runs every stage in order, reusing whatever is cached, so
+it is both the first command of a new project and the one you repeat afterwards. The other stage
+commands exist for when you want to stop part-way.
+
 Runs `quantize` if needed, then writes the files a firmware author compiles. The exported model is
 byte for byte the one the accuracy gate measured.
 
@@ -207,10 +231,17 @@ resolve); `2`; `3`; `4` the `verify` extra is missing.
 
 ## caravan templates
 
+**When you want it.** To see which templates the version you have actually registers, rather than
+which ones the documentation describes. The two can differ across versions.
+
 Lists the registered templates, one per line, with a one-line summary. Takes no arguments and
 writes nothing.
 
 ## caravan boards
+
+**When you want it.** Before writing `export.targets`, to get the identifiers right, and to see
+what each board offers in flash and RAM — which is what the fit check will compare your model
+against.
 
 Lists the known boards, one per line: core, clock, RAM, flash, the accelerated kernel library and
 the emulator support. Takes no arguments and writes nothing. [Compatibility](../compatibility.md)

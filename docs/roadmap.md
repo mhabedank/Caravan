@@ -36,6 +36,7 @@ YAML like the zoo's.
 | Typed features in Ludwig's names: one input per column (`number`, `category`, `binary`), preprocessing fitted on the training part and built into the model, outputs `category`, `binary`, `number`; manifest `caravan/v0.2` | v0.1 | **delivered** in 0.1.0 | `picket-mlp` (derived labels pass int8); **`pace-cnn`** |
 | Export with only the runtime installed, when training and quantization are cached | v0.1 | **deferred** by the owner, 2026-10-23 | a known limit of 0.1.0 |
 | The documentation site; test windows in the export (`export.test_windows`); the first exported model on a microcontroller, with its leg of the route and a firmware build before every release | v0.1 | **in progress** | the owner's goal for rc3, 2026-10-26 |
+| The site rebuilt around a reader's first half hour: a landing page, the four-leg route, concept pages that explain the choices, a reference that says what each setting is for, and a browser audit of every page | v0.1 | **in progress** | the owner, 2026-10-27 |
 
 **The goal for rc3, 2026-10-26.** In the owner's words: complete documentation, "eine kleine
 Landingpage, dann Dokumentation der Schnittstelle, also wie funktioniert die CLI, wie funktioniert

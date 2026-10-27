@@ -741,7 +741,7 @@ the best checkpoint rather than the last.
 when you want all `epochs` regardless.
 
 **Extremes** — `1` stops on the first bad epoch, which on a small validation part is luck rather
-than evidence. `-1` with large `epochs` is simply slower, since the best checkpoint still wins.
+than evidence. `-1` with large `epochs` is only slower, since the best checkpoint still wins.
 
 ## `export`
 
