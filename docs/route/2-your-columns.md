@@ -148,14 +148,14 @@ Check it yourself:
 ```bash
 # step: own-columns
 run=$(ls -td runs/*/ | head -1)
-python3 -c "
+python3 - "$run" <<'PY'
 import json, sys
-m = json.load(open(sys.argv[1] + 'metrics.json'))
-q = json.load(open(sys.argv[1] + 'quantization.json'))
-print('accuracy on the test part:', m.get('accuracy'))
-print('after making it 8-bit:    ', q.get('quantized_accuracy', q.get('accuracy')))
-print('gate verdict:             ', q['verdict'])
-" "$run"
+gate = json.load(open(sys.argv[1] + "quantization.json"))["gate"]
+print("accuracy on the test part:", gate["trained"])
+print("after making it 8-bit:    ", gate["quantized"])
+print("what that cost:           ", gate["change"], "against a budget of", gate["budget"])
+print("gate verdict:             ", gate["verdict"])
+PY
 ls "$run"model/model_data.h
 ```
 

@@ -83,13 +83,27 @@ The last lines name the run directory, `runs/<time>-<digest>/`.
 Check it yourself:
 
 ```bash
+# step: check
 run=$(ls -td runs/*/ | head -1)
 ls "$run"model/model.tflite "$run"model/model_data.h
-python3 -c "import json,sys; q=json.load(open(sys.argv[1])); print('verdict:', q['verdict']); print('accuracy cost:', q.get('accuracy_drop'))" "$run"quantization.json
+python3 - "$run" <<'PY'
+import json, sys
+gate = json.load(open(sys.argv[1] + "quantization.json"))["gate"]
+print(f"measured on the {gate['split']} part, {gate['samples']} samples")
+print(f"trained model:   {gate['trained']}")
+print(f"int8 model:      {gate['quantized']}")
+print(f"{gate['metric']} cost: {gate['change']}, budget {gate['budget']}")
+print(f"verdict:         {gate['verdict']}")
+PY
 ```
 
 Two files and a verdict. `model.tflite` is the int8 model; `model_data.h` is the same model as a C
-array your firmware can compile. The verdict is the gate's answer.
+array your firmware can compile.
+
+Everything the gate decided is in one place, `quantization.json`, under `gate`: what the trained
+model scored, what the int8 model scored, the difference, the budget it was compared against, and
+the verdict. The example's model loses nothing at all, so `cost` is `0.0` against a budget of
+`0.02`.
 :::
 
 That is the whole point of this leg. The model exists, it is 8-bit, and you know what being 8-bit

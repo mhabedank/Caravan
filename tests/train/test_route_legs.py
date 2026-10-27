@@ -9,8 +9,13 @@ Three of the four legs are executed here against the working tree:
 - **leg 2**'s ``own-columns`` blocks, which build a small table, write a manifest and export it. Leg
   2 is executable on purpose: it makes its own data, so the whole leg runs anywhere and a check can
   prove the instructions still work rather than assume it.
-- **leg 4**'s ``tighten`` blocks, which set a budget no model can meet and must therefore *fail*.
-  A gate that stopped refusing would otherwise be the quietest possible regression.
+- **leg 4**'s ``tighten`` blocks, which ask for a model far too large for the board and must
+  therefore *fail* the fit check. A check that stopped refusing would otherwise be the quietest
+  possible regression.
+
+  Leg 4 provokes the **fit** check rather than the quantization gate, and running it is how that was
+  found out: leg 2's model loses nothing to int8, so even a budget of zero passes it. The leg says
+  so rather than pretending otherwise.
 
 Leg 3 needs a board and a cross-compiler. Its firmware is built by the firmware workflow instead.
 
@@ -63,10 +68,13 @@ def walked(tmp_path_factory) -> dict:
     )
 
     leg1 = {command: _run(command, here, here) for command in commands(LEG1, "run")}
+    # Leg 1's own check runs as one block: it holds a heredoc and carries a shell variable from one
+    # line to the next, and `commands()` splitting it into lines would destroy both.
+    leg1_check = _run("".join(blocks(LEG1, "check")), here, here)
     leg2 = _run("".join(blocks(LEG2, "own-columns")), here, here)
     # Leg 4 continues from leg 2's directory, so it only runs if leg 2 got there.
     leg4 = _run("".join(blocks(LEG4, "tighten")), here, here) if leg2.returncode == 0 else None
-    return {"dir": here, "leg1": leg1, "leg2": leg2, "leg4": leg4}
+    return {"dir": here, "leg1": leg1, "leg1_check": leg1_check, "leg2": leg2, "leg4": leg4}
 
 
 def test_leg_one_every_run_command_succeeds(walked) -> None:
@@ -89,6 +97,14 @@ def test_leg_one_leaves_what_it_promised(walked) -> None:
         assert (run / name).exists(), name
 
 
+def test_leg_one_check_runs_and_prints_the_verdict(walked) -> None:
+    """The block that tells the reader to verify the result has to work when they run it."""
+    done = walked["leg1_check"]
+    assert done.returncode == 0, f"{done.stdout}\n{done.stderr}"
+    for phrase in ("trained model:", "int8 model:", "verdict:"):
+        assert phrase in done.stdout, f"{phrase!r} missing:\n{done.stdout}"
+
+
 def test_leg_two_runs_and_leaves_a_model_of_the_readers_own(walked) -> None:
     done = walked["leg2"]
     assert done.returncode == 0, f"{done.stdout}\n{done.stderr}"
@@ -106,12 +122,16 @@ def test_leg_two_promised_numbers_are_printed(walked) -> None:
         assert phrase in out, f"{phrase!r} missing from leg 2's output:\n{out}"
 
 
-def test_leg_four_makes_the_gate_refuse(walked) -> None:
-    """A budget of zero cannot be met, so the run must fail and export nothing."""
+def test_leg_four_makes_the_fit_check_refuse(walked) -> None:
+    """A model far larger than the board's flash cannot fit, so the run must fail before training."""
     done = walked["leg4"]
     assert done is not None, "leg 4 did not run because leg 2 failed"
     assert done.returncode == 0, f"leg 4's own script failed:\n{done.stdout}\n{done.stderr}"
     assert "exit code:" in done.stdout, (
-        "leg 4 set a budget of zero and the export did not fail. Either the gate stopped "
-        f"refusing, or the leg no longer provokes it:\n{done.stdout}\n{done.stderr}"
+        "leg 4 asked for a model too big for the board and the export did not fail. Either the fit "
+        f"check stopped refusing, or the leg no longer provokes it:\n{done.stdout}\n{done.stderr}"
+    )
+    assert "outcome: error" in done.stdout, f"the report did not record the failure:\n{done.stdout}"
+    assert "never written" in done.stdout, (
+        f"a model was written for a run that failed its fit check:\n{done.stdout}"
     )

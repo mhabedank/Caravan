@@ -77,7 +77,7 @@ other page finished.
 - [X] T020 [US1] Give `docs/index.md` exactly one primary next step, labelled with the time it takes, pointing at the route's first leg (FR-003)
 - [X] T021 [US1] Move Caravan's scope in `docs/index.md` to after the benefit and rephrase it as scope rather than as a list of refusals (FR-004)
 - [X] T022 [US1] State on `docs/index.md` which operating systems and Python versions the route is written for, so a reader on an unsupported one learns it before installing anything (FR-002, spec.md edge case "A reader on Windows")
-- [ ] T023 [US1] Add `tests/contract/test_docs_landing.py`: the landing page carries exactly one primary call to action, that call names a duration, the install weight is stated, and the scope section appears after the benefit section in document order (FR-002, FR-003, FR-004)
+- [X] T023 [US1] Add `tests/contract/test_docs_landing.py`: the landing page carries exactly one primary call to action, that call names a duration, the install weight is stated, and the scope section appears after the benefit section in document order (FR-002, FR-003, FR-004)
 - [X] T024 [US1] Add the new pages to the toctree in `docs/index.md` so no page is left outside the navigation, and confirm `uv run sphinx-build -W -b html docs _site` is clean
 
 **Checkpoint**: the landing page stands on its own and can be put in front of readers.
@@ -102,7 +102,7 @@ file exists inside fifteen minutes, and a second one reads the reader's own colu
 - [X] T032 [US2] Mark the command blocks of `docs/route/1-first-model.md` and `docs/route/2-your-columns.md` with the `# step:` names the existing block extractor reads, so the commands are executable by a check rather than only readable
 - [X] T033 [US2] Rename `tests/train/test_try_it_guide.py` to `tests/train/test_route_legs.py` and point it at the two new leg pages: every run command succeeds, the files each leg promises exist, and the export step's console still fits on one screen
 - [X] T034 [US2] Extend `tests/contract/test_docs_guide.py` to check the legs' install and fetch commands name this version, replacing its reference to `docs/try-it.md`
-- [ ] T035 [US2] Add `tests/contract/test_docs_legs.py`: every leg page states a duration and a promise before its first command block, and ends with a verification step — the Leg invariant that "a leg whose outcome cannot be verified by the reader is not a leg" (data-model.md)
+- [X] T035 [US2] Add `tests/contract/test_docs_legs.py`: every leg page states a duration and a promise before its first command block, and ends with a verification step — the Leg invariant that "a leg whose outcome cannot be verified by the reader is not a leg" (data-model.md)
 - [X] T036 [US2] Delete `docs/try-it.md` and add its address to the redirect map, forwarding to `docs/route/` (contracts/page-inventory.md)
 
 **Checkpoint**: a reader reaches their own int8 model from the site alone, and the fifteen-minute
@@ -127,7 +127,7 @@ the same leg without a board.
 - [X] T042 [US3] Give `docs/route/3-onto-a-board.md` a path for a reader with no hardware that still ends in something countable, and say plainly which claims that path cannot support (FR-016, User Story 3 scenario 3)
 - [X] T043 [US3] Label every figure leg 3 reports about the board with "exactly one of `estimated`, `emulated`, `measured`" (data-model.md, Hardware claim). The linker's RAM and flash figures are `estimated` — a linker is not a board — and no timing figure appears, because no benchmark exists (Principle IV)
 - [X] T044 [US3] Extend `.github/workflows/firmware.yml` with a job step that builds `examples/esp32/` for `esp32dev` and executes leg 3's `# step:` blocks as written, beside the steps that already do this for the owner's board — the check that closes FR-042
-- [ ] T045 [US3] Add the generic project's paths to `firmware.yml`'s `pull_request` path filter, and record its linker figures into the run summary labelled as not measured on a board, as the existing step does
+- [X] T045 [US3] Add the generic project's paths to `firmware.yml`'s `pull_request` path filter, and record its linker figures into the run summary labelled as not measured on a board, as the existing step does
 - [X] T046 [US3] Confirm the release workflow's call to `firmware.yml` now gates on the generic build too, so a documented path that does not compile blocks the release (FR-042)
 - [ ] T047 [US3] Add `tests/contract/test_docs_hardware.py`: no figure about a board appears on any page without exactly one provenance label, and no page labels a timing figure `measured` (FR-006, SC-016)
 - [ ] T048 [US3] Add `examples/esp32/.gitignore` and `dependencies.lock` so the toolchain cache key in `firmware.yml` works for the new project as it does for the old
@@ -156,7 +156,7 @@ template the site's guidance implies.
 - [ ] T056 [US4] Rewrite `docs/reference/rules.md` so each rule says in words what it rejects and what the reader should do instead, with the identifier demoted to an anchor (FR-022)
 - [ ] T057 [US4] Add the missing prose to `docs/reference/cli.md` entries: what each command and option is for, not only that it exists (FR-020)
 - [ ] T058 [US4] Link each `docs/concepts/*.md` page from `docs/route/*.md` at the moment the concept first matters, and from the `docs/reference/*.md` entries that need it, without restating the explanation in either place (FR-024)
-- [ ] T059 [US4] Name once in `docs/reference/manifest.md` and `docs/concepts/feature-types.md`, where the site uses a term borrowed from another project's vocabulary, that it is borrowed, and explain it in Caravan's own words (FR-025)
+- [X] T059 [US4] Name once in `docs/reference/manifest.md` and `docs/concepts/feature-types.md`, where the site uses a term borrowed from another project's vocabulary, that it is borrowed, and explain it in Caravan's own words (FR-025)
 - [ ] T060 [US4] Add `tests/contract/test_docs_glossary.py`: every abbreviation appearing on a page is expanded at its first use on that page, driven by a list of abbreviations the site may use (FR-018, SC-007)
 - [ ] T061 [US4] Extend `tests/contract/test_docs_reference.py` so that every setting the schema admits has all four prose fields, and a setting with facts alone fails — the Setting invariant from data-model.md (FR-020, SC-008)
 - [ ] T062 [US4] Add a check to `tests/contract/test_docs_glossary.py` that every concept is defined on exactly one page, so the Concept invariant holds and two pages cannot drift apart (FR-024)

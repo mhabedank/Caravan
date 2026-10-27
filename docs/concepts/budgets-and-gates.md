@@ -72,8 +72,13 @@ A model in 32-bit floats is four times the weights and arithmetic its runtime wo
 Going to 8-bit integers is what makes the model fit and run at all, so it is not an optimisation
 applied at the end — it is the format, and the only question is what it cost.
 
-Which is why the gate exists where it does. Shrinking always costs something. The manifest is where
-you say how much is acceptable, before you find out.
+Which is why the gate exists where it does. Shrinking *can* cost something, and the manifest is
+where you say how much is acceptable before you find out.
+
+Often it costs nothing at all. A small model on cleanly separable data quantizes for free: the
+decisions sit far from the boundary, so rounding the arithmetic moves the scores without changing
+any answer, and the gate passes with `0.0`. That is a real result and worth noticing — it tells you
+your data has margin. The gate earns its place on the data where that is not true.
 
 ## Where to see it happen
 
