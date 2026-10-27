@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from pathlib import Path
 
 
@@ -27,7 +28,10 @@ author = "Caravan contributors"
 copyright = "Apache-2.0"
 release = version = os.environ.get("CARAVAN_VERSION") or _package_version()
 
-extensions = ["myst_parser"]
+extensions = ["myst_parser", "redirects", "identity"]
+# The site's own extension lives beside this file rather than in the package: it builds the site and
+# is never installed with Caravan (FR-048).
+sys.path.insert(0, str(Path(__file__).resolve().parent / "_ext"))
 source_suffix = {".md": "markdown"}
 root_doc = "index"
 # Working records stay in the repository and are linked as files on GitHub; they are not pages.
@@ -37,17 +41,30 @@ myst_heading_anchors = 3
 myst_enable_extensions = ["substitution"]
 myst_substitutions = {"release": release}
 
-html_theme = "alabaster"
-html_title = f"Caravan {release}"
+# The identity, copied from the Mobility Model Zoo and carried as a theme of our own (feature 010,
+# D1 and research R1). A theme here installs nothing, which Principle XII prefers to a third-party
+# theme whose own design decisions would then have to be overridden.
+html_theme_path = ["_themes"]
+html_theme = "caravan"
 html_short_title = "Caravan"
-html_theme_options = {
-    "description": f"Small models onto microcontrollers. This site describes {release}.",
-    "github_user": "mhabedank",
-    "github_repo": "Caravan",
-    "github_button": False,
-    "fixed_sidebar": True,
-    "show_relbars": True,
-    "extra_nav_links": {"Repository on GitHub": "https://github.com/mhabedank/Caravan"},
-}
+html_title = f"Caravan {release}"
 html_show_sourcelink = False
 html_copy_source = False
+html_favicon = None  # the theme links its own, which turns over with the colour scheme
+
+# The header's links. A curated list, not the table of contents: the contents is thirteen pages and
+# a header of thirteen links helps nobody. tests/contract/test_docs_landing.py holds every entry to
+# a page that exists, so curating cannot rot silently.
+html_context = {
+    "nav_pages": [
+        ("route/index", "The route"),
+        ("concepts/templates", "Concepts"),
+        ("reference/manifest", "Reference"),
+        ("compatibility", "Verified today"),
+        ("roadmap", "Roadmap"),
+    ],
+}
+
+# Addresses that moved (FR-045). Filled as pages move; the extension refuses a forward whose target
+# is not a page, so a typo here fails the build rather than publishing a dead forward.
+caravan_redirects: dict[str, str] = {}

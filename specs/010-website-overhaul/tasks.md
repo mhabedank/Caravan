@@ -31,11 +31,11 @@ Single project. The site is `docs/`, its theme `docs/_themes/caravan/`, the firm
 
 **Purpose**: the directories and the one dependency this feature adds
 
-- [ ] T001 Create the site's new directories: `docs/route/`, `docs/concepts/`, `docs/_themes/caravan/static/`, `docs/_ext/`, and `tests/site/` with an `__init__.py`
-- [ ] T002 Add a pinned `site-checks` dependency group to `pyproject.toml` for the browser driver, with a comment stating what the plan's dependency gate established: it is never installed with the package, belongs to no extra, and leaves the distribution's dependency count unchanged
-- [ ] T003 [P] Vendor the two typefaces into `docs/_themes/caravan/static/fonts/` from the zoo's `src/mobility_model_zoo/site/static/fonts/`, together with their `OFL.txt` notice, which FR-028 requires to travel with the copy
-- [ ] T004 [P] Vendor the accessibility auditing library into `tests/site/vendor/` with its licence header and a comment that it is never deployed, mirroring the zoo's `site/checks_vendor/`
-- [ ] T005 [P] Add `docs/_themes/`, `docs/_ext/` and `tests/site/vendor/` to the lint and format exclusions in `pyproject.toml` where the copied files would otherwise be reformatted
+- [X] T001 Create the site's new directories: `docs/route/`, `docs/concepts/`, `docs/_themes/caravan/static/`, `docs/_ext/`, and `tests/site/` with an `__init__.py`
+- [X] T002 Add a pinned `site-checks` dependency group to `pyproject.toml` for the browser driver, with a comment stating what the plan's dependency gate established: it is never installed with the package, belongs to no extra, and leaves the distribution's dependency count unchanged
+- [X] T003 [P] Vendor the two typefaces into `docs/_themes/caravan/static/fonts/` from the zoo's `src/mobility_model_zoo/site/static/fonts/`, together with their `OFL.txt` notice, which FR-028 requires to travel with the copy
+- [X] T004 [P] Vendor the accessibility auditing library into `tests/site/vendor/` with its licence header and a comment that it is never deployed, mirroring the zoo's `site/checks_vendor/`
+- [X] T005 [P] Add `docs/_themes/`, `docs/_ext/` and `tests/site/vendor/` to the lint and format exclusions in `pyproject.toml` where the copied files would otherwise be reformatted
 
 ---
 
@@ -46,17 +46,17 @@ new design until this phase is done.
 
 **⚠️ CRITICAL**: blocks every user story.
 
-- [ ] T006 Copy the zoo's `tokens.css` verbatim into `docs/_themes/caravan/static/tokens.css`, keeping its comments, and add a header recording the origin and the date, and that the two identities may drift with nothing keeping them in step (FR-028, contracts/design-tokens.md)
-- [ ] T007 Create `docs/_themes/caravan/theme.conf` inheriting `basic`, declaring `site.css` as the stylesheet
-- [ ] T008 Create `docs/_themes/caravan/layout.html` from the zoo's `base.html.j2`: the skip link, `.hd`/`.wrap.hd-in`/`.brand`, `main#main`, the footer, and the navigation built from the table of contents instead of the zoo's hard-coded links. The stylesheet loop MUST be `{% for css in css_files %}` with `pathto(css.filename, 1)` — the older `pathto(css, 1)` fails on the pinned Sphinx with a theme error naming neither template nor line (research R1)
-- [ ] T009 Port the zoo's `site.css` into `docs/_themes/caravan/static/site.css`, mapping its element and utility selectors onto the markup Sphinx emits for body content, and keeping `.prose`, `.wrap`, `.lead`, `.muted`, `.cap` as the layer the pages use
-- [ ] T010 [P] Draw Caravan's own mark into `docs/_themes/caravan/static/img/mark.svg` and a favicon beside it — its own, not the zoo's, as D4 requires
-- [ ] T011 Render the Caravan version on every page from `docs/_themes/caravan/layout.html`, reading it from `docs/conf.py`'s `release`. The previous theme supplied this through `html_title`, which T011 removes, so without this the version silently disappears from the site (FR-047)
-- [ ] T012 Point `docs/conf.py` at the theme: `html_theme_path = ["_themes"]`, `html_theme = "caravan"`, and remove the previous theme's options
-- [ ] T013 Create `docs/_ext/redirects.py`: a build hook that writes one forwarding stub per entry of a redirect map, each carrying a meta refresh, a canonical link and `noindex`, with `indexable` being "`false` for every forward, so a stub never competes with the page it points at" (data-model.md, Address)
-- [ ] T014 Register the redirect extension and an empty redirect map in `docs/conf.py`, to be filled by the stories that move pages
-- [ ] T015 Teach `docs/_themes/caravan/layout.html` and `docs/conf.py` a second layout chosen from the page's own front matter, so the landing page can declare it and every other page keeps the article layout (research R8)
-- [ ] T016 Write the design language to `docs/design/2026-10-27-design-language.md` — unpublished, as `exclude_patterns` already excludes `docs/design/` — covering the type scale, the palette with its contrast figures, the treatment of code, tables and figures, the vocabulary of the journey, the voice, what the accent is reserved for, and the statement that legibility wins over the identity wherever they conflict (FR-031, FR-032)
+- [X] T006 Copy the zoo's `tokens.css` verbatim into `docs/_themes/caravan/static/tokens.css`, keeping its comments, and add a header recording the origin and the date, and that the two identities may drift with nothing keeping them in step (FR-028, contracts/design-tokens.md)
+- [X] T007 Create `docs/_themes/caravan/theme.conf` inheriting `basic`, declaring `site.css` as the stylesheet
+- [X] T008 Create `docs/_themes/caravan/layout.html` from the zoo's `base.html.j2`: the skip link, `.hd`/`.wrap.hd-in`/`.brand`, `main#main`, the footer, and the navigation built from the table of contents instead of the zoo's hard-coded links. The stylesheet loop MUST be `{% for css in css_files %}` with `pathto(css.filename, 1)` — the older `pathto(css, 1)` fails on the pinned Sphinx with a theme error naming neither template nor line (research R1)
+- [X] T009 Port the zoo's `site.css` into `docs/_themes/caravan/static/site.css`, mapping its element and utility selectors onto the markup Sphinx emits for body content, and keeping `.prose`, `.wrap`, `.lead`, `.muted`, `.cap` as the layer the pages use
+- [X] T010 [P] Draw Caravan's own mark into `docs/_themes/caravan/static/img/mark.svg` and a favicon beside it — its own, not the zoo's, as D4 requires
+- [X] T011 Render the Caravan version on every page from `docs/_themes/caravan/layout.html`, reading it from `docs/conf.py`'s `release`. The previous theme supplied this through `html_title`, which T011 removes, so without this the version silently disappears from the site (FR-047)
+- [X] T012 Point `docs/conf.py` at the theme: `html_theme_path = ["_themes"]`, `html_theme = "caravan"`, and remove the previous theme's options
+- [X] T013 Create `docs/_ext/redirects.py`: a build hook that writes one forwarding stub per entry of a redirect map, each carrying a meta refresh, a canonical link and `noindex`, with `indexable` being "`false` for every forward, so a stub never competes with the page it points at" (data-model.md, Address)
+- [X] T014 Register the redirect extension and an empty redirect map in `docs/conf.py`, to be filled by the stories that move pages
+- [X] T015 Teach `docs/_themes/caravan/layout.html` and `docs/conf.py` a second layout chosen from the page's own front matter, so the landing page can declare it and every other page keeps the article layout (research R8)
+- [X] T016 Write the design language to `docs/design/2026-10-27-design-language.md` — unpublished, as `exclude_patterns` already excludes `docs/design/` — covering the type scale, the palette with its contrast figures, the treatment of code, tables and figures, the vocabulary of the journey, the voice, what the accent is reserved for, and the statement that legibility wins over the identity wherever they conflict (FR-031, FR-032)
 
 **Checkpoint**: the site builds in the new identity, pages can be written, and addresses can move.
 

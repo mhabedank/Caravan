@@ -1,0 +1,89 @@
+{#- The Caravan site's one page shape.
+
+    Ported from the Mobility Model Zoo's base template on 2026-10-27 (feature 010, R1). Sphinx's
+    templating is Jinja2, the same as the zoo's generator, so the markup came across as written;
+    what changed is where the parts come from — the navigation from the table of contents rather
+    than a hard-coded list, and the body from Sphinx.
+
+    The stylesheet loop MUST use `pathto(css.filename, 1)`. On the pinned Sphinx, `css_files` holds
+    stylesheet objects rather than strings, and the older `pathto(css, 1)` dies with a theme error
+    that names neither the template nor the line (R1, found by building it).
+
+    A page may ask for the landing shape with `layout: landing` in its front matter; everything
+    else gets the article shape. Both are this file, because the header, the footer, the skip link
+    and the version line are the same on every page and should be written once.
+-#}
+{%- set is_landing = (meta is defined and meta and meta.get('layout') == 'landing') -%}
+<!DOCTYPE html>
+<html lang="{{ language or 'en' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{% block htmltitle %}{% if pagename == root_doc %}{{ docstitle|striptags }}{% else %}{{ title|striptags }} · {{ shorttitle|default(project)|striptags }}{% endif %}{% endblock %}</title>
+{%- if meta is defined and meta and meta.get('description') %}
+<meta name="description" content="{{ meta.get('description')|striptags }}">
+{%- endif %}
+{%- if meta is defined and meta and meta.get('robots') %}
+<meta name="robots" content="{{ meta.get('robots') }}">
+{%- endif %}
+<link rel="icon" href="{{ pathto('_static/img/favicon.svg', 1) }}" type="image/svg+xml">
+<link rel="preload" href="{{ pathto('_static/fonts/Archivo-variable-latin.woff2', 1) }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ pathto('_static/fonts/JetBrainsMono-variable-latin.woff2', 1) }}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ pathto('_static/tokens.css', 1) }}">
+{%- for css in css_files %}
+<link rel="stylesheet" href="{{ pathto(css.filename, 1) }}">
+{%- endfor %}
+{%- block extrahead %}{% endblock %}
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="hd">
+  <div class="wrap hd-in">
+    <a class="brand" href="{{ pathto(root_doc) }}">
+      <img src="{{ pathto('_static/img/mark.svg', 1) }}" width="30" height="30" alt="">
+      <span>{{ project }}</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      {#- A curated list from conf.py, not the table of contents. The full contents is thirteen
+          pages and a header of thirteen links helps nobody; a header is a choice about what a
+          reader needs most. The cost of curating is a list that can rot, so a check holds every
+          entry to a page that exists (tests/contract/test_docs_landing.py). -#}
+      {%- for name, label in nav_pages %}
+      <a href="{{ pathto(name) }}"{% if pagename == name %} aria-current="page"{% endif %}>{{ label }}</a>
+      {%- endfor %}
+      <a href="{{ pathto('search') }}">Search</a>
+    </nav>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+  {%- if is_landing %}
+  {{ body }}
+  {%- else %}
+  <div class="wrap page">
+    <div class="prose">
+      {{ body }}
+    </div>
+  </div>
+  {%- endif %}
+</main>
+<footer class="wrap">
+  <div class="ft">
+    <a class="brand" href="{{ pathto(root_doc) }}">
+      <img src="{{ pathto('_static/img/mark.svg', 1) }}" width="24" height="24" alt="">
+      <span>{{ project }}</span>
+    </a>
+    <nav aria-label="About this site">
+      <a href="https://github.com/mhabedank/Caravan">Repository</a>
+      <a href="https://github.com/mhabedank/Caravan/blob/main/LICENSE">Licence of the code</a>
+      <a href="{{ pathto('compatibility') }}">What is verified today</a>
+    </nav>
+    {#- FR-047: every page says which Caravan it describes. The previous theme supplied this through
+        `html_title`, and removing that theme would have dropped it silently. -#}
+    <p class="cap">This site describes Caravan {{ release }}. Figures about hardware carry one of
+      <span class="prov estimated">estimated</span>, <span class="prov emulated">emulated</span> or
+      <span class="prov measured">measured</span>, and never appear without one.</p>
+  </div>
+</footer>
+</body>
+</html>
