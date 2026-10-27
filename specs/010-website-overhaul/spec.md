@@ -8,6 +8,28 @@
 
 **Input**: User description: "überarbeite die Webseite. Sie ist hässlich und nicht gut zu lesen. Zudem für Marketing-Zwecke ungeeignet. Das oberste Ziel ist: ein leichter Einstieg in das Thema. Nutzer sollten innerhalb von 3 Sekunden verstehen was der Vorteil ist und warum sie Caravan nutzen sollten. Nach 15 Minuten haben sie erfolgreich ein Modell gebaut. Nach 30 Minuten deployed. Erstelle dafür eine Tutorial-Reihe. Nenne sie aber nicht Tutorial, das klingt zu langatmig und abgedroschen. Die Tutorials von Django (Python) sind für mich immer ein gutes Beispiel. Am Ende eines jeden Schritts hat man was Zählbares. Die Seite braucht ein Design und eine Metapher-Sprache. Ich dachte so an 8-Bit, aber professionell und nicht übertrieben. Da wir ja auf limitierter Hardware arbeiten. Bin offen für Gegenvorschläge. Nimm das LoRa-Board raus. Das war ein persönliches Problem, das die KI in die offene Seite eingearbeitet hat. Verweise nicht auf Spec-Kit-Artefakte. Das interessiert die Nutzer nicht. Erkläre. Wir verwenden Abkürzungen wie MLP. Was soll das sein? Warum das? Erkläre auch Einstellungen. Momentan sind da hässliche Tabellen. Viel zu wenig Inhalt, viel zu hässlich."
 
+## Decisions taken
+
+Three questions were put to the owner on 2026-10-27 and answered the same day.
+
+- **D1 — Restrained 8-bit, spoken as a journey.** The visual register is 8-bit; the verbal register
+  comes from the project's own name. Chosen over literal retro-computing and over datasheet
+  austerity, because the 8-bit register earns its place twice — it is what int8 arithmetic and a
+  few kilobytes of RAM actually look like — while the journey gives the series its shape without
+  borrowing any retro vocabulary. Carried by FR-026, FR-027 and FR-008.
+- **D2 — The board withdrawal reaches the site only.** Every mention of the owner's personal
+  development board comes off the site. Its firmware example and the pre-release firmware build for
+  it stay in the repository as the owner's own verification, unmentioned by the site. Carried by
+  FR-035.
+- **D3 — The deployment leg targets a generic ESP32 development board.** Already a registered
+  export target, widely available, inexpensive, and on the toolchain the project already uses.
+  Carried by FR-037.
+
+**A consequence D3 creates, recorded here rather than discovered in planning.** D2 keeps the only
+firmware build the pipeline has, and that build is for the withdrawn board. So nothing yet verifies
+the path the site will teach. FR-038 makes closing that gap part of this feature; which check closes
+it is a planning decision.
+
 ## Context: what is wrong today
 
 The site is thirteen pages built from `docs/`, in a default theme, written as a precise record for
@@ -267,8 +289,9 @@ checks, on a phone and a desktop, in both colour themes.
 - **FR-007**: The site MUST carry a series of ordered, short parts that takes a reader from nothing
   to a deployed model, replacing the single long entry page.
 - **FR-008**: The series MUST NOT be called a tutorial, a walkthrough, or "getting started". Its
-  name MUST come from the site's metaphor language (see FR-026) and MUST read as a journey with
-  numbered parts, in the manner of Django's "Writing your first app, part N".
+  parts MUST be called **legs**, numbered, their vocabulary that of FR-026, and each leg's title
+  MUST name what the reader ends it with — so that a title read on its own says what the leg is
+  worth, in the shape of Django's "Writing your first app, part N".
 - **FR-009**: Each part MUST declare, before its first instruction, what the reader will have at the
   end of it and roughly how long it takes.
 - **FR-010**: Each part MUST end with a named, countable result the reader can verify themselves —
@@ -315,57 +338,66 @@ checks, on a phone and a desktop, in both colour themes.
 
 ### Design and metaphor
 
-- **FR-026**: The site MUST adopt one documented design and metaphor language, applied to every
-  page, whose visual and verbal choices carry meaning about constrained hardware and small models.
-  [NEEDS CLARIFICATION: the user proposed a restrained, professional 8-bit direction and explicitly
-  invited counter-proposals — which direction should the site commit to?]
-- **FR-027**: The design language MUST be written down with enough precision that a later page can
+- **FR-026**: The site MUST adopt one design and metaphor language, applied to every page (D1):
+  a **restrained 8-bit visual register** — a visible grid, a small fixed palette, pixel-exact
+  figures, monospace wherever a number or a command is shown — and a **verbal register drawn from
+  the project's own name**, in which the reader travels a route in numbered legs and what a board
+  can carry is its budget.
+- **FR-027**: The 8-bit register MUST stay a register and not a costume. Period pastiche — scan
+  lines, simulated screen curvature, blinking cursors, decorative glitch, pixel type in body text —
+  MUST NOT appear. Where a reader could take the register for nostalgia, the site MUST say once, in
+  its own words, what it stands for: int8 is the arithmetic every exported model is reduced to, and
+  a few kilobytes is what a board really has.
+- **FR-028**: The design language MUST be written down with enough precision that a later page can
   be made to match it without guessing: the type scale, the palette with its contrast figures, the
   treatment of code, tables and figures, and the voice.
-- **FR-028**: Legibility MUST take precedence over the metaphor wherever the two conflict, and the
+- **FR-029**: Legibility MUST take precedence over the metaphor wherever the two conflict, and the
   written design language MUST say so.
-- **FR-029**: Body text MUST meet the AA contrast level of the published accessibility guidelines in
+- **FR-030**: Body text MUST meet the AA contrast level of the published accessibility guidelines in
   both light and dark themes, and the site MUST honour the reader's system preference for theme.
-- **FR-030**: Every page MUST be usable at phone width and at 200% zoom with no sideways scrolling
+- **FR-031**: Every page MUST be usable at phone width and at 200% zoom with no sideways scrolling
   and nothing clipped, including code blocks and tables.
-- **FR-031**: Information MUST NOT be carried by colour alone, every image MUST have a text
+- **FR-032**: Information MUST NOT be carried by colour alone, every image MUST have a text
   alternative, and heading levels MUST be ordered on every page.
-- **FR-032**: The site MUST remain complete and legible with images unavailable.
-- **FR-033**: Tables MUST be used only where a reader genuinely scans across columns to compare,
+- **FR-033**: The site MUST remain complete and legible with images unavailable.
+- **FR-034**: Tables MUST be used only where a reader genuinely scans across columns to compare,
   and MUST be readable at phone width; dense multi-column tables MUST NOT be the carrier of
   explanation.
 
 ### What comes off the site
 
-- **FR-034**: Every reference to the withdrawn development board MUST be removed from the site: its
-  guide, the pages that mention it, the example manifest's comments, and the release notes.
-  [NEEDS CLARIFICATION: how far does the withdrawal reach beyond the site — does the firmware
-  example project and the pre-release firmware build for that board also go, and if so what
-  replaces the release gate they provided?]
-- **FR-035**: Where a claim rested on that board, the claim MUST be re-grounded on the hardware the
+- **FR-035**: Every reference to the withdrawn development board MUST be removed from the site
+  (D2): its guide, the pages that mention it, the example manifest's comments, and the release
+  notes. The withdrawal reaches the site only — the firmware example project and the pre-release
+  firmware build for that board stay in the repository as the owner's own verification, and the
+  site MUST NOT mention either.
+- **FR-036**: Where a claim rested on that board, the claim MUST be re-grounded on the hardware the
   site still supports or MUST be restated as not yet verified; no conclusion may keep standing
   after the evidence under it is removed.
-- **FR-036**: The deployment part of the series MUST name the hardware it is written for and that
-  hardware MUST be something a reader can buy and a release can verify.
-  [NEEDS CLARIFICATION: which hardware does the thirty-minute deployment promise land on, now that
-  the withdrawn board was the only one with a guide?]
-- **FR-037**: The site MUST NOT reference the project's internal development artifacts — spec
+- **FR-037**: The deployment leg MUST be written for a **generic ESP32 development board** (D3):
+  a registered export target, widely available, and on the toolchain the project already uses. The
+  leg MUST name the board it was written against, and MUST say what a reader holding a different
+  ESP32 board has to change.
+- **FR-038**: What the deployment leg tells a reader to do MUST be verified before a release by a
+  check that exercises that same path. The firmware build which exists today covers the withdrawn
+  board (D2) and therefore does not cover this one; the gap MUST be closed rather than recorded.
+- **FR-039**: The site MUST NOT reference the project's internal development artifacts — spec
   directories, feature numbers, plan, task or analysis files — on any page a reader sees.
-- **FR-038**: Where such a reference carried evidence for a claim, the claim MUST be supported from
+- **FR-040**: Where such a reference carried evidence for a claim, the claim MUST be supported from
   the site itself or dropped with its conclusion; the provenance of every retained hardware figure
   MUST survive the removal.
-- **FR-039**: Removal MUST NOT create dead addresses: every page that is renamed, merged or deleted
+- **FR-041**: Removal MUST NOT create dead addresses: every page that is renamed, merged or deleted
   MUST either keep its address or forward from it.
 
 ### Keeping it true
 
-- **FR-040**: The site MUST continue to fail its build on a broken link, a broken anchor, or a page
+- **FR-042**: The site MUST continue to fail its build on a broken link, a broken anchor, or a page
   that no navigation reaches.
-- **FR-041**: The site MUST state which Caravan version it describes on every page.
-- **FR-042**: The site's own build and checks MUST NOT add a runtime dependency to the Caravan
+- **FR-043**: The site MUST state which Caravan version it describes on every page.
+- **FR-044**: The site's own build and checks MUST NOT add a runtime dependency to the Caravan
   package, and MUST NOT require any hosted service to build locally.
-- **FR-043**: A change that touches only the site MUST NOT trigger the code test matrix.
-- **FR-044**: The site MUST be buildable and viewable offline on a developer's machine with no
+- **FR-045**: A change that touches only the site MUST NOT trigger the code test matrix.
+- **FR-046**: The site MUST be buildable and viewable offline on a developer's machine with no
   accounts and no keys.
 
 ### Key Entities
@@ -443,8 +475,15 @@ checks, on a phone and a desktop, in both colour themes.
   The overhaul adds to them and removes none.
 - **The release workflow keeps publishing the site**, from the same source directory, on the same
   address.
-- **Verbal metaphor and visual design are one decision**, taken together in FR-026, because the
-  series' name comes out of it.
+- **The metaphor decides the vocabulary, not only the look.** D1 was taken as one decision because
+  the series' parts are named out of it; "leg" is therefore a term the whole site owes consistency
+  to, and the pipeline's own "stage" keeps its separate meaning.
+- **The deployment leg starts from what the export already writes.** Every run produces a runner
+  skeleton for each declared target, the ESP32 among them. The leg is expected to build on that
+  rather than on a second example project, which is what makes thirty minutes plausible; whether
+  the skeleton is enough as it stands is for planning to establish.
+- **The site is written for one ESP32 board and says so.** Readers hold many variants; the leg names
+  the one it was written against instead of pretending to cover all of them (FR-037).
 - **The provenance discipline of the project applies to the site**: a marketing page is a published
   table for this purpose, so no hardware number loses its label for the sake of a cleaner headline.
 - **"MLP" is multilayer perceptron and "conv1d" a one-dimensional convolutional network.** The site

@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -68,14 +68,36 @@ them:
 does not change, the site stays in English, the example dataset remains the series' opener, and the
 existing build checks are a floor rather than a starting point to renegotiate.
 
-## Outstanding
+## Validation notes (iteration 2, 2026-10-27)
 
-Three [NEEDS CLARIFICATION] markers remain, all on decisions with no safe default:
+The owner answered all three questions with the recommended option. The spec now carries them as
+D1, D2 and D3 under "Decisions taken", each naming the requirements that implement it, and every
+[NEEDS CLARIFICATION] marker is gone. The requirements were renumbered to FR-001..FR-046 for the two
+clauses the answers added; the only two cross-references in the document both point at FR-026, which
+kept its number.
 
-| Marker | Where | Why it cannot be guessed |
-|---|---|---|
-| Design and metaphor direction | FR-026 | The user proposed restrained 8-bit **and** invited counter-proposals. It also decides the series' name (FR-008), so guessing it wrong propagates. |
-| Reach of the board withdrawal | FR-034 | Beyond the site sit a firmware example and a pre-release firmware build for that board. Deleting them removes a release gate; keeping them contradicts "take it out". |
-| Hardware behind the thirty-minute promise | FR-036 | The withdrawn board was the only one with a guide. The promise needs a target a reader can buy and a release can verify, and that choice is the owner's. |
+**What the answers added rather than merely settled:**
+- D1 needed a second clause. "Restrained" and "not overdone" are the owner's words and are not
+  testable as written, so FR-027 names what is excluded (scan lines, screen curvature, blinking
+  cursors, decorative glitch, pixel type in body text) and requires the site to state once what the
+  register stands for. Without that, "professional 8-bit" is a matter of taste rather than a
+  property anyone can check.
+- D3 opened a gap and FR-038 closes it. D2 keeps the firmware build the pipeline already has, but
+  that build is for the withdrawn board, so after this feature nothing would verify the path the
+  site teaches. The spec records the gap where it was created instead of leaving planning to find
+  it.
+- FR-008 became testable. "Not a tutorial" says what the series is not; the requirement now says
+  what it is — parts called legs, numbered, each title naming what the reader ends with.
 
-Items marked incomplete require spec updates before `/speckit-plan`.
+**Re-checked after the edit**: all mandatory sections present; FR numbering sequential and complete
+(46, verified mechanically); no implementation detail introduced by the answers — "generic ESP32
+development board" is hardware the reader buys, and the 8-bit register is design intent, neither
+being a technology choice the spec is forbidden to make; the two cross-references still resolve.
+
+**Still open by design, for `/speckit-plan` rather than the spec:** which check closes the FR-038
+gap; whether the generated ESP32 runner skeleton suffices as the deployment leg's starting point;
+how many legs the series has and where the fifteen-minute mark falls between them.
+
+## Complete
+
+All checklist items pass. The spec is ready for `/speckit-plan`.
