@@ -112,8 +112,8 @@ computed in the model.
 
 ## Phase 8: Polish
 
-- [ ] T043 Run the whole suite, `ruff check` and `ruff format --check`; fix what they find
-- [ ] T044 Check the docs tests (`tests/` doc-sync tests) against the new pages and examples; update README's status line (four templates)
+- [X] T043 Run the whole suite, `ruff check` and `ruff format --check`; fix what they find
+- [X] T044 Check the docs tests (`tests/` doc-sync tests) against the new pages and examples; update README's status line (four templates)
 
 ---
 
