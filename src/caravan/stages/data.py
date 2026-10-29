@@ -75,7 +75,19 @@ def fit_features(
     for index, feature in enumerate(features):
         column = records.columns[feature["name"]][rows]
         stated = feature["preprocessing"]
-        if feature["type"] == "number":
+        if feature["type"] == "image":
+            # The size is the device's frame, so it is taken from every image, not the training
+            # part's: a frame of another size would not be passed at all (feature 010, R7).
+            from caravan.data.images import fit_image
+
+            out[feature["name"]] = fit_image(
+                records.root,
+                records.columns[feature["name"]].tolist(),
+                stated,
+                feature["name"],
+                f"input_features[{index}]",
+            )
+        elif feature["type"] == "number":
             out[feature["name"]] = fit_number(
                 column.tolist(),
                 normalization=stated["normalization"],

@@ -139,4 +139,9 @@ def build_model(
         if output.get("clip") is not None:
             low, high = output["clip"]
             tensor = Clip(low, high, name="output_clip")(tensor)
-    return keras.Model(inputs, {output["name"]: tensor}, name=body.name)
+    # One input is passed bare, as ``caravan.convert.batch`` rebuilds it: a list of one is a
+    # different input structure to Keras, and the batch fix's clone would refuse it. No model had
+    # a single input before images, which are always alone (CF-19).
+    return keras.Model(
+        inputs if len(inputs) > 1 else inputs[0], {output["name"]: tensor}, name=body.name
+    )

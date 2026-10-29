@@ -60,9 +60,29 @@ def feature_column(records: Any, feature: Mapping[str, Any]) -> Any:
 def assemble_inputs(
     records: Any, plan: Any, features: Sequence[Mapping[str, Any]]
 ) -> dict[str, Any]:
-    """Every planned window, per input feature: name -> (samples, window) array."""
+    """Every planned window, per input feature: name -> (samples, window) array.
+
+    An image is one record per sample (CF-19): name -> (samples, height, width, channels), its
+    pixels 0-255 as float32 at the fitted size (feature 010). Only the planned records are read.
+    """
     rows = _window_rows(plan)
-    return {feature["name"]: feature_column(records, feature)[rows] for feature in features}
+    out: dict[str, Any] = {}
+    for feature in features:
+        if feature["type"] == "image":
+            from caravan.data.images import load
+
+            chosen = rows[:, 0]
+            paths = records.columns[feature["name"]][chosen].tolist()
+            out[feature["name"]] = load(
+                records.root,
+                paths,
+                feature["preprocessing"]["fitted"],
+                feature["name"],
+                records=chosen.tolist(),
+            )
+        else:
+            out[feature["name"]] = feature_column(records, feature)[rows]
+    return out
 
 
 def assemble_targets(plan: Any, output: Mapping[str, Any]) -> Any:

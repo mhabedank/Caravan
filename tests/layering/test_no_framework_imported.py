@@ -41,6 +41,11 @@ EXTRA_ONLY_MODULES = frozenset(
         "caravan.metrics.classification",
         "caravan.templates.builders.mlp",
         "caravan.templates.builders.conv1d",
+        # Feature 010: the two new builders, and reading images, which decodes with the framework
+        # the train extra brings (research R7).
+        "caravan.templates.builders.autoencoder",
+        "caravan.templates.builders.conv2d",
+        "caravan.data.images",
         # The preprocessing layers and the front-end of feature 008.
         "caravan.templates.builders.preprocessing",
         "caravan.templates.builders.frontend",

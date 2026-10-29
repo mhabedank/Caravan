@@ -45,6 +45,8 @@ _C_TYPES = {
     "float32": ("float", "f"),
     "int32": ("int32_t", "i32"),
     "int8": ("int8_t", "int8"),
+    # An image's raw pixels (feature 010, research R6).
+    "uint8": ("uint8_t", "uint8"),
 }
 
 

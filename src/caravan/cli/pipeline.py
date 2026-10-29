@@ -295,7 +295,13 @@ def run_pipeline(
         with captured(log_path):
             from caravan.data.fingerprint import resolve_dataset
 
-            dataset = resolve_dataset(manifest.dataset, path.parent)
+            dataset = resolve_dataset(
+                manifest.dataset,
+                path.parent,
+                image_columns=[
+                    feature.name for feature in manifest.input_features if feature.type == "image"
+                ],
+            )
             split = manifest.preprocessing.split
             context = StageContext(
                 dataset=dataset,
