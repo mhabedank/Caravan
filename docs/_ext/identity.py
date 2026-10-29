@@ -69,7 +69,32 @@ def _drop_landing_title(app: Sphinx, doctree, docname: str) -> None:
         return
 
 
+#: The sequences a reader moves through in order. A neighbour outside the page's own sequence is not
+#: offered: Sphinx chains every page of the site into one line, so part 4 of the tutorial would
+#: otherwise lead into the first topic guide.
+SEQUENCES = ("intro", "topics", "howto")
+
+
+def _bounded_neighbours(app: Sphinx, pagename, templatename, context, doctree) -> None:
+    """Previous and next, but only inside the page's own folder: intro, topics or howto.
+
+    Taken from Sphinx's own relations, which follow the table of contents, so the order is the one
+    the contents page gives; the bound is the only thing added here.
+    """
+    context["seq_prev"] = context["seq_next"] = None
+    folder = pagename.split("/")[0] if "/" in pagename else ""
+    if folder not in SEQUENCES:
+        return
+    relations = getattr(app.builder, "relations", None) or app.env.collect_relations()
+    _parent, prev, nxt = relations.get(pagename, (None, None, None))
+    for key, docname in (("seq_prev", prev), ("seq_next", nxt)):
+        if docname and docname.split("/")[0] == folder:
+            title = app.env.titles[docname].astext()
+            context[key] = {"link": app.builder.get_relative_uri(pagename, docname), "title": title}
+
+
 def setup(app: Sphinx) -> dict[str, Any]:
+    app.connect("html-page-context", _bounded_neighbours)
     app.connect("doctree-resolved", _drop_landing_title)
     app.connect("html-page-context", _drop_pygments)
     app.connect("html-page-context", _pick_template)

@@ -99,21 +99,38 @@ def test_no_page_references_how_the_project_is_built() -> None:
     )
 
 
+def redirects() -> dict[str, str | dict]:
+    """The forward map, read out of conf.py without running it."""
+    import ast
+
+    tree = ast.parse((DOCS / "conf.py").read_text(encoding="utf-8"))
+    for node in tree.body:
+        if (
+            isinstance(node, ast.AnnAssign)
+            and getattr(node.target, "id", "") == "caravan_redirects"
+        ):
+            return ast.literal_eval(node.value)
+    raise AssertionError("conf.py no longer defines the redirect map")
+
+
 def test_every_address_that_moved_still_resolves() -> None:
     """FR-045, SC-013: a renamed page keeps its old address working."""
-    conf = (DOCS / "conf.py").read_text(encoding="utf-8")
-    block = re.search(r"caravan_redirects: dict\[str, str\] = \{(.*?)\n\}", conf, re.S)
-    assert block, "conf.py no longer defines the redirect map"
-    pairs = re.findall(r'"([^"]+)":\s*"([^"]+)"', block.group(1))
+    pairs = redirects()
     assert pairs, "the redirect map is empty, though pages were renamed"
-    for old, new in pairs:
-        assert (DOCS / f"{new}.md").is_file(), (
-            f"{old!r} forwards to {new!r}, which is not a page. A forward to nothing is worse than "
-            f"a dead address: it claims to have been fixed."
+    for old, value in pairs.items():
+        new = value if isinstance(value, str) else value["to"]
+        targets = [new] + (
+            [] if isinstance(value, str) else [a.split("#")[0] for a in value["anchors"].values()]
         )
+        for target in targets:
+            assert (DOCS / f"{target}.md").is_file(), (
+                f"{old!r} forwards to {target!r}, which is not a page. A forward to nothing is "
+                f"worse than a dead address: it claims to have been fixed."
+            )
         assert not (DOCS / f"{old}.md").is_file(), (
             f"{old!r} both forwards and still exists as a page"
         )
+        assert new not in pairs, f"{old!r} forwards to {new!r}, which is itself a forward"
 
 
 def test_every_forward_is_a_forward_and_nothing_else() -> None:
@@ -129,7 +146,10 @@ def test_every_forward_is_a_forward_and_nothing_else() -> None:
         text = stub.read_text(encoding="utf-8")
         assert "noindex" in text, f"{stub.relative_to(SITE)} is not noindex"
         assert 'rel="canonical"' in text, f"{stub.relative_to(SITE)} has no canonical link"
-        assert len(text) < 800, (
+        # The script carries the anchor map, which can be long; what is measured is everything
+        # else, which is what a reader or a search engine could take for content.
+        content = re.sub(r"<script>.*?</script>", "", text, flags=re.S)
+        assert len(content) < 800, (
             f"{stub.relative_to(SITE)} has grown content. A forward carries none, which is what "
             f"lets one exist from an address naming something the site no longer mentions."
         )

@@ -1,5 +1,5 @@
 # The firmware's own sources and the export's model files, copied into model/
-# (docs/route/3-onto-a-board.md).
+# (docs/intro/tutorial03.md).
 file(GLOB CARAVAN_SOURCES "*.cc" "model/*.cc")
 idf_component_register(
     SRCS ${CARAVAN_SOURCES}

@@ -2,7 +2,7 @@ name: firmware
 
 # The firmware the site documents, and the owner's own board beside it.
 #
-# `examples/esp32` is what leg 3 of the route tells a reader to build, so it is the one this
+# `examples/esp32` is what part 3 of the tutorial tells a reader to build, so it is the one this
 # workflow exists for (feature 010, FR-042): its blocks are executed as written, and a firmware
 # that does not build blocks the release. `examples/lora32` is the owner's personal board, kept in
 # the repository and off the site (D2); it is built too, so it cannot rot.
@@ -49,19 +49,19 @@ jobs:
             ~/.platformio/.cache
             ~/.cache/pip
           key: platformio-${{ hashFiles('examples/lora32/platformio.ini', 'examples/lora32/dependencies.lock') }}
-      - name: Caravan and the example's export, as leg 1 installs and runs them
+      - name: Caravan and the example's export, as part 1 of the tutorial installs and runs them
         run: |
           python3.13 -m venv /tmp/env
           . /tmp/env/bin/activate
           pip install -e ".[train,verify]"
           caravan export examples/picket-mlp.yaml
-      # FR-042: the check exercises the same commands leg 3 gives a reader, so a leg that stops
+      # FR-042: the check exercises the same commands part 3 of the tutorial gives a reader, so a part that stops
       # working fails here rather than at the reader's desk.
-      - name: leg 3's blocks, as written
+      - name: tutorial part 3's blocks, as written
         run: |
           . /tmp/env/bin/activate
           for step in board-tools board-copy board-build; do
-            python -m tests.support_docs docs/route/3-onto-a-board.md "$step" > "/tmp/$step.sh"
+            python -m tests.support_docs docs/intro/tutorial03.md "$step" > "/tmp/$step.sh"
           done
           start=$(date +%s)
           bash -euo pipefail -c '. /tmp/env/bin/activate; . /tmp/board-tools.sh; . /tmp/board-copy.sh; . /tmp/board-build.sh' | tee /tmp/build-esp32.log

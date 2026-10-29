@@ -6,7 +6,7 @@ name: release
 #     session that cannot push tags can still release (feature 007, contracts/release.md).
 # Then: check that the version is the package's, run the whole suite, tag (manual start only),
 # build and check the built package, build the board guide's firmware (feature 009), publish a
-# GitHub release with the wheel and the sdist, run the route's first leg literally against what was
+# GitHub release with the wheel and the sdist, run part 1 of the tutorial literally against what was
 # published, and publish the documentation site for the new tag.
 #
 # Nothing goes to the package index (owner decision, 2026-10-23), and no secret exists beyond this
@@ -162,17 +162,20 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      - name: leg 1, fetch, install and run, in an empty directory
+      - name: install, then tutorial part 1's fetch and run, in an empty directory
         run: |
           mkdir /tmp/try && cd /tmp/try
-          for step in install fetch run; do
+          # The install block is on the installation page; part 1 fetches and runs the example.
+          python3.13 "$GITHUB_WORKSPACE/source/tests/support_docs.py" \
+            "$GITHUB_WORKSPACE/source/docs/intro/install.md" install > /tmp/install.sh
+          for step in fetch run; do
             python3.13 "$GITHUB_WORKSPACE/source/tests/support_docs.py" \
-              "$GITHUB_WORKSPACE/source/docs/route/1-first-model.md" "$step" > "/tmp/$step.sh"
+              "$GITHUB_WORKSPACE/source/docs/intro/tutorial01.md" "$step" > "/tmp/$step.sh"
           done
           start=$(date +%s)
           bash -euo pipefail -c '. /tmp/install.sh; . /tmp/fetch.sh; . /tmp/run.sh' | tee /tmp/guide.out
           elapsed=$(( $(date +%s) - start ))
-          echo "leg 1: ${elapsed}s from install to export" >> "$GITHUB_STEP_SUMMARY"
+          echo "tutorial part 1: ${elapsed}s from install to export" >> "$GITHUB_STEP_SUMMARY"
           if [ "$elapsed" -gt 600 ]; then echo "over the 10 minutes of SC-001"; exit 1; fi
       - name: the README's first install line, as written, in a fresh environment
         run: |

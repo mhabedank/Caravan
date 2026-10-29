@@ -25,7 +25,7 @@ gate has not been passed.
 3. **Which extra does it belong to?** The default installation carries at most six direct runtime
    dependencies, and the project at most four extras. Anything a user does not need in order to
    check a manifest belongs behind an extra.
-4. **Does the budget still hold?** See `docs/budgets.md` for the current measurements. The
+4. **Does the budget still hold?** See `docs/ref/budgets.md` for the current measurements. The
    headroom is reserved, not spare.
 5. **Does it constrain the Python policy?** The project supports the current and the previous
    stable Python minor version. A dependency that cannot be installed on the current minor —

@@ -34,6 +34,13 @@
 {%- for css in css_files %}
 <link rel="stylesheet" href="{{ pathto(css.filename, 1) }}?v={{ static_v }}">
 {%- endfor %}
+{#- Sphinx's own pages (search, the generated index) extend this layout through the `scripts` and
+    `body` blocks. Scripts load on the search page only: no other page runs any. -#}
+{%- block scripts %}
+{%- if pagename == 'search' %}{%- for js in script_files %}
+{{ js_tag(js) }}
+{%- endfor %}{%- endif %}
+{%- endblock %}
 {%- block extrahead %}{% endblock %}
 </head>
 <body>
@@ -45,10 +52,8 @@
       <span>{{ project }}</span>
     </a>
     <nav class="nav" aria-label="Main">
-      {#- A curated list from conf.py, not the table of contents. The full contents is thirteen
-          pages and a header of thirteen links helps nobody; a header is a choice about what a
-          reader needs most. The cost of curating is a list that can rot, so a check holds every
-          entry to a page that exists (tests/contract/test_docs_landing.py). -#}
+      {#- Two entries, as in Django's documentation: the contents page (from conf.py) and search.
+          Everything else is reached through the contents page. -#}
       {%- for name, label in nav_pages %}
       <a href="{{ pathto(name) }}"{% if pagename == name %} aria-current="page"{% endif %}>{{ label }}</a>
       {%- endfor %}
@@ -60,7 +65,18 @@
 {%- block main %}
   <div class="wrap page">
     <div class="prose">
-      {{ body }}
+      {% block body %}{{ body }}{% endblock %}
+      {#- Previous and next inside one sequence only, named by title (docs/_ext/identity.py). -#}
+      {%- if seq_prev or seq_next %}
+      <nav class="seq" aria-label="Previous and next">
+        {%- if seq_prev %}
+        <a class="prev" href="{{ seq_prev.link }}" rel="prev"><span>Previous</span>{{ seq_prev.title|e }}</a>
+        {%- endif %}
+        {%- if seq_next %}
+        <a class="next" href="{{ seq_next.link }}" rel="next"><span>Next</span>{{ seq_next.title|e }}</a>
+        {%- endif %}
+      </nav>
+      {%- endif %}
     </div>
   </div>
 {%- endblock %}
@@ -74,7 +90,7 @@
     <nav aria-label="About this site">
       <a href="https://github.com/mhabedank/Caravan">Repository</a>
       <a href="https://github.com/mhabedank/Caravan/blob/main/LICENSE">Licence of the code</a>
-      <a href="{{ pathto('compatibility') }}">What is verified today</a>
+      <a href="{{ pathto('ref/compatibility') }}">What is verified today</a>
       {#- FR-034: every page that shows a generated image links its credits, and the link says so.
           Written once here rather than per page: Sphinx would need a build hook to know which
           pages carry an image, and FR-010 forbids this feature touching the build. -#}

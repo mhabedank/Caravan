@@ -35,8 +35,9 @@ YAML like the zoo's.
 | A fixed split from a column of the data; the framework's output in `framework.log`; the entry guide; the release workflow | v0.1 | **delivered** in 0.1.0 | **`pace-cnn`** (the split); the release |
 | Typed features in Ludwig's names: one input per column (`number`, `category`, `binary`), preprocessing fitted on the training part and built into the model, outputs `category`, `binary`, `number`; manifest `caravan/v0.2` | v0.1 | **delivered** in 0.1.0 | `picket-mlp` (derived labels pass int8); **`pace-cnn`** |
 | Export with only the runtime installed, when training and quantization are cached | v0.1 | **deferred** by the owner, 2026-10-23 | a known limit of 0.1.0 |
-| The documentation site; test windows in the export (`export.test_windows`); the first exported model on a microcontroller, with its leg of the route and a firmware build before every release | v0.1 | **in progress** | the owner's goal for rc3, 2026-10-26 |
-| The site rebuilt around a reader's first half hour: a landing page, the four-leg route, concept pages that explain the choices, a reference that says what each setting is for, and a browser audit of every page | v0.1 | **in progress** | the owner, 2026-10-27 |
+| The documentation site; test windows in the export (`export.test_windows`); the first exported model on a microcontroller, with its part of the tutorial and a firmware build before every release | v0.1 | **in progress** | the owner's goal for rc3, 2026-10-26 |
+| The site rebuilt around a reader's first steps: a landing page, a four-part tutorial, topic guides that explain the choices, a reference that says what each setting is for, and a browser audit of every page | v0.1 | **in progress** | the owner, 2026-10-27 |
+| The documentation organised like Django's: a contents page, the four documentation types, every field, command, rule and board an entry that running text links to, and a glossary | v0.1 | **in progress** | the owner, 2026-10-29 |
 
 **The goal for rc3, 2026-10-26.** In the owner's words: complete documentation, "eine kleine
 Landingpage, dann Dokumentation der Schnittstelle, also wie funktioniert die CLI, wie funktioniert
@@ -44,10 +45,10 @@ das [YAML]-Format, was sind momentan die Kompatibilitäten … und was wird in Z
 "ein, zwei kleine Projekte … Ende zu Ende wirklich bis auf den Mikrocontroller drauf". Both are
 built:
 - this site;
-- [the route](route/index.md), whose third leg puts an exported model on a generic ESP32.
+- [the tutorial](intro/tutorial.md), whose third part puts an exported model on a generic ESP32.
 
-What a board run establishes is recorded in [board runs](board-runs/index.md), and the
-[compatibility page](compatibility.md) states how far each board has been verified. Tagging rc3 is
+What a board run establishes is recorded in [board runs](ref/board-runs/index.md), and the
+[compatibility page](ref/compatibility.md) states how far each board has been verified. Tagging rc3 is
 the owner's decision, after their own projects have run.
 
 **The release, 2026-10-23.** Candidate `v0.1.0rc1` first: the version to try by hand and the

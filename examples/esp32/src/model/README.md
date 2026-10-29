@@ -1,6 +1,6 @@
 # The export's files go here
 
-Four files, copied out of a run directory by leg 3 of the route:
+Four files, copied out of a run directory by part 3 of the tutorial:
 
 - `model_data.h` — the model as a C array, with a named position for every input and the output
 - `model_data.cc` — the array itself

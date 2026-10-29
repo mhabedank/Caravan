@@ -17,9 +17,9 @@ name: docs-checks
 #     page no navigation reaches. That check used to happen only on a release tag, so this workflow
 #     gives documentation changes a check they did not have before.
 #
-# What is deliberately NOT here: executing the route's legs. That needs the training framework and
+# What is deliberately NOT here: executing the tutorial's parts. That needs the training framework and
 # is the five minutes this workflow exists to avoid. It still runs in `ci.yml`'s `train` job on
-# every change that touches code, and the release workflow runs leg 1 literally — install,
+# every change that touches code, and the release workflow runs part 1 of the tutorial literally — install,
 # fetch and run — against the published release before the release is announced.
 on:
   push:

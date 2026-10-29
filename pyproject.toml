@@ -12,7 +12,7 @@ readme = "README.md"
 # ships cp314 but depends on keras-nightly). Constitution v2.3.0, Principle XII, research R1 of
 # feature 002. All three of 3.13, 3.14 and 3.15 are tested — a floor that is claimed and not tested
 # is a false claim. This returns to ">=3.14" when a stable TensorFlow ships cp314 against a released
-# keras; docs/budgets.md carries the obligation.
+# keras; docs/ref/budgets.md carries the obligation.
 requires-python = ">=3.13"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -53,7 +53,7 @@ train = [
 # and no cp315 (checked 2026-10-22 against the index, every recent version). So it covers the
 # floor and the previous stable but not the current one, and the marker is what turns that into a
 # sentence from caravan instead of a resolver error. The window closes when a cp315 wheel ships;
-# docs/budgets.md carries the obligation.
+# docs/ref/budgets.md carries the obligation.
 #
 # What justifies it as an extra of its own is not the Python coverage but the weight: 114 MiB and
 # 7 packages against `train`'s 1,971 and 41, with no training framework in its graph.

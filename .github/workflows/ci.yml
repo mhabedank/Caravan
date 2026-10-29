@@ -10,7 +10,7 @@ name: ci
 # `docs-checks.yml`, which runs them on one Python with no extras and also builds the site with
 # every warning an error. Editing a page is now cheaper AND better checked than before.
 #
-# One check is not in that workflow: executing the route's legs needs the framework, so it stays
+# One check is not in that workflow: executing the tutorial's parts needs the framework, so it stays
 # in the `train` job below. A change to the guide alone therefore does not execute it here; the
 # release workflow runs the guide against the published release before announcing it, and any
 # change that touches code brings the `train` job back.
@@ -110,7 +110,7 @@ jobs:
           VIRTUAL_ENV=/tmp/no-runtime uv pip install -e .
           if VIRTUAL_ENV=/tmp/no-runtime uv pip list | grep -qi ai-edge-litert; then
             echo "the runtime resolved on 3.15; its window has widened and the marker, the"
-            echo "messages and docs/budgets.md all need updating"; exit 1
+            echo "messages and docs/ref/budgets.md all need updating"; exit 1
           fi
           VIRTUAL_ENV=/tmp/no-runtime /tmp/no-runtime/bin/caravan quantize \
             tests/fixtures/manifests/valid/picket-mlp-fixture.yaml || code=$?

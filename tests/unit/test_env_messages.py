@@ -46,7 +46,7 @@ def test_neither_message_leaks_an_internal_detail() -> None:
 
 def test_the_window_is_stated_in_one_place() -> None:
     # One constant to edit when TensorFlow ships for the current Python, which is the obligation
-    # docs/budgets.md carries. A second copy of the date would be a second thing to forget.
+    # docs/ref/budgets.md carries. A second copy of the date would be a second thing to forget.
     assert env.FRAMEWORK_WHEEL_CEILING == (3, 13)
     assert "2026-10-22" in env.FRAMEWORK_EVIDENCE
     assert env.inside_framework_window((3, 13)) is True

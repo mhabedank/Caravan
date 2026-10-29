@@ -39,7 +39,7 @@ AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-
 
 AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-2512) (Apache-2.0) on the project's own hardware (dgx-spark), 2026-10-29.
 
-- **Used on**: leg 1, your first model
+- **Used on**: part 1 of the tutorial, your first model
 - **Licence**: [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 - **Record**: `docs/_static/images/route-first-load/image.yaml`
 
@@ -52,7 +52,7 @@ AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-
 
 AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-2512) (Apache-2.0) on the project's own hardware (dgx-spark), 2026-10-29.
 
-- **Used on**: leg 3, onto a board
+- **Used on**: part 3 of the tutorial, onto a board
 - **Licence**: [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 - **Record**: `docs/_static/images/route-onto-the-bench/image.yaml`
 
@@ -65,7 +65,7 @@ AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-
 
 AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-2512) (Apache-2.0) on the project's own hardware (dgx-spark), 2026-10-28.
 
-- **Used on**: the route index
+- **Used on**: the tutorial's first page
 - **Licence**: [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 - **Record**: `docs/_static/images/route-road-to-the-board/image.yaml`
 
@@ -78,6 +78,6 @@ AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-
 
 AI-generated with [Qwen/Qwen-Image-2512](https://huggingface.co/Qwen/Qwen-Image-2512) (Apache-2.0) on the project's own hardware (dgx-spark), 2026-10-29.
 
-- **Used on**: leg 2, your own columns
+- **Used on**: part 2 of the tutorial, your own data
 - **Licence**: [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 - **Record**: `docs/_static/images/route-sorting-the-columns/image.yaml`

@@ -35,7 +35,7 @@ generation:
     script_sha256: 1deb5d6af046b8e5898d651ce5d0ccac9d33adf27154962996da4b4e2a96fd18
 licence: CC0-1.0
 placements:
-- leg 3, onto a board
+- part 3 of the tutorial, onto a board
 scene: A small electronic module on a workbench, wired to a bench power supply under a magnifying lamp
 alt: A matchbox-sized orange-yellow electronic module lies on a wooden workbench, wired by one thin cable
   to a small bench power supply, under a magnifying lamp (AI-generated image)

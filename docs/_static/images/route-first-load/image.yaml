@@ -34,7 +34,7 @@ generation:
     script_sha256: 1deb5d6af046b8e5898d651ce5d0ccac9d33adf27154962996da4b4e2a96fd18
 licence: CC0-1.0
 placements:
-- leg 1, your first model
+- part 1 of the tutorial, your first model
 scene: A crate on a handcart beside a long table of stacked paper
 alt: A single orange-yellow crate stands on a handcart beside a long table stacked with paper, under a
   workshop lamp (AI-generated image)

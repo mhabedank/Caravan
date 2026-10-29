@@ -78,16 +78,26 @@ def test_every_abbreviation_is_expanded_at_its_first_use() -> None:
     assert not offenders, "FR-018 is not met:\n  " + "\n  ".join(offenders)
 
 
+def test_every_abbreviation_is_a_glossary_term() -> None:
+    """The glossary defines every abbreviation the site may use, so a reader can look one up."""
+    text = (DOCS / "glossary.md").read_text(encoding="utf-8")
+    block = re.search(r"```\{glossary\}\n(.*?)```", text, re.S)
+    assert block, "docs/glossary.md has no glossary block"
+    terms = set(re.findall(r"^(\S.*?)\s*$", block.group(1), re.M))
+    missing = sorted(abbreviation for abbreviation in EXPANSIONS if abbreviation not in terms)
+    assert not missing, f"docs/glossary.md does not define: {', '.join(missing)}"
+
+
 def test_each_concept_is_defined_on_exactly_one_page() -> None:
     """FR-024: an explanation lives once, and other pages link to it.
 
     Two copies of an explanation drift, and the reader who finds the stale one has no way to know.
-    So each concept page owns its subject, and the check is that no other page sets itself up as a
+    So each topic guide owns its subject, and the check is that no other page sets itself up as a
     second definition of the same thing by carrying the same heading.
     """
     concept_headings: dict[str, Path] = {}
     duplicates: list[str] = []
-    for page in (DOCS / "concepts").glob("*.md"):
+    for page in (DOCS / "topics").glob("*.md"):
         for heading in re.findall(r"^## (.+)$", page.read_text(encoding="utf-8"), re.M):
             key = heading.strip().lower()
             if key in concept_headings:
@@ -98,15 +108,17 @@ def test_each_concept_is_defined_on_exactly_one_page() -> None:
     assert not duplicates, "a concept is defined twice:\n  " + "\n  ".join(duplicates)
 
 
-def test_the_concept_pages_are_reachable_from_the_route() -> None:
+def test_the_topic_guides_are_reachable_from_the_tutorial() -> None:
     """FR-024 again: an explanation nobody is sent to is an explanation nobody reads."""
-    route = " ".join(p.read_text(encoding="utf-8") for p in (DOCS / "route").glob("*.md"))
+    tutorial = " ".join(
+        p.read_text(encoding="utf-8") for p in (DOCS / "intro").glob("tutorial*.md")
+    )
     unlinked = [
         page.name
-        for page in sorted((DOCS / "concepts").glob("*.md"))
-        if f"concepts/{page.stem}.md" not in route
+        for page in sorted((DOCS / "topics").glob("*.md"))
+        if f"topics/{page.stem}.md" not in tutorial
     ]
     assert not unlinked, (
-        f"no leg of the route links to: {', '.join(unlinked)}. A concept page is written for the "
-        f"moment a reader needs it, so something has to send them there."
+        f"no part of the tutorial links to: {', '.join(unlinked)}. A topic guide is written for "
+        f"the moment a reader needs it, so something has to send them there."
     )

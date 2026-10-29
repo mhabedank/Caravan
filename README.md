@@ -29,7 +29,7 @@ registered. Two templates, `mlp` and `conv1d`, and three boards, `s32k144`, `stm
 The manifest names its columns as Ludwig does (`caravan/v0.2`). rc1 read the previous form,
 `caravan/v0.1`. `docs/releases/0.1.0.md` says what is in 0.1.0 and what is not.
 
-rc3 adds the documentation site and test windows in the export. The route's third leg runs an
+rc3 adds the documentation site and test windows in the export. Part 3 of the tutorial runs an
 exported model on a generic ESP32 and compares its answers with the host's. The first recorded board
 run is still to come.
 
@@ -38,15 +38,16 @@ Not on the package index. Each version is installed from its GitHub release.
 ## Documentation
 
 **<https://mhabedank.github.io/Caravan/>**, built from `docs/`. It opens with what Caravan does and
-offers one way in: **the route**, four legs from nothing to a model answering on a board — an int8
-model at fifteen minutes, hardware at thirty. Beside it are the concepts a reader needs to choose
-(what `mlp` means and when to use it, what each feature type does, how the gates work), a CLI and
-manifest reference with every field, what is verified today, and the roadmap.
+offers one way in: **the tutorial**, four parts from nothing to a model answering on a board. Its
+[contents page](https://mhabedank.github.io/Caravan/contents.html) leads to the rest: the topic
+guides a reader needs to choose (what `mlp` means and when to use it, what each feature type does,
+how the gates work), a CLI and manifest reference with every field, a glossary, what is verified
+today, and the roadmap.
 
 ## Try it
 
-[The route's first leg](https://mhabedank.github.io/Caravan/route/1-first-model.html) goes from an
-empty directory to an exported int8 model, in about five minutes once the install is done. With a
+[Part 1 of the tutorial](https://mhabedank.github.io/Caravan/intro/tutorial01.html) goes from an
+empty directory to an exported int8 model. With a
 checkout, the example manifest validates on any supported Python:
 
 ```bash
@@ -88,7 +89,7 @@ checked rather than assumed. `caravan validate` and `caravan render` run on all 
 packaging has no per-extra version window, so the published floor is 3.13 until a stable
 TensorFlow ships for the current Python. All of 3.13, 3.14 and 3.15 are supported and tested; on
 3.14 and 3.15 the extra installs Caravan's training code and no framework, and `build` and `train`
-then say so rather than failing in the resolver. `docs/budgets.md` carries the reasoning and the
+then say so rather than failing in the resolver. `docs/ref/budgets.md` carries the reasoning and the
 condition that closes the window.
 
 ## Use
@@ -112,7 +113,7 @@ Every command exits:
 - 4 when the environment is missing something that installs separately.
 
 Every rejection names the offending field, what was wrong with it and what is accepted there.
-`docs/reference/cli.md` and `docs/reference/manifest.md` have the details.
+`docs/ref/cli.md` and `docs/ref/manifest/` have the details.
 
 Caravan carries no compliance layer. The rights to the data, and the use of a model trained on it,
 are the author's. Caravan neither asks about them nor claims to have checked them.
@@ -125,10 +126,10 @@ are the author's. Caravan neither asks about them nor claims to have checked the
 | `specs/<nnn>-<name>/` | one feature's spec, plan, research, data model, contracts and tasks |
 | `docs/` | the documentation site's pages; `docs/conf.py` builds them with Sphinx |
 | `docs/roadmap.md` | what is planned per version, and the non-goals, each with its reason |
-| `examples/` | the example manifest, and `esp32/`, the firmware the route's third leg builds |
+| `examples/` | the example manifest, and `esp32/`, the firmware part 3 of the tutorial builds |
 | `docs/design/` | the design document Caravan was started from, frozen as a dated record |
 | `docs/research/` | sourced research notes that decisions cite |
-| `docs/budgets.md` | the dependency, install and Python-version budgets, with measurements |
+| `docs/ref/budgets.md` | the dependency, install and Python-version budgets, with measurements |
 | `src/caravan/targets/boards/` | the board descriptions, one data file per board |
 
 ## Development
