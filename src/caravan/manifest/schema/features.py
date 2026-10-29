@@ -33,13 +33,17 @@ NAME_FORM = (
 
 #: The input and output types this build implements (feature 008, Principle X). Each has a path to
 #: the device: an operator TFLite Micro has, and an element type the firmware can pass.
-INPUT_TYPES: tuple[str, ...] = ("number", "binary", "category")
-OUTPUT_TYPES: tuple[str, ...] = ("category", "binary", "number")
+#: Feature 010 adds ``image`` (raw uint8 pixels at the declared size) and ``anomaly`` (a score that
+#: says how unusual a window is, from a model trained on normal windows).
+INPUT_TYPES: tuple[str, ...] = ("number", "binary", "category", "image")
+OUTPUT_TYPES: tuple[str, ...] = ("category", "binary", "number", "anomaly")
 
 Normalization = Literal["zscore", "minmax", "iq"]
 MissingValueStrategy = Literal["fill_with_const", "fill_with_mean"]
 EncoderType = Literal["dense", "onehot"]
 NumberLoss = Literal["mean_squared_error", "mean_absolute_error", "huber"]
+#: Ludwig's two ways of bringing an image to the declared size (feature 010, research R7).
+ResizeMethod = Literal["interpolate", "crop_or_pad"]
 
 #: Which preprocessing key applies to which input type. A key outside its types is refused.
 INPUT_PREPROCESSING_KEYS: dict[str, tuple[str, ...]] = {
@@ -49,6 +53,10 @@ INPUT_PREPROCESSING_KEYS: dict[str, tuple[str, ...]] = {
     "most_common": ("category",),
     "vocab": ("category",),
     "fallback_true_label": ("binary",),
+    "height": ("image",),
+    "width": ("image",),
+    "num_channels": ("image",),
+    "resize_method": ("image",),
 }
 
 #: The strategies each input type accepts. ``fill_with_mean`` needs a mean, so a number.
@@ -70,6 +78,17 @@ OUTPUT_KEYS: dict[str, tuple[str, ...]] = {
     "clip": ("number",),
     "accuracy_drop_max": ("category", "binary"),
     "mae_increase_max": ("number",),
+    "preprocessing.normal_label": ("anomaly",),
+    "threshold_percentile": ("anomaly",),
+    "auc_drop_max": ("anomaly",),
+}
+
+#: The int8 budget each output type states, and in what (CF-16, Principle V).
+BUDGET_KEYS: dict[str, str] = {
+    "category": "accuracy_drop_max",
+    "binary": "accuracy_drop_max",
+    "number": "mae_increase_max",
+    "anomaly": "auc_drop_max",
 }
 
 
@@ -101,6 +120,12 @@ class InputPreprocessing(BaseModel):
     #: Pins the vocabulary and its order. Codes as the data spells them: integers or text.
     vocab: list[str | int] | None = Field(default=None, min_length=1)
     fallback_true_label: str | None = Field(default=None, min_length=1)
+    #: The size an image is brought to, and the size the device passes (feature 010). Taken from
+    #: the data when every image agrees and none is stated.
+    height: int | None = Field(default=None, gt=0)
+    width: int | None = Field(default=None, gt=0)
+    num_channels: Literal[1, 3] | None = None
+    resize_method: ResizeMethod | None = None
 
     @field_validator("vocab")
     @classmethod
@@ -175,6 +200,8 @@ class OutputPreprocessing(BaseModel):
     vocab: list[str] | None = Field(default=None, min_length=2)
     fallback_true_label: str | None = Field(default=None, min_length=1)
     normalization: Normalization | None = None
+    #: The value of an ``anomaly`` output's column that means normal; every other is abnormal.
+    normal_label: str | None = Field(default=None, min_length=1)
 
     @field_validator("vocab")
     @classmethod
@@ -209,6 +236,11 @@ class OutputFeature(BaseModel):
     #: The int8 budget of a ``number`` output: the increase of the mean absolute error, in the
     #: column's unit.
     mae_increase_max: float | None = Field(default=None, ge=0.0)
+    #: The alarm threshold of an ``anomaly`` output: this percentile of the int8 scores of the
+    #: validation part's normal windows (feature 010, research R10).
+    threshold_percentile: float | None = Field(default=None, gt=0.0, lt=100.0)
+    #: The int8 budget of an ``anomaly`` output: the area under the ROC curve lost to quantization.
+    auc_drop_max: float | None = Field(default=None, ge=0.0, le=1.0)
 
     @field_validator("clip")
     @classmethod
@@ -221,7 +253,14 @@ class OutputFeature(BaseModel):
         """The type-specific keys the author wrote, as dotted paths."""
         stated = [
             key
-            for key in ("threshold", "clip", "accuracy_drop_max", "mae_increase_max")
+            for key in (
+                "threshold",
+                "clip",
+                "accuracy_drop_max",
+                "mae_increase_max",
+                "threshold_percentile",
+                "auc_drop_max",
+            )
             if key in self.model_fields_set
         ]
         stated += [f"preprocessing.{key}" for key in self.preprocessing.model_fields_set]

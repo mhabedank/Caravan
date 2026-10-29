@@ -60,6 +60,10 @@ RESOLVER_METHODS: dict[str, str] = {
     "SUM": "AddSum",
     "MAXIMUM": "AddMaximum",
     "MINIMUM": "AddMinimum",
+    # The anomaly score of the autoencoder (feature 010, research R8): the mean squared difference
+    # between reconstruction and input. Read in the same header on 2026-10-29; the kernel accepts
+    # int8 (kernels/squared_difference.cc).
+    "SQUARED_DIFFERENCE": "AddSquaredDifference",
 }
 
 

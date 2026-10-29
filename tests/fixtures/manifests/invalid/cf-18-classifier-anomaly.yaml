@@ -1,0 +1,23 @@
+# Invalid on purpose. An anomaly output needs a template that reconstructs its input; mlp classifies (feature 010).
+# Expected: CF-18 at model.template
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden: [8]
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: condition
+  type: anomaly
+  auc_drop_max: 0.02
+preprocessing:
+  window_size: 8
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

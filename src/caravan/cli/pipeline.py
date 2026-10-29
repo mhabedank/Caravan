@@ -209,6 +209,9 @@ def data_line(schema: dict[str, Any]) -> str:
         answer = f"labels {', '.join(fitted['labels'])} ({fitted['labels_source']})"
     elif output["type"] == "binary":
         answer = f"true is {fitted['true_spelling']!r}"
+    elif output["type"] == "anomaly":
+        abnormal = ", ".join(fitted["abnormal_labels"]) or "none"
+        answer = f"an anomaly score, normal is {fitted['normal_label']!r}, abnormal: {abnormal}"
     else:
         answer = "a number"
     ignored = schema["ignored_columns"]

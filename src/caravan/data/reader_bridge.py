@@ -78,6 +78,10 @@ def assemble_targets(plan: Any, output: Mapping[str, Any]) -> Any:
     if output["type"] == "binary":
         table = fitted["spellings"]
         return np.array([binary_code(label, table) for label in plan.labels], dtype=np.float32)
+    if output["type"] == "anomaly":
+        # 0 for normal, 1 for every other condition (feature 010).
+        normal = fitted["normal_label"]
+        return np.array([label != normal for label in plan.labels], dtype=np.int64)
     return np.array([float(label) for label in plan.labels], dtype=np.float32)
 
 

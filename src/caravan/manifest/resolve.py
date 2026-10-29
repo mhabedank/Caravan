@@ -45,7 +45,19 @@ INPUT_DEFAULTS: dict[str, dict[str, Any]] = {
         "most_common": 32,
         "vocab": DERIVED,
     },
+    # Feature 010. The size is the device's frame; taken from the data when not stated.
+    "image": {
+        "height": DERIVED,
+        "width": DERIVED,
+        "num_channels": DERIVED,
+        "resize_method": "interpolate",
+    },
 }
+
+#: The value of an ``anomaly`` column that means normal, unless stated: MIMII's and DCASE's word.
+NORMAL_LABEL = "normal"
+#: The percentile of validation normals the alarm threshold is drawn at, unless stated: hum-fan's.
+THRESHOLD_PERCENTILE = 95.0
 ENCODER_DEFAULTS: dict[str, Any] = {"type": "dense", "embedding_size": DERIVED}
 
 #: The cap on the embedding's width when the author states none (spec, Assumptions; research R4).
@@ -166,6 +178,18 @@ def resolve_output(output: OutputFeature) -> dict[str, Any]:
             "threshold": 0.5 if output.threshold is None else output.threshold,
             "accuracy_drop_max": output.accuracy_drop_max,
         }
+    if output.type == "anomaly":
+        return {
+            "name": output.name,
+            "type": output.type,
+            "preprocessing": {"normal_label": output.preprocessing.normal_label or NORMAL_LABEL},
+            "threshold_percentile": (
+                THRESHOLD_PERCENTILE
+                if output.threshold_percentile is None
+                else output.threshold_percentile
+            ),
+            "auc_drop_max": output.auc_drop_max,
+        }
     return {
         "name": output.name,
         "type": output.type,
@@ -209,6 +233,9 @@ def merge_fitted(resolved: Mapping[str, Any], fitted: Mapping[str, Any]) -> dict
             encoder = feature["encoder"]
             if encoder.get("embedding_size") == DERIVED:
                 encoder["embedding_size"] = min(len(values["vocab"]), EMBEDDING_SIZE_CAP)
+        if feature["type"] == "image":
+            for key in ("height", "width", "num_channels"):
+                feature["preprocessing"][key] = values[key]
     output = merged["output_features"][0]
     values = fitted["output"]
     output["preprocessing"]["fitted"] = copy.deepcopy(values)
