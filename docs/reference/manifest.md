@@ -2,6 +2,47 @@
 
 One YAML file per model version, schema `caravan/v0.2`.
 
+## A first manifest
+
+```yaml
+apiVersion: caravan/v0.2
+
+model:
+  name: my-classifier
+  version: 0.1.0
+  template: mlp
+  params:
+    hidden: [32, 16]
+
+# One feature per CSV column the model reads.
+input_features:
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+
+# The column to predict, and how much accuracy int8 may cost.
+output_features:
+  - name: label
+    type: category
+    accuracy_drop_max: 0.02
+
+preprocessing:
+  window_size: 64
+
+# A directory of your own CSV files, each with a header row, relative to this file.
+dataset: my-data
+
+export:
+  quantization: int8
+  targets: [esp32]
+  representative_samples: 500
+```
+
+`model` picks the template and its size. `input_features` and `output_features` name the columns the
+model reads and the one it predicts, each with a type. `export` sets the quantization and the board.
+Run `caravan validate` on the file to check it before you run anything else. The
+[complete example](#a-complete-example) at the bottom shows every block.
+
 This page is a lookup. Each section opens with a table of its fields for scanning, and then gives
 every setting an entry that answers four questions:
 

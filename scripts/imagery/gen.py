@@ -160,7 +160,9 @@ def main(argv: list[str] | None = None) -> int:
     for j in jobs:
         if (out / j["file"]).exists():
             continue
-        w, h = SIZES[j["aspect"]]
+        # a model may declare the resolutions it was trained for; SIZES is the fallback
+        sizes = {k: tuple(v) for k, v in (model.get("sizes") or {}).items()} or SIZES
+        w, h = sizes[j["aspect"]]
         prompt = f"{j['prompt']}, {series['style']}"
         kw = dict(
             prompt=prompt,

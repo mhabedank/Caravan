@@ -30,9 +30,9 @@
 <link rel="icon" href="{{ pathto('_static/img/favicon.svg', 1) }}" type="image/svg+xml">
 <link rel="preload" href="{{ pathto('_static/fonts/Archivo-variable-latin.woff2', 1) }}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{{ pathto('_static/fonts/JetBrainsMono-variable-latin.woff2', 1) }}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{{ pathto('_static/tokens.css', 1) }}">
+<link rel="stylesheet" href="{{ pathto('_static/tokens.css', 1) }}?v={{ static_v }}">
 {%- for css in css_files %}
-<link rel="stylesheet" href="{{ pathto(css.filename, 1) }}">
+<link rel="stylesheet" href="{{ pathto(css.filename, 1) }}?v={{ static_v }}">
 {%- endfor %}
 {%- block extrahead %}{% endblock %}
 </head>
@@ -75,6 +75,10 @@
       <a href="https://github.com/mhabedank/Caravan">Repository</a>
       <a href="https://github.com/mhabedank/Caravan/blob/main/LICENSE">Licence of the code</a>
       <a href="{{ pathto('compatibility') }}">What is verified today</a>
+      {#- FR-034: every page that shows a generated image links its credits, and the link says so.
+          Written once here rather than per page: Sphinx would need a build hook to know which
+          pages carry an image, and FR-010 forbids this feature touching the build. -#}
+      <a href="{{ pathto('credits') }}">Images are AI-generated · Image credits</a>
     </nav>
     {#- FR-047: every page says which Caravan it describes. The previous theme supplied this through
         `html_title`, and removing that theme would have dropped it silently. -#}

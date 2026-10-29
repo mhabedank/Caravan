@@ -1,7 +1,7 @@
 # Leg 2: your own columns
 
 :::{container} leg-head
-**About 10 minutes**, 15 from the start of leg 1.
+**10 minutes.**
 
 You will end with **a model that reads columns you chose**, and **your own accuracy figure** — not
 the example's. You will have made the four decisions that every Caravan manifest comes down to.
@@ -9,14 +9,12 @@ the example's. You will have made the four decisions that every Caravan manifest
 Still nothing but your computer.
 :::
 
-Leg 1 ran somebody else's manifest. This leg writes one. To keep it to ten minutes it builds a
-small table first, so that every command here runs for you exactly as written; swapping in your
-real file at the end is one line.
+Leg 1 ran somebody else's manifest. This leg writes one. You start from a small sample table, and
+at the end you swap in your own file with one line.
 
 ## The four decisions
 
-A manifest is longer than this, but only four parts of it are yours to decide. Everything else has
-a default that works.
+Four parts of a manifest are yours to decide. Everything else has a default.
 
 1. **Where the data is** — `dataset`.
 2. **Which columns the model reads, and what kind of thing each one is** — `input_features`.
@@ -26,37 +24,19 @@ a default that works.
 
 ## A table to work on
 
-Machine readings: a temperature, a vibration level, which mode the machine is in, and whether it
-was healthy. Twenty stretches of sixty-four readings, alternating between healthy and faulty, with
-vibration higher when it is faulty.
+[`readings.csv`](../_static/data/readings.csv) holds 1,280 machine readings: a temperature, a
+vibration level, the mode the machine is in (`idle` or `run`), and `state`, the column to predict:
+`ok` or `fault`. It comes as twenty stretches of sixty-four readings, alternating between healthy and
+faulty, with higher vibration when faulty. Download it into `data/`:
 
 ```bash
 # step: own-columns
 mkdir -p machine/data && cd machine
-python3 - <<'PY'
-import csv, random
-random.seed(7)
-rows = []
-for block in range(20):
-    state = "ok" if block % 2 == 0 else "fault"
-    for _ in range(64):
-        rows.append({
-            "temperature": round(random.gauss(40, 1.5), 2),
-            "vibration": round(random.gauss(0.6 if state == "fault" else 0.2, 0.05), 3),
-            "mode": random.choice(["idle", "run"]),
-            "state": state,
-        })
-with open("data/readings.csv", "w", newline="") as f:
-    w = csv.DictWriter(f, fieldnames=["temperature", "vibration", "mode", "state"])
-    w.writeheader()
-    w.writerows(rows)
-print(len(rows), "rows written")
-PY
+curl -L -o data/readings.csv https://mhabedank.github.io/Caravan/_static/data/readings.csv
 ```
 
-One row per time step, oldest first, one header row. An empty cell would mean a missing reading.
-Your own file wants the same shape and nothing more — Caravan reads it, records its digest, and
-asks for nothing about it.
+One row per time step, oldest first, one header row. An empty cell is a missing reading. Your own
+file takes the same shape: Caravan reads it, records its digest, and asks nothing more of it.
 
 ## The manifest
 
@@ -129,8 +109,8 @@ table above comes in stretches rather than alternating row by row. Label stretch
 rows.
 
 **The template.** `mlp` is a multilayer perceptron: dense layers over the whole window, and the
-place to start. [Templates](../concepts/templates.md) says what the words mean and when the other
-one is the better answer.
+place to start. [Templates](../concepts/templates.md) says when the other template is the better
+answer.
 
 ## Run it
 
@@ -163,8 +143,8 @@ An accuracy figure measured on data the model never trained on, the same figure 
 shrunk, and the gate's verdict on the difference.
 :::
 
-Those numbers are yours. They came from your columns, your window and your budget — and the second
-one is the one that matters, because it is the model your board would actually run.
+Those numbers are yours. They came from your columns, your window and your budget. The second one
+is the one that matters: it is the model your board runs.
 
 ## Now your real table
 
@@ -178,9 +158,8 @@ dataset: /path/to/your/data      # a directory of .csv, .tsv or .txt files, or o
 Then `caravan validate manifest.yaml` and `caravan export manifest.yaml` again. Three things change
 and nothing else: what you ignore, what you answer, and what you are willing to lose.
 
-**If the gate fails on your data**, that is the expected outcome rather than a failure of nerve: the
-run stops, writes a per-layer table of where the accuracy went, and exports nothing. Leg 4 makes it
-happen on purpose. **If the run refuses your data** — a column that is not there, a window longer
+**If the gate fails on your data**, the run stops, writes a per-layer table of where the accuracy
+went, and exports nothing. Leg 4 shows you a refusal on purpose. **If the run refuses your data** — a column that is not there, a window longer
 than your shortest stretch, only one class present, a file with no header row — it says which rule
 it is and what it found.
 
@@ -189,5 +168,4 @@ it is and what it found.
 **[Leg 3 — onto a board](3-onto-a-board.md)** takes what you just built and runs it on a
 microcontroller, then checks the board's answers against your computer's.
 
-If you stop here, you have a manifest of your own and a model that reads your data. That is the
-part most people need.
+If you stop here, you have a manifest of your own and a model that reads your data.

@@ -13,10 +13,9 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **one open: FR-031**, whether the generated images
-      replace the hand-drawn SVGs, sit beside them, or take only the places the SVGs do not cover.
-      Left open deliberately: it is the owner's call, it changes what gets placed rather than what
-      gets rendered, and nothing in stories 1–3 is blocked by it.
+- [x] No [NEEDS CLARIFICATION] markers remain — FR-031 was the one open marker and the
+      clarification session of 2026-10-27 closed it: the generated images replace the hand-drawn
+      SVGs, and no place loses its SVG before a picked image is placed there.
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)

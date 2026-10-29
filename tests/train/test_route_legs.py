@@ -6,9 +6,9 @@ Three of the four legs are executed here against the working tree:
   lays it out. ``install`` and ``fetch`` need the published release, so the release workflow runs
   those against it; that they name *this* version is checked in
   ``tests/contract/test_docs_guide.py``, which needs no framework and so runs everywhere.
-- **leg 2**'s ``own-columns`` blocks, which build a small table, write a manifest and export it. Leg
-  2 is executable on purpose: it makes its own data, so the whole leg runs anywhere and a check can
-  prove the instructions still work rather than assume it.
+- **leg 2**'s ``own-columns`` blocks, which fetch a small table, write a manifest and export it. The
+  download is swapped for a copy of the file in ``docs/_static/data`` (see ``_offline``); the rest
+  runs as written, so a check proves the instructions still work rather than assumes it.
 - **leg 4**'s ``tighten`` blocks, which ask for a model far too large for the board and must
   therefore *fail* the fit check. A check that stopped refusing would otherwise be the quietest
   possible regression.
@@ -27,6 +27,7 @@ one script is also how the release workflow runs leg 1.
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -42,6 +43,23 @@ ROOT = Path(__file__).resolve().parents[2]
 LEG1 = ROOT / "docs" / "route" / "1-first-model.md"
 LEG2 = ROOT / "docs" / "route" / "2-your-columns.md"
 LEG4 = ROOT / "docs" / "route" / "4-when-it-does-not-fit.md"
+READINGS = ROOT / "docs" / "_static" / "data" / "readings.csv"
+
+
+def _offline(script: str) -> str:
+    """Leg 2 downloads readings.csv from the published site, which a test run cannot reach.
+
+    The ``curl -L -o <dest> <url>`` line becomes a copy of the same file from the working tree into
+    the same destination; every other line runs unchanged.
+    """
+    swapped, count = re.subn(
+        r"^curl -L -o (\S+) https://\S+/readings\.csv$",
+        lambda m: f"cp {READINGS} {m[1]}",
+        script,
+        flags=re.MULTILINE,
+    )
+    assert count == 1, "leg 2 no longer has the curl line the test substitutes"
+    return swapped
 
 
 def _run(script: str, cwd: Path, env_home: Path) -> subprocess.CompletedProcess:
@@ -71,7 +89,7 @@ def walked(tmp_path_factory) -> dict:
     # Leg 1's own check runs as one block: it holds a heredoc and carries a shell variable from one
     # line to the next, and `commands()` splitting it into lines would destroy both.
     leg1_check = _run("".join(blocks(LEG1, "check")), here, here)
-    leg2 = _run("".join(blocks(LEG2, "own-columns")), here, here)
+    leg2 = _run(_offline("".join(blocks(LEG2, "own-columns"))), here, here)
     # Leg 4 continues from leg 2's directory, so it only runs if leg 2 got there.
     leg4 = _run("".join(blocks(LEG4, "tighten")), here, here) if leg2.returncode == 0 else None
     return {"dir": here, "leg1": leg1, "leg1_check": leg1_check, "leg2": leg2, "leg4": leg4}

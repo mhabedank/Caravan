@@ -13,6 +13,28 @@ caravan [--version] <command> ...
 No option skips, forces or silences a check. The only thing an option can bypass is the cache
 (`--fresh`).
 
+## By task
+
+| You want to | Run |
+|---|---|
+| Check a manifest for mistakes, without reading the data | [`validate`](#caravan-validate) |
+| See the manifest with every default filled in | [`render`](#caravan-render) |
+| Find out whether a model fits your boards before training | [`build`](#caravan-build) |
+| Train the model and look at its metrics | [`train`](#caravan-train) |
+| Try a different `accuracy_drop_max` against the cached training | [`quantize`](#caravan-quantize) |
+| Produce the files a firmware author compiles | [`export`](#caravan-export) |
+| See which templates this version registers | [`templates`](#caravan-templates) |
+| See the known boards and their flash and RAM | [`boards`](#caravan-boards) |
+
+The usual order of a full run:
+
+```text
+caravan validate manifest.yaml
+caravan export manifest.yaml
+```
+
+`export` runs `build`, `train` and `quantize` first, reusing whatever is cached.
+
 ## Exit codes
 
 Every command ends with one of five codes. A continuous integration job can act on each one

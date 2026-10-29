@@ -1,68 +1,104 @@
 ---
 layout: landing
-eyebrow: What it is
-tagline: A CSV goes in. A model your microcontroller runs comes out.
+eyebrow: Embedded machine learning
+tagline: Turn sensor data into models that run on the device.
 lead: >-
-  You describe your data once, in one YAML file: which columns the model reads, which column it
-  answers, which boards it has to fit. Caravan trains it, shrinks it to 8-bit integers, stops if
-  shrinking cost more accuracy than you allowed, and writes the C files your firmware compiles.
-description: Caravan turns a CSV and one YAML file into a model your microcontroller runs, and refuses it if shrinking it cost more accuracy than you allowed.
+  Describe the model in one YAML file. Caravan trains it, shrinks it to fit the board, checks it
+  still answers right, and writes the code your firmware compiles.
+description: Caravan turns sensor data and one YAML file into machine-learning models that run on microcontrollers, shrunk to fit the board and checked before they ship.
 ---
 
 # Caravan
 
-{.band .band-3}
-## Three things every model gets
+{.band .band-example}
+## You write one file. Caravan builds the model.
 
-### The budget is a gate
+```yaml
+model:
+  name: picket-mlp
+  template: mlp
+  params: {hidden: [32, 16]}
 
-Your manifest says how much accuracy making the model 8-bit may cost. Exceed it and the run fails
-and exports nothing. There is no flag that turns it off.
+preprocessing:
+  window_size: 64      # records per answer
 
-### It runs where your data is
+input_features:       # what goes in
+  - {name: can_id, type: category}
+  - {name: dlc, type: number}
+  - {name: b0, type: number}
+  - {name: b1, type: number}
+  - {name: b2, type: number}
 
-Nothing is uploaded and nothing is hosted. Caravan runs on your machine, reads your table, records
-its digest, and writes files you own.
+output_features:      # what comes out
+  - name: label       # normal, dos, fuzzy, replay
+    type: category
+    accuracy_drop_max: 0.02
 
-### Every number says where it came from
+export:
+  targets: [esp32, stm32h743]
+```
 
-A figure about hardware carries `estimated`, `emulated` or `measured`. A number without one is not
-printed at all.
+<figure>
+<svg viewBox="0 0 264 332" role="img" aria-labelledby="net-t">
+  <title id="net-t">The model this file builds: five inputs over a window of 64 records, one-hot encoding
+  and standardising built in, dense layers of 32 and 16 units, and four outputs: normal, dos, fuzzy
+  and replay.</title>
+  <g stroke="var(--border-strong,#7A847C)" stroke-width="1.4"><line x1="132" y1="46" x2="132" y2="62"/><line x1="132" y1="102" x2="132" y2="118"/><line x1="132" y1="158" x2="132" y2="174"/><line x1="132" y1="214" x2="132" y2="230"/><line x1="132" y1="270" x2="132" y2="286"/></g>
+  <g><rect x="12" y="6" width="240" height="40" rx="6" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)"/><path d="M18 6h228a6 6 0 0 1 6 6v12h-240v-12a6 6 0 0 1 6-6z" fill="var(--muted,#4B5450)"/><text x="21" y="19" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--bg,#EFF2F0)">Input</text><text x="21" y="39" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--text,#062544)">5 features · 64 each</text><rect x="12" y="62" width="240" height="40" rx="6" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)"/><path d="M18 62h228a6 6 0 0 1 6 6v12h-240v-12a6 6 0 0 1 6-6z" fill="var(--gain-ink,#1C5E3F)"/><text x="21" y="75" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--bg,#EFF2F0)">Preprocessing</text><text x="21" y="95" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--text,#062544)">one-hot · standardise</text><rect x="12" y="118" width="240" height="40" rx="6" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)"/><path d="M18 118h228a6 6 0 0 1 6 6v12h-240v-12a6 6 0 0 1 6-6z" fill="var(--text,#062544)"/><text x="21" y="131" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--bg,#EFF2F0)">Dense</text><text x="21" y="151" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--text,#062544)">32 · relu</text><rect x="12" y="174" width="240" height="40" rx="6" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)"/><path d="M18 174h228a6 6 0 0 1 6 6v12h-240v-12a6 6 0 0 1 6-6z" fill="var(--text,#062544)"/><text x="21" y="187" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--bg,#EFF2F0)">Dense</text><text x="21" y="207" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--text,#062544)">16 · relu</text><rect x="12" y="230" width="240" height="40" rx="6" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)"/><path d="M18 230h228a6 6 0 0 1 6 6v12h-240v-12a6 6 0 0 1 6-6z" fill="var(--text,#062544)"/><text x="21" y="243" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--bg,#EFF2F0)">Dense</text><text x="21" y="263" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--text,#062544)">4 · softmax</text><rect x="12" y="286" width="240" height="40" rx="6" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)"/><path d="M18 286h228a6 6 0 0 1 6 6v12h-240v-12a6 6 0 0 1 6-6z" fill="var(--muted,#4B5450)"/><text x="21" y="299" font-family="Archivo, sans-serif" font-size="11" font-weight="700" fill="var(--bg,#EFF2F0)">Output</text><text x="21" y="319" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--text,#062544)">normal · dos · fuzzy · replay</text></g>
+</svg>
+<figcaption>The model this file builds. Scaling and encoding are inside it, so the board gets raw
+values.</figcaption>
+</figure>
 
-{.band .band-tiles .band-alt}
+The whole file, every field explained, is in the [manifest reference](reference/manifest.md); the
+commands that run it are in the [CLI reference](reference/cli.md).
+
+{.band .band-3 .band-alt}
+## Why Caravan
+
+### One file
+
+Describe the model in one YAML file. No training code, no quantization script, no conversion step.
+
+### Any microcontroller
+
+One manifest exports for ESP32, STM32 and NXP S32K. A board is a data file, so adding yours is a
+file, not a fork.
+
+### Fits, or fails
+
+Every model is shrunk to 8-bit integers and checked. If it loses more accuracy than you allowed, or
+does not fit the board, nothing is exported.
+
+### Raw values in
+
+Scaling and lookups are built into the model. Your firmware passes raw sensor readings; there is no
+preprocessing code to port.
+
+{.band .band-tiles}
 ## The route
 
-Four legs, from nothing to a board answering. Each one ends with something you can point at — a
-file that now exists, a number the run printed, a verdict the pipeline reached. The minutes are
-cumulative from the start of leg 1, with the install already done.
+Four steps from the worked example to firmware for your board.
 
 {.leg .leg-1}
 ### [Your first model](route/1-first-model.md)
 
-**About 5 minutes.** The worked example, run end to end.
-
-You end with an int8 model, its C array, and the run report that says what shrinking cost.
+**5 minutes.** A classifier that spots attacks on a CAN bus, as C code ready to compile.
 
 {.leg .leg-2}
-### [Your own columns](route/2-your-columns.md)
+### [Your own data](route/2-your-columns.md)
 
-**About 10 minutes, 15 from the start.** Your table, your column types.
-
-You end with a model that reads your data, and your own accuracy figure.
+**10 minutes.** A model trained on your own sensor data, with its accuracy on your data.
 
 {.leg .leg-3}
 ### [Onto a board](route/3-onto-a-board.md)
 
-**About 15 minutes, 30 from the start.** A generic ESP32 under €10.
-
-You end with a board answering, its answers checked against your computer's.
+**15 minutes.** Firmware for an ESP32 under €10, with your model inside, built and ready to flash.
 
 {.leg .leg-4}
 ### [When it does not fit](route/4-when-it-does-not-fit.md)
 
-**After the half hour.** A check made to refuse, on purpose.
-
-You end knowing which of the two gates you will meet first, and why it stopped you.
+**Then.** Which layer costs too much, and what to change so it fits.
 
 {.band .band-figure}
 ## What it actually does

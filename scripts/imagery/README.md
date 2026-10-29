@@ -6,17 +6,24 @@ does not depend on it, the site build never calls it, and the two scripts carry 
 dependencies inline (PEP 723) so they add nothing to `pyproject.toml`.
 
 **Copied, not shared.** The method comes from the Mobility Model Zoo's features 016 and 019
-(`scripts/imagery/`, `zoo/site/images/series/siebdruck.yaml`), copied on 2026-10-27. The
-constitution forbids depending on the zoo, so this is a copy for the same reason the design tokens
-are: no package, no submodule, nothing fetched at build time. The two may drift and nothing keeps
-them in step.
+(`scripts/imagery/`, `zoo/site/images/series/siebdruck.yaml`, `src/mobility_model_zoo/site/`),
+copied on 2026-10-27 and extended on 2026-10-28 with the placement half: the record directory, the
+three WebP derivatives, the IPTC marker and the credits page. The constitution forbids depending on
+the zoo, so this is a copy for the same reason the design tokens are: no package, no submodule,
+nothing fetched at build time. The two may drift and nothing keeps them in step.
 
-**What is not copied:** the zoo's feature 019 — image records, automatic triage (faces, text,
-palette, near-duplicates), derivative generation, a credits page and a coverage check. That is
-about 1,600 lines of Python and several dependencies, for a library of a hundred-odd images across
-many themes. Caravan is asking for twenty. The contact sheet here shows every candidate and the
-owner looks at all of them, which is what the zoo's automatic rejection exists to avoid at its
-scale and does not need to be at this one. If the library grows, port it then.
+**What is not copied:** the triage half of the zoo's feature 019 — automatic rejection by face,
+text, palette and near-duplicate checks, the coverage check and the pool overview. That is about 520
+of its 1,600 lines and it carries opencv, onnxruntime, rapidocr and a fetched face model, for a
+library of a hundred-odd images across many themes. Caravan is asking for twenty. The contact sheet
+here shows every candidate and the owner looks at all of them, which is what the zoo's automatic
+rejection exists to avoid at its scale and does not need to be at this one. If the library grows,
+port it then.
+
+What **is** copied, because the images on a public page need it: the record directory with its three
+derivatives, the IPTC `trainedAlgorithmicMedia` marker inside every WebP, and the credits page. Those
+need Pillow and nothing else. `place.py` writes its own record builder rather than porting the zoo's,
+which routes through the triage module this repository does not have.
 
 Hardware: a machine with a CUDA GPU. The DGX Spark over the VPN is the one this was written for;
 anything with enough VRAM works.
@@ -59,7 +66,10 @@ docker run --rm --gpus all --ipc=host \
 ```
 
 About four seconds an image, so forty images in three minutes. The draft is for one question: does
-the model understand the subject at all? Where it does not, rewrite that subject's prompt and
+the model understand the subject at all? Note that the draft model takes **no negative prompt** —
+`gen.py` only sends one to a model declaring `true_cfg_scale`, which is the final model — so the
+clichés in the series' `negative` are excluded on the final pass only. Do not reject a draft for
+stray lettering; that is not what a draft can tell you. Where it does not, rewrite that subject's prompt and
 re-draft only it with `--only workshop/the-callipers`.
 
 ## 5. Final pass
@@ -99,7 +109,40 @@ python /work/imagery/gen.py --series /work/imagery/series/siebdruck.yaml \
   --model final --seeds 4 --seed-base 1000 --out /work/rounds/2
 ```
 
-## 7. What a picked image still needs
+## 7. Placement
+
+```bash
+uv run --script scripts/imagery/place.py ~/caravan-imagery/rounds/1 \
+  --picks ~/Downloads/picks.yaml --dry-run      # see it first
+uv run --script scripts/imagery/place.py ~/caravan-imagery/rounds/1 \
+  --picks ~/Downloads/picks.yaml
+```
+
+Each picked image becomes one directory under `docs/_static/images/<theme>-<subject>/`: three WebP
+derivatives at 480, 960 and 1600 px, every one carrying the IPTC `trainedAlgorithmicMedia` marker,
+and an `image.yaml` holding the recipe copied from the round's manifest. `docs/credits.md` is then
+rewritten from every record on disk, so it cannot drift from them. Sphinx copies the tree verbatim;
+the site build runs none of this.
+
+A subject's crop centre comes from an optional `focal: [x, y]` in the series file, falling back to
+`--focal` and then to the middle. One focal point for nineteen pictures would be wrong, which is
+why the series can carry its own.
+
+**What it refuses**, each with a non-zero exit and nothing written:
+
+| Refusal | Why |
+|---|---|
+| the manifest entry does not carry the whole recipe | No provenance, no placement. An image traceable to half a recipe is not traceable. Placement is driven by the manifest, so a file the manifest does not know about is never a candidate — that case cannot arise. |
+| the record directory already exists | A record is provenance, and provenance is not quietly overwritten. Remove it first, deliberately. |
+| the three derivatives exceed 118,000 bytes | That is one image's share of the site's 3,000,000 byte ceiling. The remedy is fewer widths or another format, not a larger number. |
+| a derivative stays above its per-width cap at quality 60 | The image is too busy for the budget at that width. |
+| the subject has no `alt` or no `scene` | A picture on a public page without a text alternative is not placed. |
+
+The weight gate in `.github/workflows/docs-checks.yml` is what actually holds the budget: it sums
+the bytes the built site serves and fails above 3,000,000. The per-image cap only catches a bad
+image early.
+
+## 8. What a picked image still needs
 
 Nothing here imports an image into the site. That is a separate decision, and it carries
 obligations the generator cannot discharge:

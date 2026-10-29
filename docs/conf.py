@@ -66,6 +66,11 @@ myst_substitutions = {"release": release}
 # theme whose own design decisions would then have to be overridden.
 html_theme_path = ["_themes"]
 html_theme = "caravan"
+# Feature 011: the placed images live in `docs/_static/images/<id>/` — three WebP derivatives and
+# the `image.yaml` that records how the image was made. Sphinx copies the tree verbatim, so the
+# site build invokes none of the imagery machinery (FR-010) and each record is published beside the
+# image it describes, which is what makes the provenance checkable rather than merely filed.
+html_static_path = ["_static"]
 html_short_title = "Caravan"
 html_title = f"Caravan {release}"
 html_show_sourcelink = False
@@ -75,11 +80,21 @@ html_favicon = None  # the theme links its own, which turns over with the colour
 # The header's links. A curated list, not the table of contents: the contents is thirteen pages and
 # a header of thirteen links helps nobody. tests/contract/test_docs_landing.py holds every entry to
 # a page that exists, so curating cannot rot silently.
+# A browser keeps a stylesheet it has seen, so a changed one can sit behind an old page for days:
+# the route page's picture showed squashed because of exactly that. Every stylesheet link carries
+# this digest of the theme's CSS, so a change to it is a new URL and is fetched.
+_THEME_STATIC = Path(__file__).parent / "_themes" / "caravan" / "static"
+_STATIC_V = __import__("hashlib").sha256(
+    b"".join(f.read_bytes() for f in sorted(_THEME_STATIC.glob("*.css")))
+).hexdigest()[:10]
+
 html_context = {
+    "static_v": _STATIC_V,
     "nav_pages": [
         ("route/index", "The route"),
         ("concepts/templates", "Concepts"),
-        ("reference/manifest", "Reference"),
+        ("reference/cli", "CLI"),
+        ("reference/manifest", "Manifest"),
         ("compatibility", "Verified today"),
         ("roadmap", "Roadmap"),
     ],

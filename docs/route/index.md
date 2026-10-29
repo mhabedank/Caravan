@@ -1,42 +1,43 @@
 # The route
 
-Four legs, from nothing to a microcontroller answering. Each one ends with something you can point
-at — a file that now exists, a number the run printed, a verdict the pipeline reached — and each
-one tells you up front what that will be.
+<figure class="route-figure">
+<img src="../_static/images/route-road-to-the-board/route-road-to-the-board-960.webp"
+     srcset="../_static/images/route-road-to-the-board/route-road-to-the-board-480.webp 480w, ../_static/images/route-road-to-the-board/route-road-to-the-board-960.webp 960w, ../_static/images/route-road-to-the-board/route-road-to-the-board-1600.webp 1600w"
+     sizes="(max-width: 860px) 100vw, 860px" width="1600" height="900" decoding="async"
+     alt="A small orange-yellow van drives along a long straight road across flat country at dawn, towards a low workshop building on the horizon (AI-generated image)">
+</figure>
 
-Stop after any leg and what you built still works. Nothing is left half-configured for the next leg
-to finish.
+Four legs take you from nothing to a microcontroller running your model. Each leg ends with
+something you can point at: a file on disk, a number the run printed, a verdict the pipeline
+reached. Each leg tells you at the top what that is.
+
+Every leg leaves a working result. Stop after any of them and you keep what you built.
 
 ## The legs
 
 :::{container} prose
 
-**[Leg 1 — Your first model](1-first-model.md)** · about 5 minutes
-You run the worked example end to end. You end with an int8 model, its C array, and the run report
-that says what quantization cost.
+**[Leg 1 — Your first model](1-first-model.md)** · 5 minutes
+You end with an int8 model, its C array, and a report of what shrinking the model cost.
 
-**[Leg 2 — Your own columns](2-your-columns.md)** · about 10 minutes, 15 from the start
-You point the same pipeline at a table of your own and name your columns. You end with a model that
-reads your data, and your own accuracy figure.
+**[Leg 2 — Your own columns](2-your-columns.md)** · 10 minutes
+You end with a model that reads the columns you chose, and your own accuracy figure.
 
-**[Leg 3 — Onto a board](3-onto-a-board.md)** · about 15 minutes, 30 from the start
-You put the exported C files into a firmware project and flash a generic ESP32. You end with a board
-answering, and its answers checked against your computer's.
+**[Leg 3 — Onto a board](3-onto-a-board.md)** · 15 minutes
+You end with an ESP32 running your model, and its answers compared with your computer's.
 
-**[Leg 4 — When it does not fit](4-when-it-does-not-fit.md)** · after the half hour
-You tighten a budget until the gate refuses the run, read the per-layer table it prints, and choose
-a budget on purpose. You end understanding the one thing Caravan will not let you skip.
+**[Leg 4 — When it does not fit](4-when-it-does-not-fit.md)**
+You end having made the fit check refuse a run, and you know what it prints.
 
 :::
 
 ## Before you start
 
-The clock above assumes the install is already done, and the install is the longest wait in the half
-hour: about 2 GB of download for the training dependency. Leg 1 starts with it, so start it and read
-on while it runs.
+Leg 1 starts with the install. It downloads 2 GB, nearly all of it the training framework, so start
+it and read on while it runs.
 
-You need Python 3.13 for training. Linux or macOS — on Windows the commands work under WSL, and
-nothing here has been tested in PowerShell. A microcontroller only matters from leg 3.
+You need Python 3.13 and a POSIX shell (Linux, macOS, or WSL on Windows). You need a
+microcontroller from leg 3.
 
 ## Why it is called a route
 

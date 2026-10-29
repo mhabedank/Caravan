@@ -1,0 +1,62 @@
+id: route-sorting-the-columns
+series: siebdruck
+theme: route
+subject: sorting-the-columns
+generation:
+  model: Qwen/Qwen-Image-2512
+  revision: 25468b98e3276ca6700de15c6628e51b7de54a26
+  model_licence: Apache-2.0
+  model_card: https://huggingface.co/Qwen/Qwen-Image-2512
+  pipeline: QwenImagePipeline
+  prompt: a long sorting table in a quiet post office with a wall of open wooden pigeonholes behind it,
+    a small silhouetted clerk seen from behind sliding a blank envelope into one of them, that one pigeonhole
+    painted orange-yellow, the rest deep navy, 1970s modernist poster illustration, flat colour fields
+    with crisp edges, screen print texture, clean geometric forms, calm ordered composition with long
+    diagonals, soft gradient sky in pale mint and warm cream, deep navy shadows and ground, the one object
+    the picture is about painted in a warm orange-yellow accent colour, everything else only navy, mint
+    and cream, early morning light as graphic shapes, quietly futurist and precise, West German graphic
+    design of the seventies, restrained, no text, no lettering, no logos, no faces, people only as small
+    simple silhouettes
+  negative_prompt: text, letters, words, numbers, watermark, logo, signature, face, portrait, photo, photorealistic,
+    glossy, 3d render, neon, chrome, robot, spaceship, retro kitsch, cluttered, blurry, orange sky, orange
+    ground, brain, glowing network, hologram, floating icons, circuit pattern, circuit board traces, server
+    rack, data centre, binary digits, matrix rain, glowing cube, keyboard, laptop, smartphone, screen
+    full of code
+  seed: 809367
+  steps: 50
+  guidance: 4.0
+  width: 1584
+  height: 1056
+  generated: '2026-10-29'
+  hardware: dgx-spark
+  generator:
+    commit: 1f56728
+    image_digest: sha256:373249621b54580b0c38d284e4ddfe433d733800569e5d253b01792ad7c75bcc
+    script_sha256: 1deb5d6af046b8e5898d651ce5d0ccac9d33adf27154962996da4b4e2a96fd18
+licence: CC0-1.0
+placements:
+- leg 2, your own columns
+scene: A clerk sorting envelopes into a wall of pigeonholes
+alt: In a quiet post office a small silhouetted clerk slides an envelope into one of a wall of pigeonholes;
+  that one is painted orange-yellow (AI-generated image)
+focal_point:
+- 0.5
+- 0.5
+aspect: '3:2'
+source:
+  width: 1584
+  height: 1056
+  sha256: 2b72d1abd8291172f80d1f9aed434ae1b3c2acf1b70b69c17500f1c0afd412e8
+derivatives:
+  '480':
+    file: route-sorting-the-columns-480.webp
+    bytes: 5450
+    sha256: f89cc262d26f2762499692fe36169f2c84d64833d42d9b472fa9f7c06dbdd7d8
+  '960':
+    file: route-sorting-the-columns-960.webp
+    bytes: 11600
+    sha256: 1d77e58608273d1dfa7eac884c84f671d641afdc28045513bf9ff8f531642b35
+  '1600':
+    file: route-sorting-the-columns-1600.webp
+    bytes: 21056
+    sha256: 97dae03f4846cf319a79933597144f603662a6201e36093fc4c12c6713774f09

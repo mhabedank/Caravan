@@ -1,19 +1,14 @@
 # Leg 4: when it does not fit
 
 :::{container} leg-head
-**About 5 minutes**, after the half hour. This leg is not part of the thirty-minute promise on
-purpose.
-
 You will end with **a check you made refuse on purpose**, the numbers it printed read and
 understood, and a clear idea of **which of Caravan's two gates you will meet first**.
 
-Your computer only. No board, and no training — the refusal happens before training starts.
+Your computer only. No board, and no training: the refusal happens before training starts.
 :::
 
-Everything so far worked. That is the problem with it: the one thing Caravan will not let you skip
-is the thing you have not seen yet. A gate you meet for the first time on a Friday afternoon, with a
-deadline, on data you do not know, is a bad introduction. So let us cause one now, on data that does
-not matter.
+Everything so far worked. The one thing Caravan will not let you skip is the thing you have not seen
+yet. So cause a refusal now, on data that does not matter, and meet it before it matters.
 
 This leg continues from [leg 2](2-your-columns.md) — the `machine/` directory and its manifest.
 
@@ -24,8 +19,7 @@ One edit: ask for a model far too big for the board you named.
 ```bash
 # step: tighten
 cd machine
-cp manifest.yaml manifest.yaml.bak
-sed -i 's/hidden: \[16\]/hidden: [4096, 4096]/' manifest.yaml
+sed -i.bak 's/hidden: \[16\]/hidden: [4096, 4096]/' manifest.yaml
 caravan export manifest.yaml || echo "exit code: $?"
 ```
 
@@ -49,7 +43,7 @@ answer arrives while it is still cheap.
 **"a floor is a lower bound, so no training can make this model fit".** This is why the check is
 allowed to be certain. It compares what the weights *must* occupy against what the board *has* —
 17 MB against 4 MB — and no amount of training changes the number of weights. A model it stops
-cannot fit, and that is a fact rather than an estimate.
+cannot fit.
 
 **"short by 12,881,938".** It tells you the size of your problem. Twelve megabytes short is not a
 tuning question; it is the wrong architecture for this board. Shortening it to `[64]` is the answer,
@@ -90,20 +84,19 @@ cd ..
 ## The other gate, and why you did not see it fail
 
 Caravan has two checks that stop a run, and you have now met one. The other is the **quantization
-gate**, and on this model you cannot make it fail — which is worth knowing rather than hiding.
+gate**, and on this model it cannot fail.
 
 Look at what leg 2 printed: `what that cost: 0.0 against a budget of 0.02`. Making this model 8-bit
 cost it **nothing at all**. Set the budget to zero and the run still passes, because zero loss is
 within a zero budget.
 
-That is not a trick of the example. A small model on cleanly separable data often quantizes for
-free: the decisions sit far from the boundary, so rounding the arithmetic to 8-bit integers moves
-the scores without changing any answer. **The gate has nothing to stop because there is nothing
-wrong.**
+A small model on cleanly separable data quantizes for free: the decisions sit far from the
+boundary, so rounding to 8-bit integers moves the scores without changing any answer. **The gate
+has nothing to stop because nothing is wrong.**
 
-You will meet it for real when your data is harder — classes that overlap, a model whose decisions
-sit near the boundary, or a `number` output where every rounding shows up in the error. Then the
-budget starts refusing runs, and what it emits is the thing to look for:
+You meet it when your data is harder: classes that overlap, decisions near the boundary, or a
+`number` output where every rounding shows up in the error. Then the budget refuses runs, and
+these are what it emits:
 
 - the same `gate` record in `quantization.json`, with `verdict: fail`;
 - a **per-layer table** in `quantization-error.csv`, naming which layer turned 8-bit worst.
@@ -120,8 +113,8 @@ The question is not "what will pass" — that is how you get a budget that means
   extra reviews. `0.02` to `0.05` is honest.
 - **It acts on its own** — a cut-off, an alarm, a refusal. Now a point of accuracy is a rate of
   wrong actions out in the world. `0.01` or tighter, and expect refusals.
-- **You do not know yet.** `0.02`, and let the first run tell you whether this model quantizes well.
-  If it costs `0.0`, as here, you have learned something useful about your data.
+- **You do not know yet.** Start at `0.02` and read the first run's cost. A cost of `0.0`, as here,
+  tells you the model quantizes cleanly.
 
 Write the number in the manifest and the reason in a comment beside it. The number is a product
 decision living in a modelling file, and in six months the comment is the only thing that will

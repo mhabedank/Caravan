@@ -30,12 +30,14 @@ from pathlib import Path
 
 THUMB_WIDTH = 520
 
-# The site's own four inks, so the page the owner judges in is lit the way the site is.
+# The site's own inks, so the page the owner judges in is lit the way the site is. --pick and
+# --none are the site's gain and pain pairs from tokens.css; the warm accent is deliberately absent,
+# because the design language reserves it for the budget and its verdict (FR-026).
 CSS = """
 :root { color-scheme: light dark; --bg:#EFF2F0; --panel:#FCFCFB; --ink:#062544; --muted:#4B5450;
-  --line:#CDD4CE; --accent:#ED9B20; --pick:#0B7A5A; }
+  --line:#CDD4CE; --none:#8A4310; --pick:#1C5E3F; }
 @media (prefers-color-scheme: dark) { :root { --bg:#041C33; --panel:#062544; --ink:#EFF2F0;
-  --muted:#A3B5AD; --line:#17496F; --pick:#A5DBC6; } }
+  --muted:#A3B5AD; --line:#17496F; --pick:#9BD4A6; --none:#F5C07A; } }
 * { box-sizing: border-box; }
 body { margin:0; padding:28px 28px 120px; background:var(--bg); color:var(--ink);
   font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -61,7 +63,7 @@ button { font:inherit; font-size:14px; padding:5px 12px; border-radius:7px;
 button.on, button.primary { background:var(--pick); color:var(--bg); border-color:var(--pick); font-weight:650; }
 .subject { scroll-margin-top:20px; }
 .subject.done h3 code { color:var(--pick); }
-.subject.none h3 code { color:var(--accent); }
+.subject.none h3 code { color:var(--none); }
 .card { background:var(--panel); border:1px solid var(--line); border-radius:10px;
   padding:14px 18px; margin:14px 0; }
 #bar { position:fixed; left:0; right:0; bottom:0; background:var(--panel);

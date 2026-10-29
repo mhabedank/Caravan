@@ -23,15 +23,24 @@
         {%- endif %}
         <div class="row">
           <a class="btn" href="{{ pathto('route/index') }}">Start the route</a>
-          <a class="btn btn-ghost" href="{{ pathto('compatibility') }}">What is verified today</a>
+          <a class="btn btn-ghost" href="{{ pathto('reference/cli') }}">CLI reference</a>
+          <a class="btn btn-ghost" href="{{ pathto('reference/manifest') }}">Manifest reference</a>
         </div>
-        <p class="cap">First model in 15 minutes. On a board in 30.</p>
+        <p class="cap">Your first model in 15 minutes.</p>
       </div>
     </div>
     <figure class="hero-stage">
-      <img src="{{ pathto('_static/img/hero.svg', 1) }}" width="800" height="600"
-           alt="A road running to the horizon with three squares of decreasing size travelling
-                along it, and a microcontroller board standing at the end of the route.">
+      {#- Feature 011: generated, not drawn. How it was made sits beside the files, in
+          _static/images/model-picket-forest-bench/image.yaml, and the credits page names it. The
+          stage is 53% of the width on a desk and all of it below 860px, so `sizes` says so and a
+          phone never fetches the 1600px file. Not lazy: this is the first thing on the screen. -#}
+      {%- set hero = '_static/images/model-picket-forest-bench/model-picket-forest-bench-' %}
+      <img src="{{ pathto(hero ~ '960.webp', 1) }}"
+           srcset="{{ pathto(hero ~ '480.webp', 1) }} 480w, {{ pathto(hero ~ '960.webp', 1) }} 960w, {{ pathto(hero ~ '1600.webp', 1) }} 1600w"
+           sizes="(max-width: 860px) 100vw, 53vw" width="1600" height="1067"
+           decoding="async" fetchpriority="high"
+           alt="A small circuit board with an orange-yellow diagnostic plug on a workbench, an
+                oscilloscope trace behind it (AI-generated image)">
     </figure>
   </section>
   <div class="landing">

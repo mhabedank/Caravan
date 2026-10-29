@@ -68,6 +68,40 @@ jobs:
         # No CARAVAN_VERSION: this build is a check, not the published site, so conf.py reads the
         # package's own version. The release workflow builds the site that ships.
         run: uv run --python 3.13 sphinx-build -W -b html docs _site
+      - name: the site's weight, against the 3 MB budget
+        # FR-029 and SC-009. Principle V: a budget nothing measures is a suggestion, and a stage
+        # that cannot tell whether a budget holds MUST fail rather than pass. The ceiling is written
+        # here and nowhere else - there is deliberately no input, flag or environment variable that
+        # can raise or silence it, because a gate that can be silenced is not a gate.
+        #
+        # What is measured: the sum of the files the site actually serves. `_site/.doctrees` is
+        # build cache and is excluded - counting it reads 2 MB for a site that serves 0.7 MB. The
+        # sum is of apparent bytes, not disk blocks: `du` rounds every file to 4 KB and a site of
+        # fifty small files pays about 120 KB of rounding it does not weigh.
+        run: |
+          CEILING=3000000
+          if [ ! -d _site ]; then
+            echo "no _site to measure: the budget cannot be determined, so this fails (Principle V)."
+            exit 1
+          fi
+          bytes=$(find _site -path _site/.doctrees -prune -o -type f -printf '%s\n' \
+            | awk '{s+=$1} END {print s+0}')
+          if [ -z "$bytes" ] || [ "$bytes" -eq 0 ]; then
+            echo "measured 0 bytes, which cannot be right: failing rather than passing on doubt."
+            exit 1
+          fi
+          pct=$(( bytes * 100 / CEILING ))
+          printf 'site weight: %s bytes, %d%% of the %s byte ceiling (%s bytes of headroom)\n' \
+            "$bytes" "$pct" "$CEILING" "$(( CEILING - bytes ))" >> "$GITHUB_STEP_SUMMARY"
+          printf 'site weight: %s bytes, %d%% of %s, %s bytes spare\n' \
+            "$bytes" "$pct" "$CEILING" "$(( CEILING - bytes ))"
+          if [ "$bytes" -gt "$CEILING" ]; then
+            echo "over the $CEILING byte budget by $(( bytes - CEILING )) bytes."
+            echo "The remedy is fewer or lighter images - drop the 1600 px derivative off the"
+            echo "subjects that are not the first screen, or move to AVIF. Not a bigger number."
+            exit 1
+          fi
+
       - name: how long this job took, against the ten minutes it is allowed
         if: always()
         run: |
