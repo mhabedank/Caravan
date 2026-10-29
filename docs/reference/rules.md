@@ -101,12 +101,17 @@ Publication needed a compliance block. Retired with the compliance layer (consti
 ### CF-6
 
 **Checks:** a template that consumes a time window has `preprocessing.window_size`, and the window
-is long enough for its layers. Both templates consume one.
+is long enough for its layers. All four templates consume one, except that a model with an image
+input takes none ([CF-19](#cf-19)). For `conv2d`, both axes of the plane are checked: the rows
+(the window, or an image's height) and the columns (the input columns, or an image's width). An
+axis learned from the data — an image size or a one-hot vocabulary — is checked by the build stage,
+before training.
 
-**Reported at:** `preprocessing.window_size`.
+**Reported at:** `preprocessing.window_size`, or `input_features[0].preprocessing.height` for an
+image.
 
-**Fix:** set the window. For `conv1d`, the finding says which block the window ran out at, and the
-smallest window that works.
+**Fix:** set the window. For `conv1d` and `conv2d`, the finding says which block, on which axis,
+ran out, and the smallest size that works.
 
 ### CF-7 (retired)
 
@@ -185,9 +190,10 @@ the output is not a `number`.
 
 **Checks:** the int8 budget matches the output type, and is given:
 - `accuracy_drop_max` for `category` and `binary`;
-- `mae_increase_max` for `number`.
+- `mae_increase_max` for `number`;
+- `auc_drop_max` for `anomaly`.
 
-**Reported at:** `output_features[0].accuracy_drop_max` or `output_features[0].mae_increase_max`.
+**Reported at:** the budget field that is missing or does not belong to the type.
 
 **Fix:** state the budget that fits the type ([budgets](../budgets.md)).
 
@@ -198,6 +204,26 @@ the output is not a `number`.
 **Reported at:** `output_features`.
 
 **Fix:** list one output. A model that answers two questions is two models.
+
+### CF-18
+
+**Checks:** the template answers the output's type. `autoencoder` answers `anomaly` and nothing
+else; `mlp`, `conv1d` and `conv2d` answer `category`, `binary` and `number`.
+
+**Reported at:** `model.template`.
+
+**Fix:** use a template the finding lists, or the output type the template answers.
+
+### CF-19
+
+**Checks:** a model with an image input can be built:
+- the image is the only input feature;
+- no `preprocessing.window_size` is stated, because a record is one sample;
+- the template takes images (`conv2d`).
+
+**Reported at:** the second input, `preprocessing.window_size`, or `model.template`.
+
+**Fix:** remove the other inputs or the window, or use `conv2d`.
 
 ## Data
 
@@ -331,6 +357,30 @@ states which one is true.
 **Fix:** set `preprocessing.fallback_true_label` to the spelling that means true, or clean the
 column.
 
+### DS-16
+
+**Checks:** an `anomaly` output has something normal to learn from: the `normal_label` occurs in
+the data, and the training and validation parts each hold normal windows.
+
+**Reported at:** `output_features[0].preprocessing.normal_label`.
+
+**Fix:** state the value that means normal; the finding lists the values found, with their counts.
+
+### DS-17
+
+**Checks:** every image the column names can be read as declared:
+- it is a PNG, JPEG, BMP or GIF file, by its contents;
+- it decodes;
+- when no size is stated, every image has the same height, width and channels.
+
+A missing file, or a path leaving the dataset directory, is refused earlier, with
+[DS-1](#ds-1), when the dataset is identified.
+
+**Reported at:** `dataset`, naming the record and the file, or the image feature's `height`,
+`width` or `num_channels`.
+
+**Fix:** replace the file, or state the size every image is brought to.
+
 ## Fit check
 
 ### F-1
@@ -387,11 +437,23 @@ Raising the budget is a decision about the model, and the report records it.
 
 ### Q-5
 
-**Checks:** the test part has samples, so the gate can be measured at all.
+**Checks:** the test part has samples, so the gate can be measured at all. For an `anomaly`
+output, it holds both normal and abnormal windows: the area under the ROC curve needs both.
 
-**Reported at:** `preprocessing.split.probabilities`.
+**Reported at:** `preprocessing.split.probabilities`, or `output_features[0].auc_drop_max`.
 
-**Fix:** more data or a larger test fraction.
+**Fix:** more data or a larger test fraction; for anomaly detection, abnormal windows in the test
+part.
+
+### Q-6
+
+**Checks:** an image input of the converted model takes raw pixels: uint8, scale 1, zero point 0,
+read from the file. Caravan calibrates with a black and a white frame first so that it does; this
+rule makes the contract's promise a check.
+
+**Reported at:** `export.quantization`.
+
+**Fix:** none expected; report it, with the model file.
 
 ## Export
 

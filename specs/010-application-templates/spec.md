@@ -174,9 +174,10 @@ interface contract.
    pixels, **Then** the model scales them itself, and the interface contract states the height, the
    width, the channels and their order, the pixel element type, and that the frame must already have
    the declared size.
-5. **Given** the Visual Wake Words reference shape, 96 × 96 pixels, and a board whose memory such a
-   model cannot fit, **When** the fit check runs, **Then** the run stops before training with the
-   floors and the board's figures.
+5. **Given** an image model whose lower bounds exceed a board's memory, **When** the fit check runs,
+   **Then** the run stops before training with the floors and the board's figures; and an image is
+   counted at one byte per pixel, so a model that fits is not refused for a float copy it will
+   never have.
 6. **Given** an image input beside other inputs, an image input with a window, or an image input
    with the anomaly template, **When** the manifest is validated, **Then** it is refused, naming the
    combination and what is accepted.
@@ -406,7 +407,9 @@ manifest for each; search the stages for a branch on a template identifier.
 - **SC-001**: Each of the twelve application classes has an entry in the documentation that names its
   template, or the reason it has none and what it would need.
 - **SC-002**: A manifest for each new template runs from validation to export on its committed
-  fixture, with the gate passing; a second manifest with a tightened budget fails the gate.
+  fixture, with the gate passing; a run whose int8 model loses more than the budget fails the gate
+  and leaves no model. (On the fixtures int8 loses nothing, so the loss is injected at the
+  measurement seam, as feature 003's gate test does.)
 - **SC-003**: The anomaly template built at `hum-fan`'s architecture has exactly 35,280 parameters,
   the count of the zoo's hand-built model.
 - **SC-004**: On the anomaly fixture, the exported int8 model's score separates normal from abnormal
@@ -427,7 +430,10 @@ manifest for each; search the stages for a branch on a template identifier.
   export on a committed fixture of generated images, with the gate passing.
 - **SC-013**: The two-dimensional template built at the Visual Wake Words reference — MobileNetV1 at
   width 0.25, 96 × 96 × 3, two labels — has the parameter count computed independently from that
-  architecture, and the fit check reports it against each built-in board before any training.
+  architecture. (Measured 2026-10-29: its working-memory floor, 55,296 bytes, is below even the
+  s32k144's 65,536, so the fit check passes it on every built-in board; a floor is a lower bound,
+  and the figure a board needs comes from emulation or the board. An image model whose floor does
+  exceed a board is refused before training, tested separately.)
 - **SC-014**: Every missing, unreadable or out-of-directory image in a test fixture is refused with
   its record and file named; none is dropped silently.
 - **SC-015**: Changing one image file of a dataset invalidates the cached stages that read it, and

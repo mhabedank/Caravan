@@ -90,7 +90,15 @@ which is the MLPerf Tiny VWW reference architecture.
 convolution of 8 filters at stride 2 and thirteen separable blocks (pointwise filters 16, 32, 32, 64,
 64, 128, 128 × 5, 256, 256; stride 2 at blocks 2, 4, 6 and 12), normalisation in every block, average
 head. Its count is 219,058 plus one bias per convolution (R4); the test computes that number from
-the block list rather than trusting either side.
+the block list rather than trusting either side. **Measured**: 221,794 = 219,058 + 2,736.
+
+**The fit check, measured afterwards.** The spec first expected the s32k144 to refuse this model
+before training. It does not: the working-memory floor is 55,296 bytes (the second block's
+pointwise convolution, input plus output at int8) against the board's 65,536, and the weight floor
+219,064 bytes against 524,288 of flash. A floor is a lower bound by design (Principle V); the
+runtime's arena will be larger, and only emulation or the board can say by how much. The spec's
+success criterion was corrected to what is true, and the refusal is tested with an image whose floor
+does exceed the board (160 × 160 × 3: 80,000 bytes).
 
 ## R6. An image reaches the model as raw 8-bit pixels
 

@@ -64,6 +64,7 @@ pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/rel
 :hidden:
 
 try-it
+applications
 guides/own-project
 guides/lora32
 ```

@@ -33,8 +33,10 @@ Expected:
 - `model/interface.json` has one output of type `anomaly`, `decision: threshold`, the threshold, and
   `abnormal_when: score >= threshold`.
 
-Gate failure: a copy of the manifest with `auc_drop_max: 0` (or a budget below the measured drop)
-fails at quantize with Q-4 and leaves no model (SC-002).
+Gate failure: on the fixture, int8 loses no separation, so even `auc_drop_max: 0` passes
+(`0 <= 0`). `tests/train/test_anomaly_pipeline.py` therefore reverses the int8 model's scores at the
+measurement seam, as feature 003's gate test does; the run fails at quantize with Q-4 and leaves no
+model (SC-002).
 
 ## 3. A plane of feature frames (User Story 2)
 
@@ -63,17 +65,19 @@ Expected:
 - the gate passes.
 
 Refusals (each a fixture or a test): a second input beside the image (CF-19); a window with an image
-(CF-19); `template: mlp` with an image (CF-19); a missing image file (DS-17).
+(CF-19); `template: mlp` with an image (CF-19); a missing image file (DS-1, when the dataset is
+identified); a file that is not an image, or images of several sizes with none stated (DS-17).
 
 ## 5. The reference shapes (build and fit check only)
 
 ```bash
-uv run pytest tests/train/test_reference_shapes.py -q
+uv run pytest tests/train/test_anomaly_pipeline.py tests/train/test_conv2d_pipeline.py tests/train/test_image_pipeline.py -q -k "count or parameter"
 ```
 
 Expected: `hum-fan`'s architecture builds with 35,280 parameters (SC-003); the keyword-spotting
-reference with 24,908 (SC-006); MobileNetV1 at width 0.25 with the count computed from its blocks,
-and the fit check refuses it on `s32k144` before training (SC-013).
+reference with 24,908 (SC-006); MobileNetV1 at width 0.25 with 221,794, Keras's 219,058 plus its
+2,736 convolution biases (SC-013). Its floors pass every built-in board — a floor is a lower bound
+(research R5); the refusal before training is shown with a 160 × 160 × 3 image.
 
 ## 6. The whole suite and the gates
 

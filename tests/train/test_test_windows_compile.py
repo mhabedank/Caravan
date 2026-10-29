@@ -29,8 +29,8 @@ pytestmark = pytest.mark.skipif(COMPILER is None, reason="no host C++ compiler o
 STUB = """#pragma once
 #include <cstddef>
 #include <cstdint>
-typedef enum { kTfLiteFloat32 = 1, kTfLiteInt32 = 2, kTfLiteInt8 = 9 } TfLiteType;
-typedef union { float* f; int32_t* i32; int8_t* int8; } TfLitePtrUnion;
+typedef enum { kTfLiteFloat32 = 1, kTfLiteInt32 = 2, kTfLiteUInt8 = 3, kTfLiteInt8 = 9 } TfLiteType;
+typedef union { float* f; int32_t* i32; uint8_t* uint8; int8_t* int8; } TfLitePtrUnion;
 typedef struct { TfLiteType type; TfLitePtrUnion data; size_t bytes; } TfLiteTensor;
 namespace tflite {
 class MicroInterpreter {
@@ -42,7 +42,12 @@ class MicroInterpreter {
 }  // namespace tflite
 """
 
-TYPES = {"float32": ("kTfLiteFloat32", "float", "f"), "int32": ("kTfLiteInt32", "int32_t", "i32")}
+TYPES = {
+    "float32": ("kTfLiteFloat32", "float", "f"),
+    "int32": ("kTfLiteInt32", "int32_t", "i32"),
+    # An image's raw pixels (feature 010).
+    "uint8": ("kTfLiteUInt8", "uint8_t", "uint8"),
+}
 
 
 def harness(interface: dict) -> str:
@@ -86,13 +91,8 @@ int main() {{
 """
 
 
-def test_the_header_compiles_and_reproduces_the_host_decisions(workspace, tmp_path) -> None:
-    runs, cache = workspace
-    manifest = manifest_with(tmp_path, 8)
-    code = main(["export", str(manifest), "--runs-dir", str(runs), "--cache-dir", str(cache)])
-    assert code == EXIT_OK
-    run = latest_run(runs)
-
+def compile_and_run(run: Path, tmp_path: Path) -> list[str]:
+    """Build the run's header with the stub and a harness; run it; return its output lines."""
     build = tmp_path / "build"
     (build / "tensorflow" / "lite" / "micro").mkdir(parents=True)
     (build / "tensorflow" / "lite" / "micro" / "micro_interpreter.h").write_text(STUB)
@@ -125,7 +125,40 @@ def test_the_header_compiles_and_reproduces_the_host_decisions(workspace, tmp_pa
         [str(build / "harness")], cwd=build, capture_output=True, text=True, check=False
     )
     assert ran.returncode == 0, ran.stdout + ran.stderr
-    lines = ran.stdout.strip().splitlines()
+    return ran.stdout.strip().splitlines()
+
+
+def test_the_header_compiles_and_reproduces_the_host_decisions(workspace, tmp_path) -> None:
+    runs, cache = workspace
+    manifest = manifest_with(tmp_path, 8)
+    code = main(["export", str(manifest), "--runs-dir", str(runs), "--cache-dir", str(cache)])
+    assert code == EXIT_OK
+    lines = compile_and_run(latest_run(runs), tmp_path)
     assert lines[-1] == "agreed 8/8"
     names = {line.split(" ", 1)[1] for line in lines[:-1]}
     assert names == {"dos", "fuzzy", "normal", "replay"}
+
+
+EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+
+
+@pytest.mark.parametrize(
+    ("example", "names"),
+    [
+        # Feature 010: the anomaly decision (score against the threshold) and raw uint8 pixels.
+        ("anomaly-autoencoder.yaml", {"normal", "abnormal"}),
+        ("images-conv2d.yaml", {"bar", "cross", "square"}),
+    ],
+)
+def test_the_new_types_compile_and_reproduce_the_host_decisions(
+    workspace, tmp_path, example, names
+) -> None:
+    runs, cache = workspace
+    code = main(
+        ["export", str(EXAMPLES / example), "--runs-dir", str(runs), "--cache-dir", str(cache)]
+    )
+    assert code == EXIT_OK
+    lines = compile_and_run(latest_run(runs), tmp_path)
+    count = len(lines) - 1
+    assert lines[-1] == f"agreed {count}/{count}"
+    assert {line.split(" ", 1)[1] for line in lines[:-1]} == names

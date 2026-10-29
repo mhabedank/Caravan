@@ -32,6 +32,12 @@ rc3 adds the documentation site and test windows in the export. The board guide 
 model on a LILYGO LoRa32 and compares its answers with the host's (`docs/guides/lora32.md`). The
 first recorded board run is still to come.
 
+**On `main` since rc3, not yet in a release:** two more templates and two more feature types, derived
+from the application classes Caravan targets (`docs/applications.md`). `conv2d` convolves a plane —
+feature frames as in keyword spotting, or an image — and `autoencoder` detects anomalies from normal
+data through a new `anomaly` output. A new `image` input type hands the device raw 8-bit pixels.
+Nine of the twelve application classes are served.
+
 Not on the package index. Each version is installed from its GitHub release.
 
 ## Documentation
