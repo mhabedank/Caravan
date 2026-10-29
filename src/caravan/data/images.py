@@ -81,14 +81,18 @@ def _where(record: int, column: str) -> str:
     return f"record {record + 1}, column {column}"
 
 
-def sizes(root: Path, paths: Sequence[str], column: str) -> list[tuple[int, int, int]]:
-    """Height, width and channels of every image, in record order."""
+def sizes(
+    root: Path, paths: Sequence[str], column: str
+) -> tuple[list[tuple[int, int, int]], dict[str, int]]:
+    """Height, width and channels of every image, in record order, and how many of each format."""
     out = []
+    formats: dict[str, int] = {}
     for index, relative in enumerate(paths):
-        image, _ = _decode(root / relative, _where(index, column))
+        image, kind = _decode(root / relative, _where(index, column))
         height, width, channels = image.shape
         out.append((int(height), int(width), 3 if channels == 4 else int(channels)))
-    return out
+        formats[kind] = formats.get(kind, 0) + 1
+    return out, formats
 
 
 def _channels(image: np.ndarray, wanted: int) -> tuple[np.ndarray, bool]:
@@ -157,7 +161,7 @@ def fit_image(
     """
     from caravan.manifest.resolve import DERIVED
 
-    found = sizes(root, paths, column)
+    found, formats = sizes(root, paths, column)
     fitted: dict[str, Any] = {"resize_method": stated["resize_method"]}
     taken: list[str] = []
     for key, axis in (("height", 0), ("width", 1), ("num_channels", 2)):
@@ -187,4 +191,5 @@ def fit_image(
     fitted["images"] = len(found)
     fitted["resized"] = sum(1 for size in found if size[:2] != (fitted["height"], fitted["width"]))
     fitted["converted"] = sum(1 for size in found if size[2] != fitted["num_channels"])
+    fitted["formats"] = dict(sorted(formats.items()))
     return fitted

@@ -353,6 +353,27 @@ def measure_split(
     return [metric.as_dict() for metric in metrics], confusion
 
 
+#: What an anomaly model reconstructs of each input type: the input as the model sees it after
+#: preprocessing, never the raw value (feature 010, research R8).
+RECONSTRUCTED_AS = {
+    "number": "standardised value",
+    "binary": "0/1 channel",
+    "category_dense": "embedding channels",
+    "category_onehot": "one-hot channels",
+}
+
+
+def reconstruction_target(features: Any) -> dict[str, str]:
+    """Per input feature, what the anomaly score compares — the spec's edge case for categories."""
+    out: dict[str, str] = {}
+    for feature in features:
+        kind = feature["type"]
+        if kind == "category":
+            kind = f"category_{feature['encoder']['type']}"
+        out[feature["name"]] = RECONSTRUCTED_AS[kind]
+    return out
+
+
 def anomaly_metrics(
     raw: Any, targets: Any, *, split: str, dataset_version: str
 ) -> list[dict[str, Any]]:
@@ -454,6 +475,8 @@ def _write_measurements(
         },
         "metrics": measured,
     }
+    if output["type"] == "anomaly":
+        payload["reconstruction_target"] = reconstruction_target(inputs["input_features"])
     if matrices["test"] is not None:
         # The test split is the reference, so it is the matrix the report carries.
         payload["confusion_matrix"] = matrices["test"].as_dict()

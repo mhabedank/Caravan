@@ -27,7 +27,11 @@ Nine of the twelve are served.
 - **Rows that are moments in time, columns that are different sensors:** `conv1d`. The columns are
   channels; the convolution runs along time.
 - **Rows that are frames, columns that are neighbouring frequencies:** `conv2d`. A pattern has
-  extent along both, and the convolution runs along both.
+  extent along both, and the convolution runs along both. Every input column becomes a column of
+  the plane, so a `category` input's one-hot or embedding channels sit beside the others as if they
+  were neighbouring frequencies; a convolution reads meaning into that neighbourhood which is not
+  there. Give `conv2d` number columns that really are neighbours, and leave categories to `conv1d`
+  or `mlp`.
 - **No temporal pattern worth convolving, or very small boards:** `mlp`.
 - **Faults are rare and varied, normal data is plentiful:** `autoencoder` with an `anomaly` output.
   It learns from normal windows alone; the column telling normal from abnormal is still needed,

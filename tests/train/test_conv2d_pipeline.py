@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 from caravan.cli.main import EXIT_RULE, main
-from caravan.manifest.errors import RULE_WINDOW_MATCHES_TEMPLATE
+from caravan.manifest.errors import RULE_ACCURACY_GATE, RULE_WINDOW_MATCHES_TEMPLATE
+from caravan.stages.quantize import QUANTIZED_MODEL
 from tests.train.conftest import latest_run
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -158,3 +159,18 @@ export: {{targets: [stm32h743], representative_samples: 100}}
     finding = next(f for f in report["findings"] if f.get("rule") == RULE_WINDOW_MATCHES_TEMPLATE)
     assert "columns axis has 4 columns" in finding["problem"]
     assert not (latest_run(runs) / "model" / "trained.keras").exists()
+
+
+def test_a_lost_accuracy_fails_the_gate_and_leaves_no_model(workspace, monkeypatch) -> None:
+    # SC-002 for this template: the gate can fail. On the fixture int8 loses nothing, so the loss
+    # is injected at the measurement seam, as feature 003's gate test does.
+    from tests.train.test_gate_failure import degrade_the_quantized_model
+
+    degrade_the_quantized_model(monkeypatch)
+    runs, cache = workspace
+    code = main(["quantize", str(EXAMPLE), "--runs-dir", str(runs), "--cache-dir", str(cache)])
+    assert code == EXIT_RULE
+    report = json.loads((latest_run(runs) / "report.json").read_text(encoding="utf-8"))
+    finding = next(f for f in report["findings"] if f.get("rule") == RULE_ACCURACY_GATE)
+    assert finding["path"] == "output_features[0].accuracy_drop_max"
+    assert not (latest_run(runs) / QUANTIZED_MODEL).exists()

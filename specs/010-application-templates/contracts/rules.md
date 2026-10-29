@@ -60,8 +60,7 @@ Also raised when the stated `normal_label` occurs nowhere in the data, naming th
 ### DS-17 — an image that cannot be read as declared (new)
 
 ```
-dataset: labels.csv, record 17, column image: frames/0017.png does not exist
-dataset: labels.csv, record 3, column image: notes.txt is not an image this build reads
+dataset: record 3, column image: notes.txt is not an image this build reads
   accepted: png, jpeg, bmp, gif
 input_features[0].preprocessing.height: the images are not all one height (16 in 210 images, 24 in
   3) and no height is stated

@@ -83,8 +83,9 @@ Fitted values, written by the data stage into `data/preprocessing.json` and merg
 manifest under `preprocessing.fitted`:
 
 ```json
-{"height": 96, "width": 96, "num_channels": 3, "taken_from": ["height", "width"],
- "images": 1200, "resized": 37, "converted": 4, "formats": {"png": 1200}}
+{"height": 96, "width": 96, "num_channels": 3, "resize_method": "interpolate",
+ "taken_from_data": ["height", "width"], "images": 1200, "resized": 37, "converted": 4,
+ "formats": {"png": 1200}}
 ```
 
 Model input: named after the feature, shape (height, width, channels), **uint8, scale 1, zero point
@@ -122,7 +123,8 @@ between the reconstruction and the preprocessed input.
 
 `metrics.json` (train) for an anomaly output, per split `val` and `test`:
 `auc`, `normal_windows`, `abnormal_windows`, and `score_mean_normal`, `score_mean_abnormal`;
-`dataset.training_windows_normal`, the count training actually used.
+`dataset.training_windows`, the count training actually used: the training part, or its normal
+windows for an anomaly output.
 
 `quantization.json` for an anomaly output:
 

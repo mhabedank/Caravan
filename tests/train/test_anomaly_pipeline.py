@@ -86,6 +86,8 @@ def test_training_learned_from_normal_windows_only(exported) -> None:
     by_name = {(m["name"], m["split"]): m["value"] for m in metrics["metrics"]}
     assert by_name[("auc", "test")] >= 0.9
     assert by_name[("abnormal_windows", "test")] > 0
+    # What the score compares, stated per input (spec, Edge Cases).
+    assert set(metrics["reconstruction_target"].values()) == {"standardised value"}
 
 
 def test_the_gate_judges_the_auc_and_the_threshold_comes_from_int8_normals(exported) -> None:

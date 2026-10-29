@@ -121,6 +121,7 @@ def test_the_size_was_taken_from_the_data(exported) -> None:
     image = fitted["input_features"]["image"]
     assert image["taken_from_data"] == ["height", "width", "num_channels"]
     assert (image["images"], image["resized"], image["converted"]) == (180, 0, 0)
+    assert image["formats"] == {"png": 180}
 
 
 def test_the_fit_check_counts_one_byte_per_pixel(exported) -> None:
@@ -144,6 +145,7 @@ def test_jpeg_files_are_read(tmp_path, workspace) -> None:
     runs, _ = workspace
     fitted = json.loads((latest_run(runs) / "data" / "preprocessing.json").read_text())
     assert fitted["input_features"]["image"]["images"] == 40
+    assert fitted["input_features"]["image"]["formats"] == {"jpeg": 40}
 
 
 def test_images_of_several_sizes_need_a_stated_size(tmp_path, workspace) -> None:

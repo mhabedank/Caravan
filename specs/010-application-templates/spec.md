@@ -374,7 +374,8 @@ manifest for each; search the stages for a branch on a template identifier.
   detection MUST follow from the output type.
 - **FR-031**: Each template MUST run end to end — validate, render, build, train, quantize, export —
   on a committed synthetic fixture, with its gate able to pass and to fail.
-- **FR-032**: The fit check before training MUST apply to both templates unchanged.
+- **FR-032**: The fit check before training MUST apply to both templates, counting what they add:
+  depthwise convolutions as convolutions, and an image input at one byte per pixel.
 - **FR-033**: The stage cache MUST apply: a changed parameter produces a new model, an unread field
   does not.
 - **FR-034**: The dependency count, the extras and the default installation's size MUST be unchanged.
