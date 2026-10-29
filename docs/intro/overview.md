@@ -59,34 +59,56 @@ default filled in. {cmd}`caravan validate` checks the file without reading any d
 ## What it does
 
 <figure>
-<svg viewBox="0 0 580 150" role="img" aria-labelledby="flow-t" style="max-width:100%;height:auto">
-  <title id="flow-t">Your table and your manifest go in; a trained model is shrunk to int8; a gate
-  compares the shrunken model with the trained one and stops the run if it lost too much accuracy;
-  what comes out is a model file, C sources and the interface contract your firmware binds to.</title>
-  <g fill="var(--text,#062544)" font-family="JetBrains Mono, monospace" font-size="12">
-    <rect x="2" y="34" width="92" height="62" fill="none" stroke="var(--border-strong,#7A847C)" stroke-width="1.5" rx="6"/>
-    <text x="14" y="58">your table</text><text x="14" y="76">your YAML</text>
-    <rect x="130" y="34" width="104" height="62" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)" stroke-width="1.5" rx="6"/>
-    <text x="146" y="58">trained</text><text x="146" y="76">model</text>
-    <rect x="270" y="34" width="104" height="62" fill="var(--surface-2,#E4E8E5)" stroke="var(--border-strong,#7A847C)" stroke-width="1.5" rx="6"/>
-    <text x="286" y="58">int8</text><text x="286" y="76">model</text>
-    <rect x="462" y="34" width="116" height="62" fill="none" stroke="var(--border-strong,#7A847C)" stroke-width="1.5" rx="6"/>
-    <text x="476" y="52">.tflite</text><text x="476" y="70">C array</text><text x="476" y="88">contract</text>
-    <path d="M98 65 H126 M238 65 H266 M378 65 H404 M452 65 H458" stroke="var(--text,#062544)" stroke-width="1.5" fill="none"/>
-    <path d="M126 65 l-7 -4 v8 z M266 65 l-7 -4 v8 z M458 65 l-7 -4 v8 z" fill="var(--text,#062544)"/>
-  </g>
-  <g font-family="Archivo, sans-serif" font-size="11">
-    <rect x="404" y="20" width="48" height="90" fill="none" stroke="var(--mark,#CA6A0A)" stroke-width="2.5"/>
-    <text x="428" y="14" text-anchor="middle" fill="var(--mark,#CA6A0A)" font-weight="700">gate</text>
-    <text x="428" y="131" text-anchor="middle" fill="var(--muted,#4B5450)">within budget?</text>
-    <text x="48" y="118" text-anchor="middle" fill="var(--muted,#4B5450)">you write</text>
-    <text x="182" y="118" text-anchor="middle" fill="var(--muted,#4B5450)">Caravan</text>
-    <text x="322" y="118" text-anchor="middle" fill="var(--muted,#4B5450)">Caravan</text>
-    <text x="520" y="118" text-anchor="middle" fill="var(--muted,#4B5450)">your firmware</text>
-  </g>
+<svg viewBox="0 0 720 252" role="img" aria-labelledby="flow-t flow-d" style="max-width:100%;height:auto">
+  <title id="flow-t">Caravan's five stages and its two gates</title>
+  <desc id="flow-d">Five stages run left to right: data, build, train, quantize and export, and the export ends in the firmware. The fit check stands between build and train, the quantization gate between quantize and export. Either can send the run down to a shared end: the run stops and nothing is exported. Under each stage, what it leaves behind: schema.json, fit.json, metrics.json, the int8 .tflite and the C array. A bracket marks that caravan export runs all five.</desc>
+  <path d="M0,50 V42 H628 V50" fill="none" stroke="var(--border-strong,#7A847C)" stroke-width="1"/>
+  <text x="314" y="33" font-family="JetBrains Mono, monospace" font-size="11" font-weight="400" fill="var(--muted,#4B5450)" text-anchor="middle">caravan export runs all five and reuses what is cached</text>
+  <path d="M233,136 L233,218 Q233,226 241,226 L567.5,226" fill="none" stroke="var(--border-strong,#7A847C)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="574,226 567,222 567,230" fill="var(--border-strong,#7A847C)"/>
+  <path d="M505,136 L505,218 Q505,226 513,226 L521,226" fill="none" stroke="var(--border-strong,#7A847C)" stroke-width="1.5" stroke-linejoin="round"/>
+  <text x="0" y="84" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" fill="var(--muted,#4B5450)">01</text>
+  <rect x="0" y="94" width="84" height="36" rx="2" fill="var(--accent,#062544)"/>
+  <text x="42" y="116.5" font-family="JetBrains Mono, monospace" font-size="12.5" font-weight="600" fill="var(--on-accent,#EFF2F0)" text-anchor="middle">data</text>
+  <text x="0" y="150" font-family="JetBrains Mono, monospace" font-size="11" font-weight="400" fill="var(--muted,#4B5450)">schema.json</text>
+  <text x="110" y="84" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" fill="var(--muted,#4B5450)">02</text>
+  <rect x="110" y="94" width="84" height="36" rx="2" fill="var(--accent,#062544)"/>
+  <text x="152" y="116.5" font-family="JetBrains Mono, monospace" font-size="12.5" font-weight="600" fill="var(--on-accent,#EFF2F0)" text-anchor="middle">build</text>
+  <text x="110" y="150" font-family="JetBrains Mono, monospace" font-size="11" font-weight="400" fill="var(--muted,#4B5450)">fit.json</text>
+  <text x="272" y="84" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" fill="var(--muted,#4B5450)">03</text>
+  <rect x="272" y="94" width="84" height="36" rx="2" fill="var(--accent,#062544)"/>
+  <text x="314" y="116.5" font-family="JetBrains Mono, monospace" font-size="12.5" font-weight="600" fill="var(--on-accent,#EFF2F0)" text-anchor="middle">train</text>
+  <text x="272" y="150" font-family="JetBrains Mono, monospace" font-size="11" font-weight="400" fill="var(--muted,#4B5450)">metrics.json</text>
+  <text x="382" y="84" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" fill="var(--muted,#4B5450)">04</text>
+  <rect x="382" y="94" width="84" height="36" rx="2" fill="var(--accent,#062544)"/>
+  <text x="424" y="116.5" font-family="JetBrains Mono, monospace" font-size="12.5" font-weight="600" fill="var(--on-accent,#EFF2F0)" text-anchor="middle">quantize</text>
+  <text x="382" y="150" font-family="JetBrains Mono, monospace" font-size="11" font-weight="400" fill="var(--muted,#4B5450)">int8 .tflite</text>
+  <text x="544" y="84" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" fill="var(--muted,#4B5450)">05</text>
+  <rect x="544" y="94" width="84" height="36" rx="2" fill="var(--accent,#062544)"/>
+  <text x="586" y="116.5" font-family="JetBrains Mono, monospace" font-size="12.5" font-weight="600" fill="var(--on-accent,#EFF2F0)" text-anchor="middle">export</text>
+  <text x="544" y="150" font-family="JetBrains Mono, monospace" font-size="11" font-weight="400" fill="var(--muted,#4B5450)">C array</text>
+  <rect x="654" y="94" width="66" height="36" rx="2" fill="var(--surface,#FCFCFB)" stroke="var(--border-strong,#7A847C)" stroke-width="1"/>
+  <text x="687" y="116.5" font-family="JetBrains Mono, monospace" font-size="12.5" font-weight="600" fill="var(--text,#062544)" text-anchor="middle">C files</text>
+  <text x="654" y="150" font-family="JetBrains Mono, monospace" font-size="11" font-weight="400" fill="var(--muted,#4B5450)">firmware</text>
+  <path d="M88,112 L100.5,112" fill="none" stroke="var(--text,#062544)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="107,112 100,108 100,116" fill="var(--text,#062544)"/>
+  <path d="M198,112 L220.5,112" fill="none" stroke="var(--text,#062544)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="227,112 220,108 220,116" fill="var(--text,#062544)"/>
+  <path d="M240,112 L262.5,112" fill="none" stroke="var(--text,#062544)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="269,112 262,108 262,116" fill="var(--text,#062544)"/>
+  <path d="M360,112 L372.5,112" fill="none" stroke="var(--text,#062544)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="379,112 372,108 372,116" fill="var(--text,#062544)"/>
+  <path d="M470,112 L492.5,112" fill="none" stroke="var(--text,#062544)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="499,112 492,108 492,116" fill="var(--text,#062544)"/>
+  <path d="M512,112 L534.5,112" fill="none" stroke="var(--text,#062544)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="541,112 534,108 534,116" fill="var(--text,#062544)"/>
+  <path d="M632,112 L644.5,112" fill="none" stroke="var(--text,#062544)" stroke-width="1.5" stroke-linejoin="round"/><polygon points="651,112 644,108 644,116" fill="var(--text,#062544)"/>
+  <rect x="230" y="88" width="6" height="48" rx="0" fill="var(--accent-use,#CA6A0A)"/>
+  <text x="233" y="70" font-family="Archivo, sans-serif" font-size="10.5" font-weight="650" fill="var(--muted,#4B5450)" text-anchor="middle" letter-spacing="1.05">FIT CHECK · F-1</text>
+  <rect x="502" y="88" width="6" height="48" rx="0" fill="var(--accent-use,#CA6A0A)"/>
+  <text x="505" y="70" font-family="Archivo, sans-serif" font-size="10.5" font-weight="650" fill="var(--muted,#4B5450)" text-anchor="middle" letter-spacing="1.05">QUANTIZATION GATE · Q-4</text>
+  <text x="243" y="184" font-family="Archivo, sans-serif" font-size="13" font-weight="500" fill="var(--text,#062544)">too big for a board</text>
+  <text x="243" y="199" font-family="Archivo, sans-serif" font-size="12" font-weight="400" fill="var(--muted,#4B5450)">refused before training</text>
+  <text x="515" y="184" font-family="Archivo, sans-serif" font-size="13" font-weight="500" fill="var(--text,#062544)">int8 cost too much</text>
+  <text x="515" y="199" font-family="Archivo, sans-serif" font-size="12" font-weight="400" fill="var(--muted,#4B5450)">per-layer error table</text>
+  <rect x="574" y="204" width="146" height="44" rx="2" fill="var(--bg,#EFF2F0)" stroke="var(--border-strong,#7A847C)" stroke-width="1" stroke-dasharray="3 2.5"/>
+  <text x="588" y="223" font-family="Archivo, sans-serif" font-size="13" font-weight="600" fill="var(--text,#062544)">the run stops</text>
+  <text x="588" y="238" font-family="Archivo, sans-serif" font-size="12" font-weight="400" fill="var(--muted,#4B5450)">nothing is exported</text>
 </svg>
-<figcaption>The gate is the part that decides. A model that lost more accuracy than your manifest
-allows is not exported with a warning: the run fails, and says which layer cost the most.</figcaption>
+<figcaption>Two gates, and neither can be switched off. The fit check refuses a model that cannot fit a board before any training starts; the quantization gate stops a model that lost more accuracy than your manifest allows, and says which layer cost the most.</figcaption>
 </figure>
 
 {cmd}`caravan export` runs five stages in order. Each one reads only the part of the manifest it
