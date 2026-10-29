@@ -104,8 +104,8 @@ def test_q3_when_a_model_declared_int8_keeps_float_tensors(
 
     real = tflite_module.convert
 
-    def convert_without_quantizing(model, setting, representative=None):
-        return real(model, "none")
+    def convert_without_quantizing(model, setting, representative=None, *, pixel_inputs=False):
+        return real(model, "none", pixel_inputs=pixel_inputs)
 
     monkeypatch.setattr(tflite_module, "convert", convert_without_quantizing)
     monkeypatch.setattr(quantize_module, "_layer_errors", lambda *a, **k: ())

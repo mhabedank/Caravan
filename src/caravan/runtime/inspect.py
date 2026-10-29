@@ -23,8 +23,9 @@ INTEGER_DTYPES = frozenset({"int8", "int16", "int32", "int64", "uint8", "bool"})
 
 #: What a model's boundary may carry since feature 008 (research R5): an input is the raw value the
 #: firmware passes — float32 for a number, int32 for a code — and is followed by the converter's
-#: QUANTIZE; an output is float32 after its DEQUANTIZE. An int8 boundary is still integer.
-BOUNDARY_INPUT_DTYPES = frozenset({"float32", "int32", "int8"})
+#: QUANTIZE; an output is float32 after its DEQUANTIZE. An int8 boundary is still integer. Since
+#: feature 010 an image arrives as uint8 raw pixels at scale 1, zero point 0 (research R6).
+BOUNDARY_INPUT_DTYPES = frozenset({"float32", "int32", "int8", "uint8"})
 BOUNDARY_OUTPUT_DTYPES = frozenset({"float32", "int8"})
 
 

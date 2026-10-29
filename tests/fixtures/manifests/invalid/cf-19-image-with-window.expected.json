@@ -1,0 +1,4 @@
+{
+  "rule": "CF-19",
+  "path": "preprocessing.window_size"
+}

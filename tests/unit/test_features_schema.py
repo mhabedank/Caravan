@@ -88,9 +88,10 @@ def test_every_normalization_is_accepted(tmp_path, normalization) -> None:
     )
 
 
-def test_the_implemented_types_are_the_three_of_the_spec() -> None:
-    assert set(INPUT_TYPES) == {"number", "binary", "category"}
-    assert set(OUTPUT_TYPES) == {"category", "binary", "number"}
+def test_the_implemented_types_are_those_of_the_specs() -> None:
+    # The three of feature 008, and image and anomaly from feature 010.
+    assert set(INPUT_TYPES) == {"number", "binary", "category", "image"}
+    assert set(OUTPUT_TYPES) == {"category", "binary", "number", "anomaly"}
 
 
 def test_a_number_output_takes_its_loss_and_clip(tmp_path) -> None:

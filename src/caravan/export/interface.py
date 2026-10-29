@@ -21,7 +21,9 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 #: 2 since feature 008: one input per feature, raw values in, preprocessing inside the model.
-CONTRACT_VERSION = 2
+#: 3 since feature 010: an image input entry and an anomaly output entry, with fields a reader must
+#: know.
+CONTRACT_VERSION = 3
 
 RUNTIME_BINDING = (
     "by position in subgraph 0: interpreter.input(position) / interpreter.output(position)"
@@ -31,7 +33,17 @@ RUNTIME_BINDING = (
 PREPROCESSING = "inside the model; pass raw values"
 
 #: What a firmware does with the output, per type.
-DECISIONS = {"category": "argmax", "binary": "threshold", "number": "value"}
+DECISIONS = {
+    "category": "argmax",
+    "binary": "threshold",
+    "number": "value",
+    "anomaly": "threshold",
+}
+
+#: How an image's values are laid out in its tensor, stated rather than assumed (feature 010).
+IMAGE_LAYOUT = "rows, then columns, then channels"
+IMAGE_FRAME = "pass frames of exactly this size as raw 8-bit pixels; the model does not resize"
+CHANNEL_ORDER = {1: "grey", 3: "RGB"}
 
 #: Printable ASCII but for the two characters a C string literal gives meaning to.
 _PLAIN = frozenset(range(0x20, 0x7F)) - {ord('"'), ord("\\")}
@@ -54,7 +66,19 @@ def input_entry(binding: Mapping[str, Any], feature: Mapping[str, Any]) -> dict[
     """One input: its binding, its type, and what a firmware needs to feed it raw values."""
     fitted = feature["preprocessing"]["fitted"]
     entry: dict[str, Any] = {**_binding(binding), "type": feature["type"], "fitted": fitted}
-    if feature["type"] == "number":
+    if feature["type"] == "image":
+        channels = int(fitted["num_channels"])
+        entry.update(
+            {
+                "height": int(fitted["height"]),
+                "width": int(fitted["width"]),
+                "num_channels": channels,
+                "channel_order": CHANNEL_ORDER[channels],
+                "layout": IMAGE_LAYOUT,
+                "frame": IMAGE_FRAME,
+            }
+        )
+    elif feature["type"] == "number":
         entry["missing"] = fitted["fill"]
     elif feature["type"] == "category":
         entry["encoder"] = dict(feature["encoder"])
@@ -79,6 +103,11 @@ def output_entry(binding: Mapping[str, Any], output: Mapping[str, Any]) -> dict[
     elif output["type"] == "binary":
         entry["threshold"] = output["threshold"]
         entry["true_spelling"] = fitted["true_spelling"]
+    elif output["type"] == "anomaly":
+        entry["threshold"] = output["threshold"]
+        entry["abnormal_when"] = "score >= threshold"
+        entry["normal_label"] = fitted["normal_label"]
+        entry["score"] = "mean squared reconstruction error of the window"
     else:
         entry["unit"] = "the column's own"
         entry["clip"] = output.get("clip")
@@ -144,6 +173,7 @@ def _elements(shape: Sequence[int]) -> int:
 
 #: What a firmware writes into an input, per type, for the header's comment.
 _MEANING = {
+    "image": "raw 8-bit pixels, rows then columns then channels",
     "number": "raw value",
     "category": "category code, an integer and never a rounded number",
     "binary": "0 or 1",
@@ -191,9 +221,10 @@ def header_additions(
             f"constexpr unsigned int {array_name}_output_{name}_label_count = {len(labels)};",
             f"extern const char* const {array_name}_output_{name}_labels[];",
         ]
-    elif output["type"] == "binary":
+    elif output["type"] in ("binary", "anomaly"):
+        meaning = "true" if output["type"] == "binary" else "abnormal"
         lines += [
-            f'/* Output "{name}" is true when its score is at least this. */',
+            f'/* Output "{name}" is {meaning} when its score is at least this. */',
             f"constexpr float {array_name}_output_{name}_threshold = "
             f"{float(output['threshold'])!r}f;",
         ]

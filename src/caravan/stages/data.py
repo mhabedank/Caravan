@@ -46,11 +46,18 @@ SPEC = StageSpec(
 )
 
 
-def training_rows(plan: Any, split: Any) -> list[int]:
-    """The record indices of the training part's windows, in sequence order."""
+def training_rows(plan: Any, split: Any, only: str | None = None) -> list[int]:
+    """The record indices of the training part's windows, in sequence order.
+
+    ``only`` keeps the windows whose output is that value: an ``anomaly`` output's input features
+    are fitted on normal windows, because that is what the model learns as normal and an abnormal
+    outlier should not move the normalisation (feature 010, research R9).
+    """
     length = plan.window or 1
     rows: list[int] = []
     for position in split.train:
+        if only is not None and plan.labels[position] != only:
+            continue
         start = plan.kept[position]
         rows.extend(range(start, start + length))
     return rows
@@ -68,7 +75,19 @@ def fit_features(
     for index, feature in enumerate(features):
         column = records.columns[feature["name"]][rows]
         stated = feature["preprocessing"]
-        if feature["type"] == "number":
+        if feature["type"] == "image":
+            # The size is the device's frame, so it is taken from every image, not the training
+            # part's: a frame of another size would not be passed at all (feature 010, R7).
+            from caravan.data.images import fit_image
+
+            out[feature["name"]] = fit_image(
+                records.root,
+                records.columns[feature["name"]].tolist(),
+                stated,
+                feature["name"],
+                f"input_features[{index}]",
+            )
+        elif feature["type"] == "number":
             out[feature["name"]] = fit_number(
                 column.tolist(),
                 normalization=stated["normalization"],
@@ -100,7 +119,12 @@ def fit_output(
     train: Sequence[int],
 ) -> dict[str, Any]:
     """The output's fitted values: its label order, its spellings, or its shift and scale."""
-    from caravan.data.fit import fit_output_binary, fit_output_category, fit_output_number
+    from caravan.data.fit import (
+        fit_output_anomaly,
+        fit_output_binary,
+        fit_output_category,
+        fit_output_number,
+    )
 
     trained = [plan_labels[position] for position in train]
     path = "output_features[0]"
@@ -108,6 +132,10 @@ def fit_output(
         vocab = preprocessing["vocab"]
         return fit_output_category(
             trained, plan_labels, pinned=None if vocab == DERIVED else vocab, path=path
+        )
+    if output_type == "anomaly":
+        return fit_output_anomaly(
+            trained, plan_labels, normal_label=preprocessing["normal_label"], path=path
         )
     if output_type == "binary":
         return fit_output_binary(
@@ -130,11 +158,15 @@ def run_data(records: Any, inputs: StageInputs) -> tuple[dict[str, Any], dict[st
     labels = split_labels(output_type, plan.labels)
     split = split_for(plan, split_spec, seed=int(inputs["random_seed"]), labels=labels)
 
+    # The output first: an anomaly output's normal value decides which rows the inputs are fitted
+    # on, and its refusal (DS-16) should come before anything is fitted.
+    output_fitted = fit_output(
+        output_type, inputs["output_features[0].preprocessing"], plan.labels, split.train
+    )
+    only = output_fitted["normal_label"] if output_type == "anomaly" else None
     fitted = {
-        "input_features": fit_features(records, training_rows(plan, split), features),
-        "output": fit_output(
-            output_type, inputs["output_features[0].preprocessing"], plan.labels, split.train
-        ),
+        "input_features": fit_features(records, training_rows(plan, split, only), features),
+        "output": output_fitted,
     }
     schema = {
         "features": [

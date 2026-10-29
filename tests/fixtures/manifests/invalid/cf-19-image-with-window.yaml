@@ -1,0 +1,24 @@
+# Invalid on purpose. A model with an image input reads one record per sample; a window is refused (feature 010).
+# Expected: CF-19 at preprocessing.window_size
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: conv2d
+  params:
+    blocks:
+    - {filters: 4, kernel: 3}
+input_features:
+- name: image
+  type: image
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 8
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

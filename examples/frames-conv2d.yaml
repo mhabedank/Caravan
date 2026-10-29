@@ -1,0 +1,51 @@
+# A convolution over a plane of feature frames, on the synthetic data that comes with Caravan
+# (feature 010).
+#
+# The data is arithmetic shaped like keyword spotting's input once the audio has been turned into
+# frames: one record per frame, one column per coefficient, 12 frames per sample. Each class is a
+# ridge — along the diagonal, along one frame, or along one column — which a convolution over both
+# axes sees and a per-column view does not. The window is the plane's rows, the columns its
+# columns. The same template at 49 x 10 MFCC frames, a standard block of 64 filters and four
+# separable blocks, is the MLPerf Tiny keyword-spotting reference.
+apiVersion: caravan/v0.2
+
+model:
+  name: frames-conv2d
+  version: 0.1.0
+  template: conv2d
+  params:
+    blocks:
+      - {filters: 8, kernel: 3, padding: same, normalise: true}
+      - {kind: separable, filters: 16, kernel: 3, stride: 2, padding: same, normalise: true}
+    head: average
+
+input_features:
+  - {name: c0, type: number}
+  - {name: c1, type: number}
+  - {name: c2, type: number}
+  - {name: c3, type: number}
+  - {name: c4, type: number}
+  - {name: c5, type: number}
+  - {name: c6, type: number}
+  - {name: c7, type: number}
+
+output_features:
+  - name: label
+    type: category
+    accuracy_drop_max: 0.05
+
+preprocessing:
+  window_size: 12
+  split: {type: stratify, probabilities: [0.7, 0.15, 0.15]}
+
+dataset: ../tests/fixtures/datasets/frames
+
+trainer: {epochs: 40, batch_size: 16, learning_rate: 0.005, early_stop: 8}
+random_seed: 42
+
+export:
+  quantization: int8
+  formats: [flatbuffer, c_array]
+  targets: [s32k144, stm32h743, esp32]
+  representative_samples: 100
+  test_windows: 6

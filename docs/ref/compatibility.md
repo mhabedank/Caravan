@@ -16,6 +16,7 @@ Each type brings its preprocessing into the model, so a firmware passes raw valu
 | `number` | float32, the raw reading | standardised with the training part's statistics (`zscore`, `minmax`, `iq`, or none); a missing reading filled |
 | `category` | int32: the integer itself, or for a text column the code `interface.json` lists | compared against the training part's vocabulary, with index 0 for unknown; an embedding (`dense`, the default) or `onehot` |
 | `binary` | int32, 0 or 1 | used as one channel |
+| `image` | uint8 raw pixels at the declared size, rows then columns then channels (scale 1, zero point 0) | scaled by 1/255; the model's only input; PNG, JPEG, BMP and GIF are read for training and brought to the declared size |
 
 ### Output types
 
@@ -23,7 +24,8 @@ Each type brings its preprocessing into the model, so a firmware passes raw valu
 |---|---|---|---|
 | `category` | argmax over the classes; names in `model_data.h` | `accuracy_drop_max` | accuracy, confusion matrix |
 | `binary` | the score against `threshold` (0.5) | `accuracy_drop_max` | accuracy, confusion matrix |
-| `number` | the value, in the column's unit | `mae_increase_max` | MAE, MSE, RMSE, R² |
+| `number` | the value, in the column's unit | `mae_increase_max` | mean absolute error (MAE), MSE, RMSE, R² |
+| `anomaly` | the anomaly score against the threshold drawn from validation normals | `auc_drop_max` | area under the ROC curve; detection and false-alarm rates at the threshold |
 
 The metrics for a `number` output are the mean absolute error (MAE), the mean squared error (MSE),
 its square root (RMSE), and the coefficient of determination (R²). The budget is set on MAE,
@@ -36,8 +38,12 @@ Refused with {rule}`CF-14`:
   time, which have no path inside a TensorFlow Lite Micro model.
 - **`timeseries` as a whole sequence in one cell:** has no device path either. Caravan's
   `preprocessing.window_size`, rows forming a window, is how a time series reaches the model.
-- **`image`, `audio`, `vector`, `date`, `h3`:** no model on the roadmap needs them yet (Principle
-  X: a type is built when a named model needs it).
+- **`audio`, `vector`, `date`, `h3`:** no model or documented application needs them yet
+  (Principle X). Audio reaches the model as feature frames, one row per frame, as keyword spotting
+  and `hum-fan` do; turning audio into frames is the author's step.
+
+[Applications](../topics/applications.md) says which application classes the `image` input
+serves.
 
 Source: the research note of 2026-10-24, section 5, on GitHub
 (`docs/research/2026-10-24-typed-features-on-mcu.md`).
@@ -51,6 +57,10 @@ Source: the research note of 2026-10-24, section 5, on GitHub
 |---|---|---|
 | `mlp` | dense layers over the window: `hidden` widths and `dropout` | the pilot, `picket-mlp` |
 | `conv1d` | blocks of 1-D convolutions, optional batch normalisation and pooling, then an `average` or `flatten` head | `pace-cnn`, IMU activity recognition |
+| `conv2d` | standard and depthwise-separable 2-D convolutions over a plane — a window as rows by columns, or an image — then an `average` (full-plane pooling) or `flatten` head | keyword spotting (MLPerf Tiny DS-CNN, a depthwise-separable convolutional neural network); Visual Wake Words (MobileNetV1); small image classification |
+| `autoencoder` | dense encoder, linear code, dense decoder; reconstructs the window and scores it, for the `anomaly` output only | `hum-fan`, machine-sound anomaly detection; MLPerf Tiny anomaly detection |
+
+Which template serves which kind of problem is on the [applications](../topics/applications.md) page.
 
 ## Boards
 

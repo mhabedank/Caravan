@@ -8,6 +8,7 @@ Exactly one entry: the column the model answers ({rule}`CF-17`).
 | {mf}`output_features[].type` | string | — required |
 | {mf}`output_features[].preprocessing.vocab` | list | `derived` |
 | {mf}`output_features[].preprocessing.fallback_true_label` | string | none |
+| {mf}`output_features[].preprocessing.normal_label` | string | `normal` (anomaly) |
 | {mf}`output_features[].preprocessing.normalization` | string or null | `null` |
 | {mf}`output_features[].loss.type` | string | `mean_squared_error` (number) |
 | {mf}`output_features[].loss.class_weights` | list or mapping | none |
@@ -16,6 +17,8 @@ Exactly one entry: the column the model answers ({rule}`CF-17`).
 | {mf}`output_features[].clip` | list of two numbers | none |
 | {mf}`output_features[].accuracy_drop_max` | number | — required for category and binary |
 | {mf}`output_features[].mae_increase_max` | number | — required for number |
+| {mf}`output_features[].auc_drop_max` | number | — required for anomaly |
+| {mf}`output_features[].threshold_percentile` | number | `95` (anomaly) |
 
 :::{manifest-field} output_features[].name
 **Type** `string` · **Default** none — required · a column of the data · read by **every stage**
@@ -31,11 +34,22 @@ that is not a column of the data ({rule}`CF-9`).
 :::
 
 :::{manifest-field} output_features[].type
-**Type** `string` · **Default** none — required · `category`, `binary` or `number` · read by **every stage**
+**Type** `string` · **Default** none — required · `category`, `binary`, `number` or `anomaly` · read
+by **every stage**
 
 **Does** — decides what the model learns to produce, which budget field applies, and how an answer
 is turned into a decision: a category takes the argmax, a binary compares with `threshold`, a number
-is the value itself.
+is the value itself, and an anomaly score is abnormal at or above its threshold.
+
+**`anomaly`** names the column that tells normal from abnormal; every value other than
+{mf}`normal_label <output_features[].preprocessing.normal_label>` is abnormal. The model's output
+is the **anomaly score**: the mean squared difference between the window as the model saw it and its
+reconstruction, computed inside the model. Training learns from the normal windows of the training
+part only; calibration uses all of them. The threshold is the
+{mf}`threshold_percentile <output_features[].threshold_percentile>`-th percentile of the int8
+model's scores on the validation part's normal windows. `quantization.json` records it, with the
+detection and false alarm rates on the test part, and `interface.json` states it. Only the
+`autoencoder` template answers it ({rule}`CF-18`).
 
 **Default** — none.
 
@@ -73,6 +87,19 @@ silent drop ({rule}`DS-5`, {rule}`DS-11`, {rule}`DS-14`).
 input, because it decides what your model's "yes" means ({rule}`DS-15`).
 
 **Extremes** — getting it wrong inverts every answer while every metric still looks plausible.
+:::
+
+:::{manifest-field} output_features[].preprocessing.normal_label
+**Type** `string` · **Default** `normal` · the column's value that means normal; `anomaly` only ·
+read by **data, train, quantize, export**
+
+**Does** — names the value that means normal. Every other value is abnormal, and training learns
+from the normal windows only.
+
+**Change it** — when your column writes normal another way, such as `ok`.
+
+**Extremes** — a value that does not occur, or training and validation parts without normal
+windows, are refused ({rule}`DS-16`).
 :::
 
 :::{manifest-field} output_features[].preprocessing.normalization
@@ -197,4 +224,29 @@ unacceptable in a cut-off.
 
 **Extremes** — with `preprocessing.normalization` set on the output, the unit is the scaled one
 rather than your column's, which is the easiest way to set this field to something you did not mean.
+:::
+
+:::{manifest-field} output_features[].auc_drop_max
+**Type** `number` · **Default** none — required for `anomaly` · 0 to 1 · read by **quantize**
+
+**Does** — how much of the area under the ROC curve quantization may cost: how well the anomaly
+score separates normal from abnormal test windows. It is the int8 budget of an `anomaly` output.
+
+**Change it** — as for {mf}`output_features[].accuracy_drop_max`: from what a missed anomaly or a
+false alarm costs.
+
+**Extremes** — exceeding it fails the run ({rule}`CF-16`, {rule}`Q-4`); the test part needs both
+normal and abnormal windows to measure it ({rule}`Q-5`).
+:::
+
+:::{manifest-field} output_features[].threshold_percentile
+**Type** `number` · **Default** `95` · between 0 and 100, exclusive; `anomaly` only · read by
+**quantize**
+
+**Does** — sets the anomaly threshold: this percentile of the int8 model's scores on the validation
+part's normal windows.
+
+**Change it** — raise it for fewer false alarms, lower it to catch more anomalies.
+`quantization.json` reports the detection and false alarm rates on the test part for the
+threshold it chose.
 :::

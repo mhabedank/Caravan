@@ -1,0 +1,51 @@
+# Anomaly detection from normal data, on the synthetic data that comes with Caravan (feature 010).
+#
+# The data is arithmetic shaped like the input of a machine-sound or vibration detector after
+# feature extraction: windows of 5 frames by 8 columns, and a `condition` column, `normal` or
+# `fault`. The autoencoder learns to reconstruct normal windows through a narrow code and is trained
+# on them alone; how badly it reconstructs a window is the anomaly score, computed inside the
+# model, so a firmware compares one number with the threshold in the interface contract. The same
+# architecture at 5 x 40 log-mel frames, encoder [64, 64] and code 8, is the zoo's hum-fan.
+#
+# The gate judges the area under the ROC curve lost to int8; the alarm threshold is the 95th
+# percentile of the int8 scores of the validation part's normal windows.
+apiVersion: caravan/v0.2
+
+model:
+  name: anomaly-ae
+  version: 0.1.0
+  template: autoencoder
+  params:
+    encoder: [32, 16]
+    code: 4
+
+input_features:
+  - {name: m0, type: number}
+  - {name: m1, type: number}
+  - {name: m2, type: number}
+  - {name: m3, type: number}
+  - {name: m4, type: number}
+  - {name: m5, type: number}
+  - {name: m6, type: number}
+  - {name: m7, type: number}
+
+output_features:
+  - name: condition
+    type: anomaly
+    auc_drop_max: 0.05
+
+preprocessing:
+  window_size: 5
+  split: {type: stratify, column: condition, probabilities: [0.7, 0.15, 0.15]}
+
+dataset: ../tests/fixtures/datasets/anomaly
+
+trainer: {epochs: 60, batch_size: 32, learning_rate: 0.002, early_stop: 10}
+random_seed: 42
+
+export:
+  quantization: int8
+  formats: [flatbuffer, c_array]
+  targets: [s32k144, stm32h743, esp32]
+  representative_samples: 200
+  test_windows: 8

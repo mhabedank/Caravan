@@ -8,8 +8,8 @@
 | {mf}`preprocessing.split.column` | string | the output's column, for `stratify` |
 
 :::{manifest-field} preprocessing.window_size
-**Type** `integer` · **Default** none — required by templates that consume a window, which both do · at least 1 · read by
-**every stage**
+**Type** `integer` · **Default** none — required by templates that consume a window, which all four
+do; left out with an image input ({rule}`CF-19`) · at least 1 · read by **every stage**
 
 **Does** — how many consecutive records form one sample. Windows never overlap, and a window whose
 records disagree about the output is discarded and counted.

@@ -27,6 +27,8 @@ COUNTED_KINDS: tuple[str, ...] = ("dense", "conv", "pooling", "concat")
 #: Bytes per element of a model input since feature 008: float32 for a number, int32 for a code
 #: (research R2, R11), whatever the quantization of the rest.
 INPUT_ELEMENT_BYTES = 4
+#: An image arrives as raw 8-bit pixels (feature 010, research R6).
+IMAGE_ELEMENT_BYTES = 1
 #: Bytes per element of a preprocessing constant kept in flash: a category's vocabulary is int32.
 CONSTANT_ELEMENT_BYTES = 4
 
@@ -46,7 +48,8 @@ FLASH_METHOD = (
     "convolution"
 )
 RAM_METHOD = (
-    "the larger of: every model input together at 4 bytes per element, or the largest input plus "
+    "the larger of: every model input together at its element size (4 bytes; 1 for an image's "
+    "pixels), or the largest input plus "
     "output of a dense, convolution, pooling or concatenation layer at the stated quantization's "
     "activation size; layers that may vanish, be fused or run in place are not counted"
 )
@@ -66,6 +69,8 @@ class LayerRecord:
     bias_elements: int = 0
     input_elements: int = 0
     output_elements: int = 0
+    #: Bytes per element of a model input: 4, or 1 for an image (feature 010).
+    element_bytes: int = INPUT_ELEMENT_BYTES
 
 
 @dataclass(frozen=True)
@@ -116,7 +121,7 @@ def floors(records: Sequence[LayerRecord], quantization: str) -> tuple[FitFloor,
 
     # Every model input is allocated at once and filled before the first operator runs.
     inputs = [record for record in records if record.kind == "input"]
-    inputs_bytes = sum(record.output_elements for record in inputs) * INPUT_ELEMENT_BYTES
+    inputs_bytes = sum(record.output_elements * record.element_bytes for record in inputs)
     counted = [record for record in records if record.kind in COUNTED_KINDS]
     peak = (
         max(counted, key=lambda record: record.input_elements + record.output_elements)

@@ -14,6 +14,10 @@ under `ignored_columns`. What each type does inside the model is in
 | {mf}`input_features[].preprocessing.most_common` | integer | `32` (category) |
 | {mf}`input_features[].preprocessing.vocab` | list | `derived` (category) |
 | {mf}`input_features[].preprocessing.fallback_true_label` | string | none (binary) |
+| {mf}`input_features[].preprocessing.height` | integer | `derived` (image) |
+| {mf}`input_features[].preprocessing.width` | integer | `derived` (image) |
+| {mf}`input_features[].preprocessing.num_channels` | integer | `derived` (image) |
+| {mf}`input_features[].preprocessing.resize_method` | string | `interpolate` (image) |
 | {mf}`input_features[].encoder.type` | string | `dense` (category) |
 | {mf}`input_features[].encoder.embedding_size` | integer | `derived` |
 
@@ -35,7 +39,8 @@ the same column twice ({rule}`CF-13`), and a name that collides with the output
 :::
 
 :::{manifest-field} input_features[].type
-**Type** `string` · **Default** none — required · `number`, `category` or `binary` · read by **every stage**
+**Type** `string` · **Default** none — required · `number`, `category`, `binary` or `image` · read by
+**every stage**
 
 **Does** — decides what the model is told about this column, what preprocessing is learned for it,
 and what your firmware passes at run time.
@@ -45,7 +50,15 @@ integers that is really a set of codes.
 
 **Change it** — when you got it wrong, and the test for that is one question: *is 2 between 1 and
 3?* Yes means `number`; no means `category`, even when the values are written as numbers; exactly
-two values means `binary`.
+two values means `binary`. A column that names an image file per record is `image`.
+
+**`image`** reads one image file per record, relative to the dataset directory, as Ludwig reads
+images; PNG, JPEG, BMP and GIF are read. The model takes **raw 8-bit pixels** at the declared size,
+rows then columns then channels: uint8 at scale 1 and zero point 0, the camera's bytes. The scaling
+is inside the model. Images of another size are brought to it for training
+({mf}`resize_method <input_features[].preprocessing.resize_method>`); the device passes frames of
+exactly that size, and the model does not resize. An image is the model's only input, one record is
+one sample, and no {mf}`preprocessing.window_size` is stated ({rule}`CF-19`).
 
 **Extremes** — declaring an identifier as `number` is the mistake with the worst failure mode: the
 model interpolates between device identities, works on your test split, and makes no sense when a
@@ -150,6 +163,52 @@ means by a fault detector, so say so.
 
 **Extremes** — relying on the sort rule works until someone renames a value, at which point the
 meaning of your model inverts without anything failing ({rule}`DS-15`).
+:::
+
+:::{manifest-field} input_features[].preprocessing.height
+**Type** `integer` · **Default** `derived`: the images' height when they all agree · at least 1;
+`image` only · read by **data, build, fit, export**
+
+**Does** — the height, in pixels, every image is brought to and the model takes.
+
+**Change it** — state it when your images differ in size, so that every one is brought to the same
+plane; when they all agree it is learned from them.
+
+**Extremes** — an image that cannot be read as declared is refused ({rule}`DS-17`), and a plane too
+small for the `conv2d` blocks is refused ({rule}`CF-6`).
+:::
+
+:::{manifest-field} input_features[].preprocessing.width
+**Type** `integer` · **Default** `derived`: the images' width when they all agree · at least 1;
+`image` only · read by **data, build, fit, export**
+
+**Does** — the width, in pixels, every image is brought to and the model takes.
+
+**Change it** — as for {mf}`input_features[].preprocessing.height`.
+
+**Extremes** — as for the height ({rule}`DS-17`, {rule}`CF-6`).
+:::
+
+:::{manifest-field} input_features[].preprocessing.num_channels
+**Type** `integer` · **Default** `derived`: the images' channels when they all agree · `1` (grey)
+or `3` (RGB); `image` only · read by **data, build, export**
+
+**Does** — how many channels each pixel carries: one for grey, three for RGB.
+
+**Change it** — state it when your images mix grey and colour, or when the device's camera
+delivers one of the two.
+
+**Extremes** — images that disagree and no stated value are refused ({rule}`DS-17`).
+:::
+
+:::{manifest-field} input_features[].preprocessing.resize_method
+**Type** `string` · **Default** `interpolate` · `interpolate` (bilinear) or `crop_or_pad`; `image`
+only · read by **data**
+
+**Does** — how an image of another size is brought to the declared size for training. The device
+passes frames of exactly that size, and the model does not resize.
+
+**Change it** — `crop_or_pad` when stretching would distort what the model has to see.
 :::
 
 :::{manifest-field} input_features[].encoder.type

@@ -32,6 +32,8 @@ _C_TYPES = {
     "float32": ("float", "kTfLiteFloat32", "f"),
     "int32": ("int32_t", "kTfLiteInt32", "i32"),
     "int8": ("int8_t", "kTfLiteInt8", "int8"),
+    # An image's raw pixels (feature 010, research R6).
+    "uint8": ("uint8_t", "kTfLiteUInt8", "uint8"),
 }
 
 
@@ -67,7 +69,7 @@ def decide(scores: Any, output: Mapping[str, Any]) -> Any:
 
     if output["type"] == "category":
         return np.argmax(scores, axis=1).astype(np.float64)
-    if output["type"] == "binary":
+    if output["type"] in ("binary", "anomaly"):
         return (scores.reshape(-1) >= float(output["threshold"])).astype(np.float64)
     return scores.reshape(-1).astype(np.float64)
 
@@ -171,6 +173,8 @@ def _labels(output: Mapping[str, Any]) -> list[str]:
         true_name = fitted.get("true_spelling") or "true"
         false_name = next((s for s, bit in sorted(spellings.items()) if bit == 0), "false")
         return [str(false_name), str(true_name)]
+    if output["type"] == "anomaly":
+        return [str(fitted.get("normal_label", "normal")), "abnormal"]
     return []
 
 
@@ -200,7 +204,12 @@ def header(
     for dim in output_binding["shape"]:
         output_count *= int(dim)
     labels = _labels(output)
-    kind = {"category": "kCategory", "binary": "kBinary", "number": "kNumber"}[output["type"]]
+    kind = {
+        "category": "kCategory",
+        "binary": "kBinary",
+        "number": "kNumber",
+        "anomaly": "kAnomaly",
+    }[output["type"]]
 
     tables: list[str] = []
     fills: list[str] = []
@@ -236,7 +245,7 @@ def header(
             "  }\n"
             "  return static_cast<float>(best);"
         )
-    elif output["type"] == "binary":
+    elif output["type"] in ("binary", "anomaly"):
         threshold = f"{array_name}_output_{output['name']}_threshold"
         decide_body = f"  return scores[0] >= {threshold} ? 1.0f : 0.0f;"
     else:
@@ -294,7 +303,7 @@ def header(
 
 namespace caravan_windows {{
 
-enum OutputType {{ kCategory, kBinary, kNumber }};
+enum OutputType {{ kCategory, kBinary, kNumber, kAnomaly }};
 
 constexpr int kCount = {len(record.positions)};
 constexpr int kOutputCount = {output_count};

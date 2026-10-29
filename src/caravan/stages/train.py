@@ -15,7 +15,7 @@ from typing import Any
 
 from caravan.data.reader_bridge import assemble_samples, select
 from caravan.data.windows import plan_windows, split_for
-from caravan.manifest.errors import RULE_TRAINING_DIVERGED, run_rule_error
+from caravan.manifest.errors import RULE_NOTHING_NORMAL, RULE_TRAINING_DIVERGED, run_rule_error
 from caravan.stages._framework import framework_record
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
 from caravan.stages.build import load_built_model, require_framework
@@ -52,7 +52,8 @@ SPEC = StageSpec(
         "output_features[0].name",
         "output_features[0].type",
         "output_features[0].preprocessing",
-        "output_features[0].loss",
+        # Optional since feature 010: an anomaly output has no loss to choose (research R8).
+        "output_features[0].loss?",
     ),
     reads_dataset=True,
     upstream="build",
@@ -119,6 +120,11 @@ def loss_and_metrics(output: dict[str, Any]) -> tuple[Any, list[str]]:
         return "sparse_categorical_crossentropy", ["accuracy"]
     if output["type"] == "binary":
         return "binary_crossentropy", ["binary_accuracy"]
+    if output["type"] == "anomaly":
+        # The model's output is the reconstruction error, never negative, and the target is zero:
+        # the mean absolute error *is* the mean score, so a stock loss trains the autoencoder and
+        # the saved model loads without special code (feature 010, research R8).
+        return "mean_absolute_error", []
     return NUMBER_LOSSES[output["loss"].get("type") or "mean_squared_error"], [
         "mean_absolute_error"
     ]
@@ -203,14 +209,18 @@ def stage(context: StageContext) -> StageFunction:
                 )
             )
 
-        train_targets = targets[list(split.train)]
+        train_indices, val_indices, fit_targets = learning_parts(output, split, targets)
+        train_targets = fit_targets[train_indices]
         weights = sample_weights(output, train_targets)
         try:
             history = model.fit(
-                select(features, split.train),
+                select(features, train_indices),
                 {name: train_targets},
                 sample_weight=None if weights is None else {name: weights},
-                validation_data=(select(features, split.val), {name: targets[list(split.val)]}),
+                validation_data=(
+                    select(features, val_indices),
+                    {name: fit_targets[val_indices]},
+                ),
                 epochs=int(inputs["trainer.epochs"]),
                 batch_size=int(inputs["trainer.batch_size"]),
                 callbacks=callbacks,
@@ -257,9 +267,39 @@ def stage(context: StageContext) -> StageFunction:
             stopped_early=stopped_early,
             best_epoch=best_epoch,
             history=history.history,
+            trained_on=len(train_indices),
         )
 
     return run
+
+
+def learning_parts(
+    output: dict[str, Any], split: Any, targets: Any
+) -> tuple[list[int], list[int], Any]:
+    """The windows training learns from and validates on, and the targets it fits.
+
+    For every output but ``anomaly``: the split's parts and the data's targets. For ``anomaly``
+    (feature 010): the normal windows of each part only — the model learns what normal looks like
+    — and a target of zero, the reconstruction error a perfect model would have.
+    """
+    import numpy as np
+
+    train, val = list(split.train), list(split.val)
+    if output["type"] != "anomaly":
+        return train, val, targets
+    train = [index for index in train if int(targets[index]) == 0]
+    val = [index for index in val if int(targets[index]) == 0]
+    if not val:
+        run_rule_error(
+            RULE_NOTHING_NORMAL,
+            "output_features[0].preprocessing.normal_label",
+            (
+                "the validation part holds no normal window, so training could not be watched "
+                "on what it learns; give the validation part more of the data"
+            ),
+            found=len(split.val),
+        )
+    return train, val, np.zeros(len(targets), dtype=np.float32)
 
 
 def predictions(model: Any, features: Any, output: str) -> Any:
@@ -283,6 +323,8 @@ def measure_split(
     from caravan.run.report import QualityMetric
 
     fitted = output["preprocessing"]["fitted"]
+    if output["type"] == "anomaly":
+        return anomaly_metrics(raw, targets, split=split, dataset_version=dataset_version), None
     if output["type"] == "number":
         values = regression_metrics(targets.tolist(), raw.reshape(-1).tolist())
         metrics = [
@@ -311,6 +353,57 @@ def measure_split(
     return [metric.as_dict() for metric in metrics], confusion
 
 
+#: What an anomaly model reconstructs of each input type: the input as the model sees it after
+#: preprocessing, never the raw value (feature 010, research R8).
+RECONSTRUCTED_AS = {
+    "number": "standardised value",
+    "binary": "0/1 channel",
+    "category_dense": "embedding channels",
+    "category_onehot": "one-hot channels",
+}
+
+
+def reconstruction_target(features: Any) -> dict[str, str]:
+    """Per input feature, what the anomaly score compares — the spec's edge case for categories."""
+    out: dict[str, str] = {}
+    for feature in features:
+        kind = feature["type"]
+        if kind == "category":
+            kind = f"category_{feature['encoder']['type']}"
+        out[feature["name"]] = RECONSTRUCTED_AS[kind]
+    return out
+
+
+def anomaly_metrics(
+    raw: Any, targets: Any, *, split: str, dataset_version: str
+) -> list[dict[str, Any]]:
+    """How well the score separates the split's normal and abnormal windows (feature 010)."""
+    from caravan.metrics.anomaly import auc
+    from caravan.run.report import QualityMetric
+
+    scores = [float(value) for value in raw.reshape(-1)]
+    normal = [score for score, target in zip(scores, targets, strict=True) if int(target) == 0]
+    abnormal = [score for score, target in zip(scores, targets, strict=True) if int(target) == 1]
+    area = auc(normal, abnormal)
+    values = {
+        "auc": None if area is None else round(area, 6),
+        "normal_windows": len(normal),
+        "abnormal_windows": len(abnormal),
+        "score_mean_normal": round(sum(normal) / len(normal), 6) if normal else None,
+        "score_mean_abnormal": round(sum(abnormal) / len(abnormal), 6) if abnormal else None,
+    }
+    return [
+        QualityMetric(
+            name=key,
+            value=value,
+            split=split,
+            dataset_version=dataset_version,
+            samples=len(scores),
+        ).as_dict()
+        for key, value in values.items()
+    ]
+
+
 def _write_measurements(
     out_dir: Path,
     *,
@@ -327,6 +420,7 @@ def _write_measurements(
     stopped_early: bool,
     best_epoch: int,
     history: dict[str, Any],
+    trained_on: int,
 ) -> None:
     """Measure, then write the one artifact the report is built from.
 
@@ -365,6 +459,9 @@ def _write_measurements(
             # Feature 007: where the split came from, and what a fixed split threw away.
             "split_source": split.source,
             "windows_discarded_mixed_split": window_plan.discarded_mixed_split,
+            # The windows training learned from: the training part, or its normal windows for an
+            # anomaly output (feature 010).
+            "training_windows": trained_on,
         },
         "training": {
             **framework_record(),
@@ -378,6 +475,8 @@ def _write_measurements(
         },
         "metrics": measured,
     }
+    if output["type"] == "anomaly":
+        payload["reconstruction_target"] = reconstruction_target(inputs["input_features"])
     if matrices["test"] is not None:
         # The test split is the reference, so it is the matrix the report carries.
         payload["confusion_matrix"] = matrices["test"].as_dict()

@@ -114,7 +114,8 @@ disagree about `state` is discarded and counted, which is why the table above co
 rather than alternating row by row. Label stretches of time, not rows.
 
 **The {term}`template`.** `mlp` is a multilayer perceptron: dense layers over the whole window, and
-the place to start. [Templates](../topics/templates.md) says when `conv1d` is the better answer.
+the place to start. [Templates](../topics/templates.md) says when `conv1d` is the better answer,
+and [Applications](../topics/applications.md) which template serves which kind of problem.
 
 ## Run it
 

@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 
-from caravan.data.fingerprint import DatasetFiles
+from caravan.data.fingerprint import TABLE_DELIMITERS, DatasetFiles
 from caravan.manifest.errors import (
     RULE_DATASET_CELL,
     RULE_DATASET_COLUMNS,
@@ -35,7 +35,7 @@ from caravan.manifest.errors import (
 )
 from caravan.manifest.schema.preprocessing import FIXED_SPLIT_VALUES
 
-_DELIMITERS = {".csv": ",", ".tsv": "\t", ".txt": ","}
+_DELIMITERS = TABLE_DELIMITERS
 
 
 def delimiter_for(path: Path) -> str:
@@ -74,6 +74,8 @@ class RecordSet:
     labels: tuple[str, ...]
     #: The part each record names (``train``, ``val`` or ``test``) for a fixed split; else ``None``.
     parts: tuple[str, ...] | None = None
+    #: The dataset directory, against which an image column's paths resolve (feature 010).
+    root: Path | None = None
 
 
 def _read_header(path: Path) -> list[str]:
@@ -392,4 +394,5 @@ def read_records(
         columns={name: out[name] for name, _ in features},
         labels=tuple(labels),
         parts=tuple(parts) if split_column is not None else None,
+        root=dataset.root,
     )

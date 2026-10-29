@@ -40,7 +40,8 @@ The manifest is the one YAML file that describes a model: where the data is, whi
 and come out, and what the model has to fit.
 
 - **Tutorial:** [Part 2: Your own data](intro/tutorial02.md)
-- **Topic guides:** [Templates](topics/templates.md) · [Feature types](topics/feature-types.md)
+- **Topic guides:** [Templates](topics/templates.md) · [Feature types](topics/feature-types.md) ·
+  [Applications](topics/applications.md)
 - **Reference:** [The manifest reference](ref/manifest/index.md) ·
   [Schema changes](ref/manifest-changes.md)
 
@@ -98,6 +99,7 @@ intro/tutorial
 topics/pipeline
 topics/templates
 topics/feature-types
+topics/applications
 topics/budgets-and-gates
 topics/what-a-run-leaves
 ref/manifest/index

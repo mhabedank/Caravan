@@ -92,6 +92,40 @@ def output_feature(inputs: StageInputs) -> dict[str, Any]:
     }
 
 
+def check_plane(inputs: StageInputs) -> None:
+    """CF-6 for a plane, with every axis known now that the data has been fitted (feature 010).
+
+    Validation checks what the manifest alone says; an image size or a vocabulary learned from the
+    data is known only here. Still before training, and before the builder can fail on a shape.
+    """
+    from caravan.manifest.errors import RULE_WINDOW_MATCHES_TEMPLATE, run_rule_error
+    from caravan.templates.builders.frontend import channels_of
+    from caravan.templates.registry import default_registry
+
+    spec = default_registry().get(inputs["model.template"])
+    if spec is None or spec.plane_fit is None:
+        return
+    features = inputs["input_features"]
+    if features[0]["type"] == "image":
+        fitted = features[0]["preprocessing"]["fitted"]
+        rows, columns = int(fitted["height"]), int(fitted["width"])
+        path = "input_features[0].preprocessing.height"
+    else:
+        rows = inputs["preprocessing.window_size"]
+        columns = sum(channels_of(feature) for feature in features)
+        path = "preprocessing.window_size"
+    verdict = spec.plane_fit(spec.parameters.model_validate(inputs["model.params"]), rows, columns)
+    if verdict is not None:
+        problem, accepted = verdict
+        run_rule_error(
+            RULE_WINDOW_MATCHES_TEMPLATE,
+            path,
+            problem,
+            found={"rows": rows, "columns": columns},
+            accepted=accepted,
+        )
+
+
 def construct(inputs: StageInputs, context: StageContext) -> Any:
     """Build the model the manifest describes, and return it with its description."""
     import keras
@@ -102,6 +136,7 @@ def construct(inputs: StageInputs, context: StageContext) -> Any:
     # Before construction, because construction is where the weights are drawn.
     keras.utils.set_random_seed(int(inputs["random_seed"]))
 
+    check_plane(inputs)
     builder = load_builder(inputs["model.template"])
     model = build_model(
         builder,

@@ -123,3 +123,25 @@ class Clip(keras.layers.Layer):
 
 #: The layers this module registers, for a check that a model carries nothing else of its own.
 REGISTERED = (Standardize, VocabularyOneHot, AsChannel, Rescale, Clip)
+
+
+@keras.saving.register_keras_serializable(package=PACKAGE)
+class ReconstructionError(keras.layers.Layer):
+    """An ``anomaly`` output: the mean squared difference between reconstruction and input.
+
+    Feature 010, research R8. Called on ``[reconstruction, original]``, both of the window's shape;
+    the result is one score per window, shape (batch, 1). Both are flattened and the mean is taken
+    with the reduced axis kept: indexing a reduced mean into a column instead costs a STRIDED_SLICE
+    in the converted model. Lowers to SQUARED_DIFFERENCE and MEAN, both int8 in TFLite Micro.
+    """
+
+    def call(self, inputs: Sequence[Any]) -> Any:
+        reconstruction, original = inputs
+        width = int(np.prod(original.shape[1:]))
+        difference = keras.ops.reshape(reconstruction, (-1, width)) - keras.ops.reshape(
+            original, (-1, width)
+        )
+        return keras.ops.mean(keras.ops.square(difference), axis=1, keepdims=True)
+
+    def compute_output_shape(self, input_shape: Any) -> tuple[Any, int]:
+        return (input_shape[0][0], 1)

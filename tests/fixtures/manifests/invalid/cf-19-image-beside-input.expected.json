@@ -1,0 +1,4 @@
+{
+  "rule": "CF-19",
+  "path": "input_features[1]"
+}

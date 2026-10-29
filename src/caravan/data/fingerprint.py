@@ -7,7 +7,9 @@ and imports nothing but the standard library.
 
 from __future__ import annotations
 
+import csv
 import hashlib
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,6 +17,10 @@ from caravan.manifest.errors import RULE_DATASET_UNREADABLE, run_rule_error
 
 #: Files a dataset directory is read from, in sorted relative-path order.
 DATA_SUFFIXES = (".csv", ".tsv", ".txt")
+
+#: The delimiter of each table suffix. Defined here and imported by the reader, because the reader
+#: imports numpy and this module must not (research R4 of feature 002).
+TABLE_DELIMITERS = {".csv": ",", ".tsv": "\t", ".txt": ","}
 
 #: How much of a file is hashed at a time. Large enough to be fast, small enough that a multi-
 #: gigabyte dataset never has to fit in memory.
@@ -29,6 +35,9 @@ class DatasetFiles:
     files: tuple[Path, ...]
     version: str
     total_bytes: int
+    #: The image files the tables name, in sorted relative-path order, when an input is an image
+    #: (feature 010, research R11). Part of the version: changing an image is changing the data.
+    images: tuple[Path, ...] = ()
 
     @property
     def relative_names(self) -> tuple[str, ...]:
@@ -72,7 +81,53 @@ def _files_in(root: Path) -> tuple[Path, ...]:
     )
 
 
-def resolve_dataset(source: str, manifest_dir: Path) -> DatasetFiles:
+def _image_files(
+    root: Path, tables: Sequence[Path], columns: Sequence[str], source: str
+) -> tuple[Path, ...]:
+    """Every file an image column names, checked to exist inside the dataset directory.
+
+    Read with the standard library's ``csv``, so the cache keeps working without a framework. A
+    path that leaves the directory is refused: a manifest may not reach files outside its declared
+    fields (Principle I), and the data is what the dataset reference names.
+    """
+    inside = root.resolve()
+    found: set[Path] = set()
+    for table in tables:
+        with table.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.reader(handle, delimiter=TABLE_DELIMITERS.get(table.suffix.lower(), ","))
+            header = [cell.strip() for cell in next(reader, [])]
+            positions = [(name, header.index(name)) for name in columns if name in header]
+            for number, row in enumerate(reader, start=1):
+                for name, position in positions:
+                    if position >= len(row):
+                        continue  # a short record is the reader's to name (DS-4)
+                    cell = row[position].strip()
+                    target = (root / cell).resolve()
+                    where = f"{table.name}, record {number}, column {name}"
+                    if not cell or not target.is_relative_to(inside):
+                        run_rule_error(
+                            RULE_DATASET_UNREADABLE,
+                            "dataset",
+                            (
+                                f"{where}: {cell!r} is not a file inside the dataset directory; "
+                                "an image column names files relative to it"
+                            ),
+                            found=cell,
+                        )
+                    if not target.is_file():
+                        run_rule_error(
+                            RULE_DATASET_UNREADABLE,
+                            "dataset",
+                            f"{where}: {cell} does not exist",
+                            found=cell,
+                        )
+                    found.add(target)
+    return tuple(sorted(found, key=lambda path: str(path.relative_to(inside))))
+
+
+def resolve_dataset(
+    source: str, manifest_dir: Path, image_columns: Sequence[str] = ()
+) -> DatasetFiles:
     """Resolve ``dataset`` against the manifest's own directory, and fingerprint it.
 
     The reference is relative to the manifest, so a manifest and its data move together. Every
@@ -105,13 +160,18 @@ def resolve_dataset(source: str, manifest_dir: Path) -> DatasetFiles:
         files = (root,)
         root = root.parent
 
+    images = _image_files(root, files, image_columns, source) if image_columns else ()
+    hash_root = root.resolve() if images else root
     digest = hashlib.sha256()
     total = 0
-    for path in files:
+    for path in (*files, *images):
         try:
             size = path.stat().st_size
             with path.open("rb") as handle:
-                digest.update(str(path.relative_to(root)).encode("utf-8"))
+                relative = (
+                    path.resolve().relative_to(hash_root) if images else path.relative_to(root)
+                )
+                digest.update(str(relative).encode("utf-8"))
                 digest.update(str(size).encode("ascii"))
                 while chunk := handle.read(_CHUNK):
                     digest.update(chunk)
@@ -129,4 +189,5 @@ def resolve_dataset(source: str, manifest_dir: Path) -> DatasetFiles:
         files=files,
         version=f"sha256:{digest.hexdigest()}",
         total_bytes=total,
+        images=images,
     )
