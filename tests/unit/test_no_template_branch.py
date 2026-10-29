@@ -27,7 +27,8 @@ def test_four_templates_are_listed_with_their_summaries() -> None:
 
 def test_no_module_outside_the_templates_names_a_template() -> None:
     identifiers = default_registry().identifiers
-    pattern = re.compile(r"""["'](%s)["']""" % "|".join(map(re.escape, identifiers)))
+    alternatives = "|".join(map(re.escape, identifiers))
+    pattern = re.compile(rf"""["']({alternatives})["']""")
     offenders = []
     for path in sorted(SOURCE.rglob("*.py")):
         if TEMPLATES in path.parents:
