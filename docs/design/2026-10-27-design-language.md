@@ -19,9 +19,12 @@ because it is a style we like.
 
 Three things, because D4 asks that Caravan read as the zoo's sibling and not its twin:
 
-1. **Its own mark** — three squares of decreasing size on a line. A caravan is a sequence moving
-   along a route, and a model that reaches a board has been made smaller twice. It uses the ground
-   and the ink only, never the accent, which keeps the reservation below absolute.
+1. **Its own mark** — a cut italic C trailed by three squares that get smaller. The C is drawn on
+   the zoo's M: the same cap height, slant and stem width, so the two marks read as one family. The
+   trail is a caravan moving on and a model made smaller to fit. It uses the ground and the ink
+   only, never the accent, which keeps the reservation below absolute. The favicon keeps two
+   squares of the trail, larger, because three close up at 16px. (Replaced on 2026-10-29; the first
+   mark was three squares of decreasing size on a line.)
 2. **Its own reservation for the accent** — below.
 3. **Syntax colour from the identity's inks**, which the zoo had no need of.
 
@@ -45,7 +48,9 @@ stylesheet. The zoo's own mark does the same.
 **In the interface: the budget and its verdict.** A figure that must fit, and the gate's answer
 about whether it did. Nothing else in the interface may use it — not a call to action, not an
 emphasis, not a heading. `--accent-use` exists so a check can find violations; `.budget` and
-`.verdict` are the only classes that may read it.
+`.verdict` are the only classes that may read it. Orange text at body size is 3.3:1 on the light
+ground, below the 4.5:1 text needs, so `.budget` keeps the figure in body ink and draws the accent
+as a 4px bar beneath it.
 
 **In an illustration: the subject of the picture.** The board in the hero, the board in leg 3's
 motif, the bar that stops the model in leg 4's. This half of the rule was added after the first
@@ -125,7 +130,12 @@ here, because nothing on this site uses them.
 - **Tables** are for scanning across columns, never for carrying an explanation (FR-038). Below
   861px a table scrolls inside its own frame rather than pushing the page sideways.
 - **Figures** are flat: colour fields, hard edges, no gradient and no shadow. Borders do the work
-  shadows would.
+  shadows would. Corners are cut to match the imagery: 0 for pictures, 2px for cards, code and
+  tables, 4px for buttons and inputs.
+- **Diagrams** follow the graphics grammar Caravan shares with the zoo: fine 1.5px connectors with
+  cut arrowheads, numbered plates with what each stage leaves written under them, a failure on a
+  quiet line to a dashed end. The gates are bars in `--accent-use`, because in a diagram of this
+  project the gate is the verdict. The pipeline in the overview is the reference drawing.
 - **Meaning is never carried by colour alone** (FR-036). Where a label means something, a border
   style carries it too: the provenance labels are dotted for `estimated`, dashed for `emulated`,
   solid for `measured`, so they survive a monochrome print and a reader who cannot separate the
