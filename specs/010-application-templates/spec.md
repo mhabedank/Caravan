@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-29
 
-**Status**: Draft
+**Status**: Draft — scope decided 2026-10-29
 
 **Input**: User description: "wir hatten bereits eine analyse gemacht, welche use cases es gibt,
 richtig? das war ne ganze menge. lass uns mal daraus entwickeln welche templates wir brauchen und
@@ -36,7 +36,7 @@ in a head for a `category`, `binary` or `number` output.
 | 6 | Machine anomaly from sound or vibration | feature frames, e.g. 5 × 40 log-mel (`hum-fan`), 5 × 128 (MLPerf Tiny) | **reconstruction → anomaly score** | — | **gap: an autoencoder** |
 | 7 | Keyword spotting | feature frames, 49 × 10 MFCC | class | — | **gap: a two-dimensional convolution over frames × coefficients** |
 | 8 | Person present (Visual Wake Words) | image 96 × 96 | class | the same two-dimensional convolution | template gap as in 7; **also needs an image input type** |
-| 9 | Image classification | image 32 × 32 | class | the same | as in 8 |
+| 9 | Image classification | image 32 × 32 | class | the same | as in 8; the reference ResNet needs residual connections, which stay out |
 | 10 | Object detection | image 96–128 px | grid or boxes | a detection head | needs an image input and a grid output; M7 or NPU class |
 | 11 | Pose, segmentation, depth, face | image | dense, several heads | — | MCU with NPU; no output kind for it |
 | 12 | Audio events, noise suppression | audio | class, or a **signal** | — | signal output; M55 with NPU |
@@ -56,13 +56,17 @@ and hardware classes Caravan does not have, and no template alone would serve th
 
 ## Scope Decision
 
-[NEEDS CLARIFICATION: Which templates does this feature build? Recommended: the autoencoder (row 6,
-driven by `hum-fan`) and the two-dimensional convolution (row 7, keyword spotting), both on the data
-Caravan reads today. Alternatives: add a recurrent template; build only the autoencoder; or add an
-image input type so that rows 8 and 9 run end to end.]
+Decided by the owner on 2026-10-29 (option D of four): this feature builds
 
-The stories, requirements and criteria below are written for the recommended scope. The
-alternatives each add or remove a block that is marked where it applies.
+1. the **anomaly template**, an autoencoder (row 6, driven by `hum-fan`);
+2. the **two-dimensional convolution** (row 7, keyword spotting);
+3. the **`image` input type**, so that rows 8 and 9 run end to end through the two-dimensional
+   template.
+
+Not chosen: a recurrent template (no model needs one today, and the ESP32's accelerated library has
+no kernel for it), and the smaller scopes without images. Rows 10 to 12 stay out.
+
+Together the three take Caravan from five of the twelve application classes to nine.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -138,7 +142,48 @@ feature frames, run the pipeline to export, and check the export's operator set 
 
 ---
 
-### User Story 3 - See which application each template serves (Priority: P2)
+### User Story 3 - Classify images (Priority: P2)
+
+An author has a folder of small images — frames of a doorway from a low-power camera, thermal
+snapshots — and a table that names each image file and its class, the way Ludwig reads images. They
+declare one image input; the pipeline reads and resizes the images for training, builds the pixel
+scaling into the model, checks against the boards whether such a model can fit at all, and exports a
+model that takes raw pixels at the declared size.
+
+**Why this priority**: The owner put image processing in scope (decision D5: "definitiv gibt es
+Bildverarbeitung auf kleinen Controllern"), and two of MLPerf Tiny's four tasks are images. It is P2
+and not P1 because it builds on the two-dimensional template of User Story 2 and adds the largest
+new surface: a second way of reading data.
+
+**Independent Test**: On a committed fixture of small generated images with a label table, run a
+manifest with an image input and the two-dimensional template from validation to export, and read the
+interface contract.
+
+**Acceptance Scenarios**:
+
+1. **Given** a manifest with an image input naming its column, **When** it is validated, **Then** it
+   is accepted, and the resolved manifest of a run shows the height, width, channels and resize
+   method used — stated by the author or taken from the data.
+2. **Given** a table whose image column names files relative to the dataset, **When** the pipeline
+   reads it, **Then** every image is read, converted to the declared channels and brought to the
+   declared size, and the report counts the images read and how many had to be resized.
+3. **Given** a record whose image file is missing or cannot be decoded, **When** the data is read,
+   **Then** the run is refused, naming the record, the file and what was wrong — no image is dropped
+   silently.
+4. **Given** the exported model, **When** a firmware passes a frame of the declared size as raw 8-bit
+   pixels, **Then** the model scales them itself, and the interface contract states the height, the
+   width, the channels and their order, the pixel element type, and that the frame must already have
+   the declared size.
+5. **Given** the Visual Wake Words reference shape, 96 × 96 pixels, and a board whose memory such a
+   model cannot fit, **When** the fit check runs, **Then** the run stops before training with the
+   floors and the board's figures.
+6. **Given** an image input beside other inputs, an image input with a window, or an image input
+   with the anomaly template, **When** the manifest is validated, **Then** it is refused, naming the
+   combination and what is accepted.
+
+---
+
+### User Story 4 - See which application each template serves (Priority: P2)
 
 An author arrives with a problem — "detect a worn bearing", "recognise a wake word" — not with a
 template name. They need to find out which template fits their problem, what data shape it expects
@@ -162,15 +207,16 @@ which template serves it or why none does.
 
 ---
 
-### User Story 4 - Add templates without touching the core (Priority: P3)
+### User Story 5 - Add templates without touching the core (Priority: P3)
 
 Two more templates are two more tests of the registry's promise: a template is a parameter half in
 the core, a builder half behind the training extra, and a registration, with no central list edited
 and no stage carrying a special case.
 
 **Why this priority**: The promise was proven once, by `conv1d`. An autoencoder is the first template
-whose output is not one of the existing heads, so it tests where the template ends and the output
-type begins.
+whose output is not one of the existing heads, and the two-dimensional template is the first that
+takes either a window or an image, so together they test where a template ends and a feature type
+begins.
 
 **Independent Test**: List the templates in an installation without the training extra; validate a
 manifest for each; search the stages for a branch on a template identifier.
@@ -180,7 +226,8 @@ manifest for each; search the stages for a branch on a template identifier.
 1. **Given** the new templates, **When** the core is imported without a training framework, **Then**
    their parameters validate and nothing fails.
 2. **Given** the stages, **When** they handle a model of any template, **Then** none branches on the
-   template's identifier; what differs for the anomaly case is decided by the output type.
+   template's identifier; what differs for anomaly detection is decided by the output type, and
+   what differs for images by the input type.
 
 ---
 
@@ -206,21 +253,34 @@ manifest for each; search the stages for a branch on a template identifier.
 - Separable blocks with a dropout of zero: no dropout layer appears, as in the existing templates.
 - A two-dimensional head that reduces over the plane: recorded with its operator and coverage like
   `conv1d`'s, so the author sees whether it is accelerated.
+- Images of different sizes and no size stated: refused, naming the sizes found and the keys that
+  would settle it. Images of one size and no size stated: that size is taken and recorded.
+- A colour image where one channel is declared, or the reverse: converted, and the report counts
+  the conversions.
+- An image column naming a path outside the dataset directory: refused, because a manifest may not
+  reach files outside its declared fields (Principle I).
+- An image file in a format the pipeline does not read: refused with the formats it does read.
+- The image fixture's size is far below the reference shapes: the reference shapes are checked by
+  building and by the fit check, not by training, as `conv1d` did for `pace-cnn`.
 
 ## Out of Scope
 
 - Rows 10 to 12 of the table: detection, segmentation, pose, signal outputs. They need output kinds
   and, mostly, NPU-class hardware that Caravan has no board for.
-- An image input type, and with it rows 8 and 9 end to end — unless the scope decision adds it.
+- Resizing, cropping or decoding images on the device: the camera or the firmware delivers frames
+  at the declared size as raw pixels; JPEG decoding stays the firmware's.
+- Image augmentation, pretrained weights, transfer learning.
+- An image input combined with other inputs, and anomaly detection on images.
 - Multi-label output for ECG (row 5): an output type, a separate feature.
-- A recurrent template — unless the scope decision adds it.
+- A recurrent template (not chosen in the scope decision).
 - Feature extraction inside Caravan: turning audio into MFCC or log-mel frames, vibration into
   spectra. The author's data arrives as frames, one row per frame, as `hum-fan`'s does today; where
   that extraction should live is the open question the research note recorded (Part F).
 - The port of `hum-fan` itself, and any accuracy claim for a real dataset: that happens in the zoo,
   where the data is. No dataset enters this repository (Principle VI).
 - Residual connections, attention, dilation, and every architectural option no named model or
-  documented application needs (Principle X).
+  documented application needs (Principle X). So the image classification reference (ResNet-8 on
+  32 × 32) is not expressible; row 9 is served by plain and separable stacks.
 
 ## Requirements *(mandatory)*
 
@@ -279,35 +339,63 @@ manifest for each; search the stages for a branch on a template identifier.
 - **FR-019**: It MUST end in the existing heads for `category`, `binary` and `number` outputs, with no
   head of its own beyond what FR-015 names.
 
+**The image input type** (User Story 3)
+
+- **FR-020**: The project MUST provide an `image` input type, in Ludwig's name, declared by the
+  column that names each record's image file, relative to the dataset directory.
+- **FR-021**: The height, the width and the number of channels (one or three) MAY be stated; a value
+  not stated MUST be taken from the data when all images agree on it, recorded in the resolved
+  manifest, and refused naming the values found when they do not.
+- **FR-022**: The pipeline MUST read at least PNG and JPEG files, convert each image to the declared
+  channels and resize it to the declared size by a documented default method, and report how many
+  images were converted or resized.
+- **FR-023**: A missing, unreadable or out-of-directory image MUST refuse the run, naming the record
+  and the file.
+- **FR-024**: The model's image input MUST take raw 8-bit pixels at the declared size; the scaling of
+  pixel values MUST be inside the model.
+- **FR-025**: An image input MUST be the model's only input, each record MUST be one sample, and a
+  window MUST NOT be stated; the two-dimensional template MUST take the image as its plane, with its
+  channels.
+- **FR-026**: The interface contract MUST state the image input's height, width, channels and their
+  order, its element type, and that frames are passed at the declared size.
+- **FR-027**: The fit check before training, the stage cache, the splits and the test windows of the
+  export MUST work for image models as for windowed ones; a test window of an image model is one
+  image with the host's answer.
+- **FR-028**: The dataset's identity for the stage cache MUST cover the image files a table names, so
+  that changing an image invalidates what was built from it.
+
 **Both templates, in the pipeline**
 
-- **FR-020**: Each template MUST be a parameter half in the core and a builder half behind the
+- **FR-029**: Each template MUST be a parameter half in the core and a builder half behind the
   training extra, registered without editing a central list, and listed with a one-line summary
   naming its kind of problem.
-- **FR-021**: No stage MAY branch on a template identifier; behaviour that differs for anomaly
+- **FR-030**: No stage MAY branch on a template identifier; behaviour that differs for anomaly
   detection MUST follow from the output type.
-- **FR-022**: Each template MUST run end to end — validate, render, build, train, quantize, export —
+- **FR-031**: Each template MUST run end to end — validate, render, build, train, quantize, export —
   on a committed synthetic fixture, with its gate able to pass and to fail.
-- **FR-023**: The fit check before training MUST apply to both templates unchanged.
-- **FR-024**: The stage cache MUST apply: a changed parameter produces a new model, an unread field
+- **FR-032**: The fit check before training MUST apply to both templates unchanged.
+- **FR-033**: The stage cache MUST apply: a changed parameter produces a new model, an unread field
   does not.
-- **FR-025**: The dependency count, the extras and the default installation's size MUST be unchanged.
+- **FR-034**: The dependency count, the extras and the default installation's size MUST be unchanged.
 
 **Documentation** (User Story 3)
 
-- **FR-026**: The documentation MUST carry the application-class table of FR-001, an example manifest
+- **FR-035**: The documentation MUST carry the application-class table of FR-001, an example manifest
   for each new template, and the manifest reference for each new parameter and output key.
-- **FR-027**: The roadmap MUST record the templates delivered by this feature, and each deferred
+- **FR-036**: The roadmap MUST record the templates delivered by this feature, and each deferred
   candidate with its date and reason.
 
 ### Key Entities
 
+- **Image input**: one column naming an image file per record, with height, width and channels,
+  stated or taken from the data, and the resize method.
 - **Application class**: a use shown to run on microcontrollers, with its input, output, reference
   size and hardware, from the research note; the justification a template may cite.
 - **Anomaly template parameters**: encoder widths, code size, decoder widths, dropout.
 - **Anomaly output**: the condition column, its normal value, the threshold rule and the threshold it
   produced, and the separation budget.
-- **Plane**: the window seen as rows by input columns, which the two-dimensional template convolves.
+- **Plane**: what the two-dimensional template convolves — a window seen as rows by input columns
+  with one channel, or an image with its channels.
 - **Convolution block (two-dimensional)**: standard or separable, filters, kernel and stride per
   axis, padding, normalisation, pooling, dropout.
 
@@ -335,6 +423,17 @@ manifest for each; search the stages for a branch on a template identifier.
   extra, asserted in that installation.
 - **SC-010**: No stage contains a branch on a template identifier.
 - **SC-011**: Dependencies, extras and the default installation's size are unchanged.
+- **SC-012**: A manifest with an image input and the two-dimensional template runs from validation to
+  export on a committed fixture of generated images, with the gate passing.
+- **SC-013**: The two-dimensional template built at the Visual Wake Words reference — MobileNetV1 at
+  width 0.25, 96 × 96 × 3, two labels — has the parameter count computed independently from that
+  architecture, and the fit check reports it against each built-in board before any training.
+- **SC-014**: Every missing, unreadable or out-of-directory image in a test fixture is refused with
+  its record and file named; none is dropped silently.
+- **SC-015**: Changing one image file of a dataset invalidates the cached stages that read it, and
+  changing none does not.
+- **SC-016**: Nine of the twelve application classes have a template and input type that serve them,
+  as the documentation's table states.
 
 ## Assumptions
 
@@ -361,12 +460,30 @@ manifest for each; search the stages for a branch on a template identifier.
   keeps its meaning; whether the schema version changes is a plan decision under Principle IX.
 - **Synthetic fixtures only.** Each template gets a small generated fixture: frames with
   class-dependent patterns for the two-dimensional template, normal windows and perturbed abnormal
-  ones for the autoencoder. No recording enters the repository.
+  ones for the autoencoder, and a few hundred small generated images with simple class-dependent
+  shapes for the image type. No recording and no photograph enters the repository.
+- **Images are read as Ludwig reads them.** A table column holds the image file's path; the label
+  and the split are other columns of the same table. That keeps one dataset form for every input
+  type, and lets the existing splits, including a fixed split from a column, apply unchanged.
+- **Image size is the author's decision about the device, not a fact of the data.** The camera
+  delivers a fixed frame; the model must take that frame. So the size may be stated, and is taken
+  from the data only when the data leaves no doubt (Principle I: what the data says is not asked).
+- **Resizing happens on the host, for training only.** On a microcontroller the camera crops and
+  bins (the HM01B0 delivers 320 × 240 windows and 2 × 2 binning, research note Part D); a resize
+  operator in the model would spend memory the image already strains. The contract says the frame
+  must arrive at the declared size.
+- **The device passes 8-bit pixels.** A 96 × 96 × 3 frame is 27,648 bytes as 8-bit values and four
+  times that as 32-bit floats; on boards with 64 KB to 1 MB of memory that difference decides what
+  fits. How the 8-bit input reaches the quantized model is a plan decision.
+- **Image decoding adds no dependency.** It is needed only where training happens, and the training
+  extra already brings a framework that decodes PNG and JPEG; the plan confirms this before relying
+  on it (Principle XII).
 
 ## Constitution Check
 
-- **Principle I**: the templates are chosen by identifier with parameters; the anomaly output is a
-  declared output type, and every new key is read by a stage.
+- **Principle I**: the templates are chosen by identifier with parameters; the anomaly output and
+  the image input are declared feature types, every new key is read by a stage, and an image size
+  the data already states is not asked again.
 - **Principle IV**: no accuracy or latency is claimed for a real dataset; parameter counts are
   checked against independently computed figures.
 - **Principle V**: the anomaly output brings its own gate, which fails when it cannot decide.
@@ -374,5 +491,8 @@ manifest for each; search the stages for a branch on a template identifier.
 - **Principle VIII**: the anomaly score and threshold are in the interface contract.
 - **Principle X**: the autoencoder is justified by `hum-fan` and by the anomaly application class;
   the two-dimensional template by the keyword-spotting application class, with Speech Commands v2
-  (CC BY 4.0) as its public dataset. Deferred candidates are recorded with their reason.
-- **Principle XII**: no dependency, no extra; the parameter halves stay framework-free.
+  (CC BY 4.0) as its public dataset; the image input type by the Visual Wake Words and image
+  classification classes (MLPerf Tiny) and owner decision D5. Deferred candidates are recorded with
+  their reason.
+- **Principle XII**: no dependency, no extra; the parameter halves stay framework-free, and image
+  decoding lives where training lives.

@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -35,6 +35,7 @@
   (operator, int8, resolver, MLPerf Tiny) are the stakeholders' vocabulary, as in specs 005 and 008.
   No framework, library or code structure is named; the spec says what each template must express
   and what the pipeline must report, not how it is built.
-- One marker remains, on purpose: the scope decision (which templates this feature builds). It
-  changes the size of the feature by a whole template or an input type, and the owner decides it.
-- Iteration 1, 2026-10-29: all items pass except the open scope marker.
+- Iteration 1, 2026-10-29: all items passed except one open marker, the scope decision.
+- Iteration 2, 2026-10-29: the owner chose option D (autoencoder, two-dimensional convolution and the
+  `image` input type). User Story 3, FR-020 to FR-028, SC-012 to SC-016, the image edge cases and
+  assumptions were added; requirements renumbered in document order. All items pass.
