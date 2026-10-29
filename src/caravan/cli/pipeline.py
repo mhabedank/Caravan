@@ -209,6 +209,9 @@ def data_line(schema: dict[str, Any]) -> str:
         answer = f"labels {', '.join(fitted['labels'])} ({fitted['labels_source']})"
     elif output["type"] == "binary":
         answer = f"true is {fitted['true_spelling']!r}"
+    elif output["type"] == "anomaly":
+        abnormal = ", ".join(fitted["abnormal_labels"]) or "none"
+        answer = f"an anomaly score, normal is {fitted['normal_label']!r}, abnormal: {abnormal}"
     else:
         answer = "a number"
     ignored = schema["ignored_columns"]
@@ -292,7 +295,13 @@ def run_pipeline(
         with captured(log_path):
             from caravan.data.fingerprint import resolve_dataset
 
-            dataset = resolve_dataset(manifest.dataset, path.parent)
+            dataset = resolve_dataset(
+                manifest.dataset,
+                path.parent,
+                image_columns=[
+                    feature.name for feature in manifest.input_features if feature.type == "image"
+                ],
+            )
             split = manifest.preprocessing.split
             context = StageContext(
                 dataset=dataset,

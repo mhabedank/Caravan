@@ -57,6 +57,12 @@ Ethos-U65 gives 6–11× over the A55 CPU, for int8 models with supported operat
 Plus a TinyYOLOv3 ran **slower** on the NPU than on the CPU (1.18 Hz against 1.99 Hz); the gain
 there was CPU load. Both are single case studies on different software stacks.
 
+**Correction, 2026-10-29 (feature 010).** The keyword-spotting row's "38.6K parameters" is not
+what the MLPerf Tiny reference builds: its code (`mlcommons/tiny`,
+`keyword_spotting/keras_model.py`, `ds_cnn`) gives 24,908 parameters and 43,048 bytes as int8,
+measured. Where 38.6K comes from was not re-checked; the DS-CNN of "Hello Edge" (2017), from which
+the reference derives, is the likely source. The figure stays above as it was recorded.
+
 **Refuted, not to be used:** "under 256 kB SRAM is typical" (1–2), µYOLO's resolution limits as
 the MCU/SoC boundary (0–3), and "the Ethos-U65 only accelerates per-tensor int8" (0–3).
 

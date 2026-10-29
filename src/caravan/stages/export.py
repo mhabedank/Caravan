@@ -137,6 +137,16 @@ def check_formats(formats: list[str]) -> tuple[str, ...]:
     return tuple(formats)
 
 
+def load_anomaly_threshold(run_dir: Path) -> float:
+    """The alarm threshold the quantize stage recorded for an anomaly output."""
+    import json
+
+    from caravan.stages.quantize import RECORD as QUANTIZATION_RECORD
+
+    record = json.loads((run_dir / QUANTIZATION_RECORD).read_text(encoding="utf-8"))
+    return float(record["threshold"]["value"])
+
+
 def load_model_bytes(run_dir: Path) -> bytes:
     """The quantized model of this run, or X-2 naming the stage that has to run first."""
     path = run_dir / QUANTIZED_MODEL
@@ -203,6 +213,10 @@ def stage(context: StageContext) -> StageFunction:
             "threshold": inputs.get("output_features[0].threshold"),
             "clip": inputs.get("output_features[0].clip"),
         }
+        if output["type"] == "anomaly":
+            # Drawn by the quantize stage from the int8 model's scores (feature 010, R10); this
+            # stage's key moves with it through its upstream.
+            output["threshold"] = load_anomaly_threshold(context.run_dir)
         bindings = [
             binding.as_dict()
             for binding in read_bindings(

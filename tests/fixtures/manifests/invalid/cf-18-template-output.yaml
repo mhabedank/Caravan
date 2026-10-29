@@ -1,0 +1,24 @@
+# Invalid on purpose. The autoencoder template answers anomaly outputs only, and this output is a category (feature 010).
+# Expected: CF-18 at model.template
+apiVersion: caravan/v0.2
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: autoencoder
+  params:
+    encoder: [8]
+    code: 2
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 8
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

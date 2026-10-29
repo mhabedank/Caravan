@@ -17,15 +17,17 @@ from typing import Any
 
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
 from caravan.stages.build import load_built_model, require_framework
-from caravan.targets.fit import LayerRecord, check
+from caravan.targets.fit import IMAGE_ELEMENT_BYTES, LayerRecord, check
 from caravan.targets.registry import default_registry
 
 FIT_RECORD = "model/fit.json"
 
 SPEC = StageSpec(
     name="fit",
-    reads=("export.targets", "export.quantization"),
-    # Everything the floors depend on is in the built model, which is the upstream's result.
+    # Feature 010: the input features' types too, because an image input is 1 byte per element on
+    # the device and 4 in the Keras model; the built model alone cannot say which input is one.
+    reads=("export.targets", "export.quantization", "input_features"),
+    # Everything else the floors depend on is in the built model, the upstream's result.
     reads_dataset=False,
     upstream="build",
     artifacts=(FIT_RECORD,),
@@ -44,7 +46,7 @@ def _tensor_elements(tensors: Any) -> int:
     return _elements(tensors.shape)
 
 
-def layer_records(model: Any) -> tuple[LayerRecord, ...]:
+def layer_records(model: Any, images: frozenset[str] = frozenset()) -> tuple[LayerRecord, ...]:
     """The built model's layers, as the records the floors are computed from.
 
     Feature 008 adds three kinds: every model input (``input``, at 4 bytes per element), every
@@ -56,7 +58,9 @@ def layer_records(model: Any) -> tuple[LayerRecord, ...]:
     from caravan.templates.builders.preprocessing import VocabularyOneHot
 
     dense = (keras.layers.Dense,)
-    conv = (keras.layers.Conv1D, keras.layers.Conv2D)
+    # A depthwise convolution is not a ``Conv2D`` in Keras 3, and would otherwise be counted as
+    # excluded — its weights and its activations lost from both floors (feature 010, R4).
+    conv = (keras.layers.Conv1D, keras.layers.Conv2D, keras.layers.DepthwiseConv2D)
     pooling = (
         keras.layers.MaxPooling1D,
         keras.layers.MaxPooling2D,
@@ -75,6 +79,7 @@ def layer_records(model: Any) -> tuple[LayerRecord, ...]:
                     kind="input",
                     name=layer.name,
                     output_elements=_tensor_elements(layer.output),
+                    **({"element_bytes": IMAGE_ELEMENT_BYTES} if layer.name in images else {}),
                 )
             )
             continue
@@ -112,7 +117,10 @@ def stage(context: StageContext) -> StageFunction:
         registry = default_registry()
         boards = [registry.get(identifier) for identifier in inputs["export.targets"]]
         model = load_built_model(context.run_dir)
-        record = check(layer_records(model), inputs["export.quantization"], boards)
+        images = frozenset(
+            feature["name"] for feature in inputs["input_features"] if feature["type"] == "image"
+        )
+        record = check(layer_records(model, images), inputs["export.quantization"], boards)
         (out_dir / "model").mkdir(parents=True, exist_ok=True)
         (out_dir / FIT_RECORD).write_text(
             json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n",

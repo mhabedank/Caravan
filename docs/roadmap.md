@@ -149,8 +149,29 @@ said wrongly before the extra was measured against the index rather than against
 | `analyze`: per-layer activation memory, peak with the layer that causes it, flash, latency estimate | v0.2 | planned | the arena cannot be derived from the flatbuffer; see the prior-art note, C1 |
 | Hardware requirement record, resolved against the board descriptions | v0.2 | planned | |
 | Automatic template scaling when a budget is exceeded | v0.2 | planned | |
-| `smallcnn` template | v0.2 | planned | needs a named driver before it is built |
+| `smallcnn` template | v0.2 | **built as `conv2d`** (feature 010) | 2026-10-29: renamed and built ahead of the analysis items; see below |
+| `autoencoder` template and the `anomaly` output | v0.2 | **built** (feature 010) | first planned 2026-10-29; `hum-fan` and machine-sound anomaly detection |
+| `image` input type | v0.2 | **built** (feature 010) | first planned 2026-10-29; Visual Wake Words and image classification |
+| A recurrent template (LSTM) | v0.2 | **considered 2026-10-29, not built** | see below |
 | `forest` template over ONNX | v0.2 | **dropped 2026-10-22** | see below |
+
+**The templates for the application classes, 2026-10-29.** The owner asked which templates the
+application classes of the research note need, and to build them ("lass uns mal daraus entwickeln
+welche templates wir brauchen und diese dann implementieren"), choosing the widest of four scopes:
+the autoencoder, the two-dimensional convolution and the image input type. The
+[applications](applications.md) page has the derivation: nine of twelve classes are served now.
+`smallcnn` was the design document's name for the two-dimensional template; it is built as `conv2d`
+because the author describes a convolution over two axes, as `conv1d` describes one over one. Its
+driver is a documented application class, keyword spotting, which Principle X accepts beside a named
+model. "Built" here means merged; an item counts as delivered when the version that carries it is
+released.
+
+**The recurrent template, considered 2026-10-29.** Battery health and CAN intrusion detection have
+small recurrent models that run on microcontrollers (a CNN-LSTM of 8,961 parameters and an LSTM
+autoencoder of 6,272, both on an ST SPC58, from the zoo's model-ideas research of 2026-10-11). Both
+classes are served by the existing templates, the ESP32's accelerated library has no recurrent
+kernel (`esp-nn`, read 2026-10-22), and no named model needs one. It becomes a live question with
+the first model that does.
 
 **`forest` dropped, 2026-10-22.** The design document planned a tree-model template reaching the
 microcontroller through ONNX. A random forest has no tensor arena, no int8 quantization in the

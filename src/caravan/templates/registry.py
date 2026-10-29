@@ -39,6 +39,20 @@ class TemplateParameterSpec:
     #: because most templates have nothing to check here, and a required field would make every
     #: third-party template carry a stub (feature 005, research R6).
     window_fit: Callable[[BaseModel, int], tuple[str, tuple[str, ...]] | None] | None = None
+    #: The output types this template answers (feature 010). A template's last layer is a head for
+    #: these, and an autoencoder answers none of them: it reconstructs its input, which only the
+    #: ``anomaly`` output knows what to do with. Checked by the manifest (CF-18), so no stage needs
+    #: to know which template it is running.
+    output_types: tuple[str, ...] = ("category", "binary", "number")
+    #: Whether the template takes an image as its plane (feature 010, CF-19).
+    takes_images: bool = False
+    #: Optional, like ``window_fit``, for a template that convolves a plane of rows by columns:
+    #: given the validated parameters and the two axes — either ``None`` when it is not known yet —
+    #: ``None`` when the configuration fits, else ``(problem, accepted)``. Called at validation with
+    #: what the manifest says and again at build with the built input's shape (feature 010, R3).
+    plane_fit: (
+        Callable[[BaseModel, int | None, int | None], tuple[str, tuple[str, ...]] | None] | None
+    ) = None
 
 
 class TemplateRegistry:

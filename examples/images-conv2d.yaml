@@ -1,0 +1,43 @@
+# Image classification, on the synthetic images that come with Caravan (feature 010).
+#
+# `labels.csv` names each image file, relative to the dataset directory, and its class, the way
+# Ludwig reads images: a filled square, a horizontal bar or a cross on dark noise, 16 x 16 RGB. The
+# size and the channels are taken from the data, because every image agrees; state `height`,
+# `width` and `num_channels` to bring images of another size to the device's frame. The exported
+# model takes raw 8-bit pixels at that size — the camera's bytes, with no scaling in the firmware.
+# The same template as MobileNetV1 at width 0.25 on 96 x 96 x 3 is the Visual Wake Words reference.
+apiVersion: caravan/v0.2
+
+model:
+  name: images-conv2d
+  version: 0.1.0
+  template: conv2d
+  params:
+    blocks:
+      - {filters: 16, kernel: 3, padding: same, pool: 2}
+      - {kind: separable, filters: 32, kernel: 3, padding: same, pool: 2}
+    head: average
+
+input_features:
+  - name: image
+    type: image
+
+output_features:
+  - name: label
+    type: category
+    accuracy_drop_max: 0.05
+
+preprocessing:
+  split: {type: stratify, probabilities: [0.7, 0.15, 0.15]}
+
+dataset: ../tests/fixtures/datasets/images
+
+trainer: {epochs: 60, batch_size: 16, learning_rate: 0.003, early_stop: 10}
+random_seed: 42
+
+export:
+  quantization: int8
+  formats: [flatbuffer, c_array]
+  targets: [s32k144, stm32h743, esp32]
+  representative_samples: 100
+  test_windows: 6

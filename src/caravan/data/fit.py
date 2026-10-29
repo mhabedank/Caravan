@@ -26,6 +26,7 @@ from caravan.manifest.errors import (
     RULE_BINARY_SPELLINGS,
     RULE_CLASS_OUTSIDE_TRAIN,
     RULE_DATASET_LABELS,
+    RULE_NOTHING_NORMAL,
     RULE_TOO_FEW_CLASSES,
     run_rule_error,
 )
@@ -351,6 +352,52 @@ def fit_output_number(train: Sequence[float], *, normalization: str | None) -> d
     """The shift and scale a ``number`` output is learned in, inverted inside the model."""
     shift, scale = _shift_and_scale([float(value) for value in train], normalization)
     return {"normalization": normalization, "shift": shift, "scale": scale}
+
+
+def fit_output_anomaly(
+    train: Sequence[str], every: Sequence[str], *, normal_label: str, path: str
+) -> dict[str, Any]:
+    """What the condition column holds, and which value is normal (feature 010).
+
+    The normal value must occur in the data, and in the training part, because training learns
+    from normal windows alone. Every other value is abnormal; how many windows carry each is
+    recorded, so a reader sees what "abnormal" meant here.
+    """
+    counts: dict[str, int] = {}
+    for value in every:
+        counts[value] = counts.get(value, 0) + 1
+    if normal_label not in counts:
+        run_rule_error(
+            RULE_NOTHING_NORMAL,
+            f"{path}.preprocessing.normal_label",
+            (
+                f"no window of the data has the condition {normal_label!r}, so there is nothing "
+                "normal to learn; values found: "
+                + ", ".join(f"{value} ({count})" for value, count in sorted(counts.items()))
+            ),
+            found=normal_label,
+            accepted=tuple(sorted(counts)),
+        )
+    trained = sum(1 for value in train if value == normal_label)
+    if trained == 0:
+        in_train: dict[str, int] = {}
+        for value in train:
+            in_train[value] = in_train.get(value, 0) + 1
+        run_rule_error(
+            RULE_NOTHING_NORMAL,
+            f"{path}.preprocessing.normal_label",
+            (
+                f"the training part holds no window whose condition is {normal_label!r}; values "
+                "found there: "
+                + ", ".join(f"{value} ({count})" for value, count in sorted(in_train.items()))
+            ),
+            found=normal_label,
+        )
+    return {
+        "normal_label": normal_label,
+        "abnormal_labels": sorted(value for value in counts if value != normal_label),
+        "values": dict(sorted(counts.items())),
+    }
 
 
 def _all_in_training(train: Sequence[str], seen: set[str], path: str) -> None:

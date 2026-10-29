@@ -12,7 +12,7 @@ architecture), ``dataset``, ``export`` and the int8 budgets (research R1).
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 from pydantic import ValidationError as PydanticValidationError
@@ -23,9 +23,11 @@ from caravan.manifest.errors import (
     RULE_COLUMN_BOTH_WAYS,
     RULE_DECLARATION_NAME,
     RULE_FEATURE_TYPE,
+    RULE_IMAGE_INPUT,
     RULE_ONE_OUTPUT,
     RULE_SPLIT_COLUMN_DECLARED,
     RULE_STRATIFY_COLUMN,
+    RULE_TEMPLATE_OUTPUT,
     RULE_TEMPLATE_PARAMETERS,
     RULE_UNKNOWN_BOARD,
     RULE_UNKNOWN_TEMPLATE,
@@ -36,6 +38,7 @@ from caravan.manifest.errors import (
 )
 from caravan.manifest.schema.export import MINIMUM_REPRESENTATIVE_SAMPLES, ExportSpec
 from caravan.manifest.schema.features import (
+    BUDGET_KEYS,
     INPUT_TYPES,
     OUTPUT_KEYS,
     OUTPUT_TYPES,
@@ -74,6 +77,15 @@ TYPE_NOT_IMPLEMENTED = (
     "documented application that needs it (Principle X, "
     "docs/research/2026-10-24-typed-features-on-mcu.md)"
 )
+
+
+def _listed(words: tuple[str, ...]) -> str:
+    """``a``, ``a and b``, ``a, b and c``."""
+    return words[0] if len(words) == 1 else f"{', '.join(words[:-1])} and {words[-1]}"
+
+
+def _article(word: str) -> str:
+    return "an" if word[:1] in "aeiou" else "a"
 
 
 def _templates(info: ValidationInfo) -> TemplateRegistry:
@@ -180,7 +192,7 @@ class Manifest(BaseModel):
         output = self.output_features[0]
         for key in output.stated_keys():
             applies = OUTPUT_KEYS[key]
-            if output.type in applies or key in ("accuracy_drop_max", "mae_increase_max"):
+            if output.type in applies or key in BUDGET_KEYS.values():
                 continue
             field_error(
                 f"output_features[0].{key}",
@@ -191,23 +203,24 @@ class Manifest(BaseModel):
     @model_validator(mode="after")
     def _budget_matches_the_output(self) -> Manifest:
         # CF-16: Principle V requires every manifest to state its int8 budget, in the metric of
-        # its output: accuracy for a class, the mean absolute error for a number.
+        # its output: accuracy for a class, the mean absolute error for a number, the area under
+        # the ROC curve for an anomaly score (feature 010).
         output = self.output_features[0]
-        wanted = "mae_increase_max" if output.type == "number" else "accuracy_drop_max"
-        other = "accuracy_drop_max" if wanted == "mae_increase_max" else "mae_increase_max"
-        if getattr(output, other) is not None:
-            rule_error(
-                RULE_BUDGET_FOR_TYPE,
-                f"output_features[0].{other}",
-                f"a {output.type} output states its int8 budget as {wanted}, in "
-                + (
-                    "the column's unit"
-                    if wanted == "mae_increase_max"
-                    else "accuracy lost to quantization"
-                ),
-                found=getattr(output, other),
-                accepted=(wanted,),
-            )
+        wanted = BUDGET_KEYS[output.type]
+        meaning = {
+            "accuracy_drop_max": "accuracy lost to quantization",
+            "mae_increase_max": "the column's unit",
+            "auc_drop_max": "the area under the ROC curve lost to quantization",
+        }[wanted]
+        for other in sorted(set(BUDGET_KEYS.values()) - {wanted}):
+            if getattr(output, other) is not None:
+                rule_error(
+                    RULE_BUDGET_FOR_TYPE,
+                    f"output_features[0].{other}",
+                    f"a {output.type} output states its int8 budget as {wanted}, in {meaning}",
+                    found=getattr(output, other),
+                    accepted=(wanted,),
+                )
         if getattr(output, wanted) is None:
             rule_error(
                 RULE_BUDGET_FOR_TYPE,
@@ -323,9 +336,124 @@ class Manifest(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def _template_answers_the_output(self, info: ValidationInfo) -> Manifest:
+        # CF-18 (feature 010): a template states which output types its last layer answers, so
+        # this check needs no list of template names.
+        spec = _templates(info).get(self.model.template)
+        if spec is None:
+            return self
+        output = self.output_features[0]
+        if output.type not in spec.output_types:
+            answering = sorted(
+                other.identifier for other in _templates(info) if output.type in other.output_types
+            )
+            rule_error(
+                RULE_TEMPLATE_OUTPUT,
+                "model.template",
+                f"the {spec.identifier} template answers {_listed(spec.output_types)} "
+                f"outputs; output_features[0] is {_article(output.type)} {output.type}",
+                found=self.model.template,
+                accepted=tuple(answering),
+            )
+        return self
+
+    def _image_inputs(self) -> list[int]:
+        return [
+            index for index, feature in enumerate(self.input_features) if feature.type == "image"
+        ]
+
+    @model_validator(mode="after")
+    def _image_input_is_buildable(self, info: ValidationInfo) -> Manifest:
+        # CF-19 (feature 010): one plane per model, one record per sample, and a template that
+        # takes images.
+        images = self._image_inputs()
+        if not images:
+            return self
+        if len(self.input_features) > 1:
+            other = next(i for i in range(len(self.input_features)) if i != images[0])
+            rule_error(
+                RULE_IMAGE_INPUT,
+                f"input_features[{other}]",
+                "an image input must be the model's only input; found "
+                f"{len(self.input_features)} inputs",
+                found=[feature.name for feature in self.input_features],
+            )
+        if self.preprocessing.window_size is not None:
+            rule_error(
+                RULE_IMAGE_INPUT,
+                "preprocessing.window_size",
+                "a model with an image input reads one record per sample, so the window must be "
+                "left out",
+                found=self.preprocessing.window_size,
+            )
+        spec = _templates(info).get(self.model.template)
+        if spec is not None and not spec.takes_images:
+            rule_error(
+                RULE_IMAGE_INPUT,
+                "model.template",
+                f"the {spec.identifier} template does not take images",
+                found=self.model.template,
+                accepted=tuple(sorted(t.identifier for t in _templates(info) if t.takes_images)),
+            )
+        return self
+
+    def _image_size(self, key: str) -> int | None:
+        """A stated image height or width, the feature's own or its type's default."""
+        feature = self.input_features[self._image_inputs()[0]]
+        if key in feature.preprocessing.model_fields_set:
+            return getattr(feature.preprocessing, key)
+        default = self.defaults.get("image")
+        if default is not None and key in default.preprocessing.model_fields_set:
+            return getattr(default.preprocessing, key)
+        return None
+
+    def _known_columns(self) -> int | None:
+        """How many columns a window's plane has, when the manifest alone says so.
+
+        One per ``number`` and ``binary`` feature; a ``category`` only when its embedding size is
+        stated, because a vocabulary is otherwise learned from the data. Unknown is ``None``, and
+        the build stage checks that axis before training (research R3).
+        """
+        total = 0
+        for feature in self.input_features:
+            if feature.type in ("number", "binary"):
+                total += 1
+                continue
+            encoders = [feature.encoder]
+            default = self.defaults.get(feature.type)
+            if default is not None:
+                encoders.append(default.encoder)
+            size = next(
+                (
+                    encoder.embedding_size
+                    for encoder in encoders
+                    if encoder is not None and encoder.embedding_size is not None
+                ),
+                None,
+            )
+            kind = next(
+                (encoder.type for encoder in encoders if encoder is not None and encoder.type),
+                "dense",
+            )
+            if kind != "dense" or size is None:
+                return None
+            total += size
+        return total
+
+    @model_validator(mode="after")
     def _window_matches_template(self, info: ValidationInfo) -> Manifest:
         spec = _templates(info).get(self.model.template)
         if spec is None:
+            return self
+        images = self._image_inputs()
+        if images:
+            # The window rule of an image model is CF-19's; the plane is the image's.
+            self._check_plane(
+                spec,
+                self._image_size("height"),
+                self._image_size("width"),
+                f"input_features[{images[0]}].preprocessing.height",
+            )
             return self
         window = self.preprocessing.window_size
         path = "preprocessing.window_size"
@@ -361,7 +489,28 @@ class Manifest(BaseModel):
                     found=window,
                     accepted=accepted,
                 )
+        if spec.consumes_window and window is not None:
+            self._check_plane(spec, int(window), self._known_columns(), path)
         return self
+
+    def _check_plane(self, spec: Any, rows: int | None, columns: int | None, path: str) -> None:
+        """CF-6 for a template that convolves a plane, with what the manifest knows of it."""
+        if spec.plane_fit is None or (rows is None and columns is None):
+            return
+        try:
+            params = spec.parameters.model_validate(self.model.params)
+        except PydanticValidationError:
+            return  # T-2 already reported it
+        verdict = spec.plane_fit(params, rows, columns)
+        if verdict is not None:
+            problem, accepted = verdict
+            rule_error(
+                RULE_WINDOW_MATCHES_TEMPLATE,
+                path,
+                problem,
+                found={"rows": rows, "columns": columns},
+                accepted=accepted,
+            )
 
     # --- board resolution: B-1 -----------------------------------------------------------------
 

@@ -228,3 +228,21 @@ An addition, not a breaking change, so the version stays `caravan/v0.2`:
   field writes no windows.
 - **Older builds:** a manifest that uses the field is refused by `v0.1.0rc2` and older builds as an
   unknown field, at `export.test_windows`, as any field they do not know.
+
+## Within `caravan/v0.2`: two templates, an input type and an output type (feature 010, 2026-10-29)
+
+Additions, not a breaking change, so the version stays `caravan/v0.2`:
+- **Templates:** `conv2d` (a convolution over a plane: a window as rows by columns, or an image) and
+  `autoencoder` (anomaly detection from normal data).
+- **Input type `image`:** the column names an image file per record. Keys `height`, `width`,
+  `num_channels` and `resize_method`, all optional.
+- **Output type `anomaly`:** keys `preprocessing.normal_label` (default `normal`),
+  `threshold_percentile` (default 95) and `auc_drop_max`, the int8 budget, required.
+- **Rules:** CF-18 and CF-19 refuse a template that cannot answer the output, and an image input in
+  a combination that cannot be built; CF-6 checks both axes of a `conv2d` plane.
+- **The interface contract** is version 3: an image input entry (size, channels, layout, raw uint8
+  pixels) and an anomaly output entry (the score, its threshold, the decision). A firmware reading
+  version 2 contracts reads every existing model's contract unchanged; only the new entries are
+  new.
+- **Your edit:** none. Every `caravan/v0.2` manifest keeps its meaning.
+- **Older builds:** refuse the new templates with T-1 and the new types with CF-14.

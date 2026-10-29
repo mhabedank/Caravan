@@ -45,6 +45,12 @@ RULE_STRATIFY_COLUMN = "CF-15"
 RULE_BUDGET_FOR_TYPE = "CF-16"
 #: Not exactly one output feature (feature 008; the output half of the retired CF-10).
 RULE_ONE_OUTPUT = "CF-17"
+#: The template cannot answer the output type: an autoencoder answers ``anomaly`` and nothing else,
+#: the classifying templates do not answer ``anomaly`` (feature 010).
+RULE_TEMPLATE_OUTPUT = "CF-18"
+#: An ``image`` input in a combination that cannot be built: beside another input, with a window, or
+#: with a template that does not take images (feature 010).
+RULE_IMAGE_INPUT = "CF-19"
 
 #: Rules that can refuse a manifest. Every one of these must have an invalid manifest fixture,
 #: and ``tests/unit/test_fixture_coverage.py`` fails when one does not.
@@ -66,6 +72,8 @@ MANIFEST_REJECTION_RULES: frozenset[str] = frozenset(
         RULE_STRATIFY_COLUMN,
         RULE_BUDGET_FOR_TYPE,
         RULE_ONE_OUTPUT,
+        RULE_TEMPLATE_OUTPUT,
+        RULE_IMAGE_INPUT,
     }
 )
 
@@ -94,6 +102,12 @@ RULE_SPLIT_VALUE = "DS-13"
 RULE_CLASS_OUTSIDE_TRAIN = "DS-14"
 #: A ``binary`` column with more than two spellings and no ``fallback_true_label`` (feature 008).
 RULE_BINARY_SPELLINGS = "DS-15"
+#: An ``anomaly`` output with nothing normal to learn from: the stated normal value occurs nowhere
+#: in the data, or the training part holds no window of it (feature 010).
+RULE_NOTHING_NORMAL = "DS-16"
+#: An image the column names cannot be read as declared: missing, not an image this build reads,
+#: or of a size that disagrees with the others when none is stated (feature 010).
+RULE_IMAGE_UNREADABLE = "DS-17"
 
 #: Run rules. Every one of these must have a test that provokes it, and
 #: ``tests/unit/test_run_rules_coverage.py`` fails when one does not. DS-7 is deliberately absent:
@@ -113,6 +127,8 @@ RUN_RULES: frozenset[str] = frozenset(
         RULE_SPLIT_VALUE,
         RULE_CLASS_OUTSIDE_TRAIN,
         RULE_BINARY_SPELLINGS,
+        RULE_NOTHING_NORMAL,
+        RULE_IMAGE_UNREADABLE,
     }
 )
 
@@ -156,6 +172,9 @@ RULE_CONVERSION_FAILED = "Q-2"
 RULE_NOT_FULLY_QUANTIZED = "Q-3"
 RULE_ACCURACY_GATE = "Q-4"
 RULE_GATE_UNMEASURABLE = "Q-5"
+#: An image input of the converted model is not raw pixels: scale 1 and zero point 0 are what
+#: the contract promises, and the file is checked rather than trusted (feature 010, research R6).
+RULE_IMAGE_INPUT_NOT_RAW = "Q-6"
 
 #: Quantization rules. Like the DS rules they refuse a *run*, so they have no invalid-manifest
 #: fixture and their own coverage test instead.
@@ -166,6 +185,7 @@ QUANTIZE_RULES: frozenset[str] = frozenset(
         RULE_NOT_FULLY_QUANTIZED,
         RULE_ACCURACY_GATE,
         RULE_GATE_UNMEASURABLE,
+        RULE_IMAGE_INPUT_NOT_RAW,
     }
 )
 

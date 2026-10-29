@@ -35,7 +35,7 @@ its new one.
 |---|---|---|---|---|---|
 | `model.name` | string | — (required) | your model's name | export | — |
 | `model.version` | string | — (required) | your model's version | export | — |
-| `model.template` | string | — (required) | `mlp`, `conv1d` (`caravan templates`) | build | [T-1](rules.md#t-1), [CF-6](rules.md#cf-6) |
+| `model.template` | string | — (required) | `mlp`, `conv1d`, `conv2d`, `autoencoder` (`caravan templates`) | build | [T-1](rules.md#t-1), [CF-6](rules.md#cf-6), [CF-18](rules.md#cf-18), [CF-19](rules.md#cf-19) |
 | `model.params` | mapping | `{}` | the template's parameters, below | build | [T-2](rules.md#t-2), [CF-6](rules.md#cf-6) |
 
 **`mlp`:**
@@ -53,6 +53,30 @@ its new one.
   - `dropout` (0).
 - **`head`:** `average` (default) or `flatten`.
 
+**`conv2d`** (feature 010). A convolution over a plane: a window seen as rows by input columns, or
+an image. Answers `category`, `binary` and `number`; the only template that takes an image.
+- **`blocks`:** a list, at least one, each with:
+  - `kind`: `standard` (default) or `separable` — a depthwise convolution with the block's kernel
+    and stride, then a 1 x 1 convolution with its filters;
+  - `filters`;
+  - `kernel`: an integer for a square, or `[rows, columns]`;
+  - `stride` (1), an integer or `[rows, columns]`;
+  - `padding` (`valid` or `same`);
+  - `normalise` (`false`), after each convolution of the block;
+  - `pool` (none), max pooling after the block, an integer or `[rows, columns]`;
+  - `dropout` (0).
+- **`head`:** `average` (default), average pooling over the whole remaining plane, or `flatten`.
+
+A plane too small for the blocks on either axis is refused ([CF-6](rules.md#cf-6)): at validation
+when the manifest gives the size, otherwise by the build stage, before training.
+
+**`autoencoder`** (feature 010). Anomaly detection from normal data. Answers the `anomaly` output
+and nothing else ([CF-18](rules.md#cf-18)).
+- `encoder`, a list of dense widths from the input towards the code, at least one;
+- `code`, the width of the linear bottleneck;
+- `decoder`, a list of widths back out, default the encoder reversed;
+- `dropout`, from 0 up to but not including 1, default 0.
+
 ## `input_features[]`
 
 One entry per column the model reads. A column no feature names is ignored, and every run lists it
@@ -61,13 +85,17 @@ under `ignored_columns`.
 | Field | Type | Default | Allowed | Read by | Rules |
 |---|---|---|---|---|---|
 | `input_features[].name` | string | — (required) | a column of the data, of the form `[a-z][a-z0-9_]{0,31}`, each column once | data, build, train, quantize, export | [CF-9](rules.md#cf-9), [CF-11](rules.md#cf-11), [CF-13](rules.md#cf-13), [DS-12](rules.md#ds-12) |
-| `input_features[].type` | string | — (required) | `number`, `category`, `binary` | data, build, train, quantize, export | [CF-14](rules.md#cf-14) |
+| `input_features[].type` | string | — (required) | `number`, `category`, `binary`, `image` | data, build, train, quantize, export | [CF-14](rules.md#cf-14), [CF-19](rules.md#cf-19) |
 | `input_features[].preprocessing.normalization` | string or null | `zscore` (number) | `zscore`, `minmax`, `iq`, `null`; `number` only | data, build | — |
 | `input_features[].preprocessing.missing_value_strategy` | string | `fill_with_const` | `fill_with_const`, `fill_with_mean` (number only) | data | — |
 | `input_features[].preprocessing.fill_value` | number, string or boolean | `0.0` (number), `<UNK>` (category), `false` (binary) | a value of the column's kind | data | — |
 | `input_features[].preprocessing.most_common` | integer | `32` (category) | ≥ 1; `category` only | data | — |
 | `input_features[].preprocessing.vocab` | list | `derived` (category) | the vocabulary in your order, which pins it; `category` only | data | — |
 | `input_features[].preprocessing.fallback_true_label` | string | none (binary) | the spelling that means true; `binary` only | data | [DS-15](rules.md#ds-15) |
+| `input_features[].preprocessing.height` | integer | `derived`: the images' height when they all agree | ≥ 1; `image` only | data, build, fit, export | [DS-17](rules.md#ds-17), [CF-6](rules.md#cf-6) |
+| `input_features[].preprocessing.width` | integer | `derived`: the images' width when they all agree | ≥ 1; `image` only | data, build, fit, export | [DS-17](rules.md#ds-17), [CF-6](rules.md#cf-6) |
+| `input_features[].preprocessing.num_channels` | integer | `derived`: the images' channels when they all agree | `1` (grey) or `3` (RGB); `image` only | data, build, export | [DS-17](rules.md#ds-17) |
+| `input_features[].preprocessing.resize_method` | string | `interpolate` | `interpolate` (bilinear), `crop_or_pad`; `image` only | data | — |
 | `input_features[].encoder.type` | string | `dense` (category) | `dense` (an embedding), `onehot`; `category` only | build | — |
 | `input_features[].encoder.embedding_size` | integer | `derived`: the smaller of the vocabulary size and 4 | ≥ 1; `dense` only | build | — |
 
@@ -89,6 +117,14 @@ step:
     like.
   - For two spellings of your own, the one that sorts second is true, unless you state
     `fallback_true_label`.
+- **`image`** (feature 010): the column names an image file per record, relative to the dataset
+  directory, as Ludwig reads images. PNG, JPEG, BMP and GIF are read.
+  - The model takes **raw 8-bit pixels** at the declared size, rows then columns then channels:
+    uint8 at scale 1 and zero point 0, the camera's bytes. The scaling is inside the model.
+  - Images of another size are brought to it for training (`resize_method`); the device passes
+    frames of exactly that size, and the model does not resize.
+  - An image is the model's only input, one record is one sample, and no `window_size` is stated
+    ([CF-19](rules.md#cf-19)).
 
 ## `output_features[]`
 
@@ -97,9 +133,10 @@ Exactly one entry: the column the model answers ([CF-17](rules.md#cf-17)).
 | Field | Type | Default | Allowed | Read by | Rules |
 |---|---|---|---|---|---|
 | `output_features[].name` | string | — (required) | a column of the data | data, build, train, quantize, export | [CF-9](rules.md#cf-9), [CF-11](rules.md#cf-11) |
-| `output_features[].type` | string | — (required) | `category`, `binary`, `number` | data, build, train, quantize, export | [CF-14](rules.md#cf-14) |
+| `output_features[].type` | string | — (required) | `category`, `binary`, `number`, `anomaly` | data, build, train, quantize, export | [CF-14](rules.md#cf-14), [CF-18](rules.md#cf-18) |
 | `output_features[].preprocessing.vocab` | list | `derived`: by frequency in the training part | every class of the data, in your order, which pins it; `category` only | data | [DS-5](rules.md#ds-5), [DS-11](rules.md#ds-11), [DS-14](rules.md#ds-14) |
 | `output_features[].preprocessing.fallback_true_label` | string | none | `binary` only | data | [DS-15](rules.md#ds-15) |
+| `output_features[].preprocessing.normal_label` | string | `normal` | the column's value that means normal; `anomaly` only | data, train, quantize, export | [DS-16](rules.md#ds-16) |
 | `output_features[].preprocessing.normalization` | string or null | `null` | `zscore`, `minmax`, `iq`, `null`; `number` only | data, train | — |
 | `output_features[].loss.type` | string | `mean_squared_error` | `mean_squared_error`, `mean_absolute_error`, `huber`; `number` only | train | — |
 | `output_features[].loss.class_weights` | list or mapping | none | one weight per class, or class → weight; `category` only | train | — |
@@ -108,23 +145,37 @@ Exactly one entry: the column the model answers ([CF-17](rules.md#cf-17)).
 | `output_features[].clip` | list of two numbers | none | `[low, high]`; `number` only | build, export | — |
 | `output_features[].accuracy_drop_max` | number | — (required for `category` and `binary`) | 0 to 1 | quantize | [CF-16](rules.md#cf-16), [Q-4](rules.md#q-4) |
 | `output_features[].mae_increase_max` | number | — (required for `number`) | ≥ 0, in the column's unit | quantize | [CF-16](rules.md#cf-16), [Q-4](rules.md#q-4) |
+| `output_features[].auc_drop_max` | number | — (required for `anomaly`) | 0 to 1 | quantize | [CF-16](rules.md#cf-16), [Q-4](rules.md#q-4), [Q-5](rules.md#q-5) |
+| `output_features[].threshold_percentile` | number | `95` | between 0 and 100, exclusive; `anomaly` only | quantize | — |
 
 **The int8 budget.**
 - `accuracy_drop_max` is how much test accuracy quantization may cost, for example `0.02` for two
   points.
 - `mae_increase_max` is how much the mean absolute error may grow.
-- Exceeding either fails the run; no option lowers or skips the gate ([budgets](../budgets.md)).
+- `auc_drop_max` is how much of the area under the ROC curve quantization may cost: how well the
+  anomaly score separates normal from abnormal test windows.
+- Exceeding any of them fails the run; no option lowers or skips the gate ([budgets](../budgets.md)).
 
 **Decisions.** What the model's answer means, in `interface.json` and on a board:
 - a category takes the argmax;
 - a binary compares with `threshold`;
-- a number is the value itself.
+- a number is the value itself;
+- an anomaly score is abnormal at or above its threshold.
+
+**The `anomaly` output** (feature 010). It names the column that tells normal from abnormal; every
+value other than `normal_label` is abnormal.
+- The model's output is the **anomaly score**: the mean squared difference between the window as the
+  model saw it and its reconstruction, computed inside the model.
+- Training learns from the normal windows of the training part only; calibration uses all of them.
+- The threshold is the `threshold_percentile`-th percentile of the int8 model's scores on the
+  validation part's normal windows. `quantization.json` records it, with the detection and false
+  alarm rates on the test part, and `interface.json` states it.
 
 ## `preprocessing`
 
 | Field | Type | Default | Allowed | Read by | Rules |
 |---|---|---|---|---|---|
-| `preprocessing.window_size` | integer | none | ≥ 1; required by templates that consume a window (both do) | data, build, train, quantize, export | [CF-6](rules.md#cf-6), [DS-6](rules.md#ds-6) |
+| `preprocessing.window_size` | integer | none | ≥ 1; required by templates that consume a window (all four do), left out with an image input | data, build, train, quantize, export | [CF-6](rules.md#cf-6), [DS-6](rules.md#ds-6) |
 | `preprocessing.split.type` | string | `random` | `random`, `stratify`, `fixed` | data, train, quantize, export | [CF-12](rules.md#cf-12), [CF-15](rules.md#cf-15) |
 | `preprocessing.split.probabilities` | list of three numbers | `[0.7, 0.15, 0.15]` | train, validation, test; each > 0, summing to 1; not with `fixed` | data, train, quantize, export | [CF-1](rules.md#cf-1), [CF-12](rules.md#cf-12), [DS-8](rules.md#ds-8) |
 | `preprocessing.split.column` | string | the output's column for `stratify` | for `stratify`, the output's column; for `fixed`, the column naming each record's part | data, train, quantize, export | [CF-12](rules.md#cf-12), [CF-13](rules.md#cf-13), [CF-15](rules.md#cf-15), [DS-13](rules.md#ds-13) |
@@ -145,8 +196,8 @@ Exactly one entry: the column the model answers ([CF-17](rules.md#cf-17)).
 ## `defaults`
 
 Preprocessing and encoder settings for every input feature of one type. A feature's own value
-still wins, and the type's built-in default applies last. `<type>` is `number`, `category` or
-`binary`.
+still wins, and the type's built-in default applies last. `<type>` is `number`, `category`,
+`binary` or `image`.
 
 | Field | Type | Default | Allowed | Read by | Rules |
 |---|---|---|---|---|---|
@@ -156,6 +207,10 @@ still wins, and the type's built-in default applies last. `<type>` is `number`, 
 | `defaults.<type>.preprocessing.most_common` | as for a feature | — | as for a feature | through each feature | — |
 | `defaults.<type>.preprocessing.vocab` | as for a feature | — | as for a feature | through each feature | — |
 | `defaults.<type>.preprocessing.fallback_true_label` | as for a feature | — | as for a feature | through each feature | — |
+| `defaults.<type>.preprocessing.height` | as for a feature | — | as for a feature | through each feature | — |
+| `defaults.<type>.preprocessing.width` | as for a feature | — | as for a feature | through each feature | — |
+| `defaults.<type>.preprocessing.num_channels` | as for a feature | — | as for a feature | through each feature | — |
+| `defaults.<type>.preprocessing.resize_method` | as for a feature | — | as for a feature | through each feature | — |
 | `defaults.<type>.encoder.type` | as for a feature | — | as for a feature | through each feature | — |
 | `defaults.<type>.encoder.embedding_size` | as for a feature | — | as for a feature | through each feature | — |
 

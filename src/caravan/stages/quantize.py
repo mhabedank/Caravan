@@ -29,10 +29,12 @@ from caravan.env import (
 from caravan.manifest.errors import (
     RULE_ACCURACY_GATE,
     RULE_GATE_UNMEASURABLE,
+    RULE_IMAGE_INPUT_NOT_RAW,
     RULE_NOT_FULLY_QUANTIZED,
     RULE_TRAINED_MODEL_UNREADABLE,
     run_rule_error,
 )
+from caravan.metrics.anomaly import auc
 from caravan.stages._framework import framework_record
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
 from caravan.stages.train import TRAINED_MODEL
@@ -73,6 +75,9 @@ SPEC = StageSpec(
         # output type (CF-16).
         "output_features[0].accuracy_drop_max?",
         "output_features[0].mae_increase_max?",
+        # Feature 010: an anomaly output's budget, and the percentile its threshold is drawn at.
+        "output_features[0].auc_drop_max?",
+        "output_features[0].threshold_percentile?",
         "random_seed",
     ),
     reads_dataset=True,
@@ -193,7 +198,13 @@ class GateOutcome:
             "threshold": self.threshold,
             "verdict": "pass" if self.passed else "fail",
             "samples": self.samples,
-            "resolution": round(self.resolution, RECORDED_PRECISION),
+            # The step of an accuracy; an AUC moves in steps of one normal-abnormal pair instead,
+            # recorded with its counts by the anomaly record (feature 010).
+            **(
+                {"resolution": round(self.resolution, RECORDED_PRECISION)}
+                if self.metric == "accuracy"
+                else {}
+            ),
         }
 
     def gate(self) -> dict[str, Any]:
@@ -253,9 +264,25 @@ def load_trained(run_dir: Path) -> Any:
 
 
 def score(output: dict[str, Any], raw: Any, targets: Any) -> float:
-    """The gate's measurement of one set of raw outputs: accuracy, or the mean absolute error."""
+    """The gate's measurement of one set of raw outputs: accuracy, the mean absolute error, or the
+    area under the ROC curve of an anomaly score (feature 010)."""
     import numpy as np
 
+    if output["type"] == "anomaly":
+        normal, abnormal = split_scores(raw, targets)
+        area = auc(normal, abnormal)
+        if area is None:
+            run_rule_error(
+                RULE_GATE_UNMEASURABLE,
+                "output_features[0].auc_drop_max",
+                (
+                    f"the test part holds {len(normal)} normal and {len(abnormal)} abnormal "
+                    "windows; the area under the ROC curve needs both, so the gate cannot decide "
+                    "and unknown is not within budget"
+                ),
+                found={"normal": len(normal), "abnormal": len(abnormal)},
+            )
+        return float(area)
     if output["type"] == "number":
         return float(np.mean(np.abs(raw.reshape(-1) - targets)))
     if output["type"] == "category":
@@ -266,22 +293,70 @@ def score(output: dict[str, Any], raw: Any, targets: Any) -> float:
     return float((predicted == targets).sum() / len(targets))
 
 
+#: The gate's metric and the manifest key of its budget, per output type.
+GATE_METRICS = {
+    "category": ("accuracy", "accuracy_drop_max"),
+    "binary": ("accuracy", "accuracy_drop_max"),
+    "number": ("mae", "mae_increase_max"),
+    "anomaly": ("auc", "auc_drop_max"),
+}
+
+
+def split_scores(raw: Any, targets: Any) -> tuple[list[float], list[float]]:
+    """An anomaly model's scores, divided into normal (target 0) and abnormal (target 1)."""
+    scores = [float(value) for value in raw.reshape(-1)]
+    normal = [value for value, target in zip(scores, targets, strict=True) if int(target) == 0]
+    abnormal = [value for value, target in zip(scores, targets, strict=True) if int(target) == 1]
+    return normal, abnormal
+
+
 def output_of(inputs: StageInputs) -> dict[str, Any]:
     """The output feature with its budget, from the projection."""
     kind = inputs["output_features[0].type"]
-    budget = (
-        inputs["output_features[0].mae_increase_max"]
-        if kind == "number"
-        else inputs["output_features[0].accuracy_drop_max"]
-    )
+    metric, key = GATE_METRICS[kind]
     return {
         "name": inputs["output_features[0].name"],
         "type": kind,
         "preprocessing": inputs["output_features[0].preprocessing"],
         "threshold": inputs.get("output_features[0].threshold") or 0.5,
-        "budget": float(budget),
-        "metric": "mae" if kind == "number" else "accuracy",
+        "threshold_percentile": inputs.get("output_features[0].threshold_percentile"),
+        "budget": float(inputs[f"output_features[0].{key}"]),
+        "budget_key": key,
+        "metric": metric,
     }
+
+
+def image_inputs(inputs: StageInputs) -> list[dict[str, Any]]:
+    """The model's image inputs, which the converter turns into raw uint8 pixels (feature 010)."""
+    return [feature for feature in inputs["input_features"] if feature["type"] == "image"]
+
+
+def check_raw_pixels(inspection: Any, images: list[dict[str, Any]]) -> None:
+    """Q-6: an image input must take the camera's bytes as they are — uint8, scale 1, zero 0.
+
+    Research R6 shows how the converter is brought there; this reads the file to prove it was,
+    because the contract tells a firmware author to pass raw pixels.
+    """
+    names = {feature["name"] for feature in images}
+    for tensor in inspection.inputs:
+        name = tensor.name.removeprefix("serving_default_").split(":")[0]
+        if name not in names:
+            continue
+        if tensor.dtype != "uint8" or tensor.scale != 1.0 or (tensor.zero_point or 0) != 0:
+            run_rule_error(
+                RULE_IMAGE_INPUT_NOT_RAW,
+                "export.quantization",
+                (
+                    f"the converted model's image input {name!r} is {tensor.dtype} with scale "
+                    f"{tensor.scale} and zero point {tensor.zero_point}; raw pixels need uint8, "
+                    "scale 1 and zero point 0, so the device would have to rescale every frame"
+                ),
+                found={
+                    "dtype": tensor.dtype,
+                    "scale": tensor.scale,
+                    "zero_point": tensor.zero_point,
+                },
+            )
 
 
 def stage(context: StageContext) -> StageFunction:
@@ -303,10 +378,15 @@ def stage(context: StageContext) -> StageFunction:
         split, features = parts.split, parts.features
 
         calibration = plan_calibration(inputs["export.representative_samples"], split.train, seed)
-        representative = _representative(features, calibration) if calibration.used else None
+        images = image_inputs(inputs)
+        representative = (
+            _representative(features, calibration, bounds=bool(images))
+            if calibration.used
+            else None
+        )
 
         model = load_trained(context.run_dir)
-        blob = convert(model, setting, representative)
+        blob = convert(model, setting, representative, pixel_inputs=bool(images))
         (out_dir / "model").mkdir(parents=True, exist_ok=True)
         quantized_path = out_dir / QUANTIZED_MODEL
         quantized_path.write_bytes(blob)
@@ -325,6 +405,9 @@ def stage(context: StageContext) -> StageFunction:
                 found=inspection.dtype_counts,
             )
 
+        if images and setting == CALIBRATED_SETTING:
+            check_raw_pixels(inspection, images)
+
         test_features, test_targets = parts.test()
         if len(test_targets) == 0:  # pragma: no cover - feature 002 refuses an empty split first
             run_rule_error(
@@ -333,17 +416,13 @@ def stage(context: StageContext) -> StageFunction:
                 "the test split has no samples, so the int8 gate cannot be shown to hold",
             )
 
-        budget_path = (
-            "output_features[0].mae_increase_max"
-            if output["metric"] == "mae"
-            else "output_features[0].accuracy_drop_max"
-        )
+        budget_path = f"output_features[0].{output['budget_key']}"
         with tempfile.TemporaryDirectory() as scratch:
             # The unquantized conversion exists only to produce the baseline the gate judges
             # against, so it is not an artifact: keeping it would invite the question of which
             # model to deploy. Its number is recorded, which is what it is for.
             float_path = Path(scratch) / "converted-float.tflite"
-            float_path.write_bytes(convert(model, "none"))
+            float_path.write_bytes(convert(model, "none", pixel_inputs=False))
             try:
                 converted_raw = run_model(float_path, test_features, output["name"])
                 quantized_raw = run_model(quantized_path, test_features, output["name"])
@@ -371,7 +450,11 @@ def stage(context: StageContext) -> StageFunction:
                 "trained_size_bytes": (context.run_dir / TRAINED_MODEL).stat().st_size,
                 **inspection.as_dict(),
             },
-            "calibration": calibration.as_dict(),
+            "calibration": {
+                **calibration.as_dict(),
+                # The black and the white frame that pin an image input to raw pixels (R6).
+                **({"bounds_frames": BOUNDS_FRAMES} if images and calibration.used else {}),
+            },
             "gate": {**gate.gate(), "split": "test", "dataset_version": context.dataset.version},
             output["metric"]: {**gate.as_dict(), "dataset_version": context.dataset.version},
             "tools": {
@@ -379,6 +462,16 @@ def stage(context: StageContext) -> StageFunction:
                 "runtime": {"name": "ai-edge-litert", "version": _runtime_version()},
             },
         }
+        if output["type"] == "anomaly":
+            record.update(
+                anomaly_record(output, parts, quantized_path, quantized_raw, test_targets)
+            )
+            record["auc"].update(
+                {
+                    "normal": int((test_targets == 0).sum()),
+                    "abnormal": int((test_targets == 1).sum()),
+                }
+            )
         if output["type"] == "category":
             labels = len(output["preprocessing"]["fitted"]["labels"])
             record["accuracy"]["confusion_quantized"] = _confusion(
@@ -427,14 +520,67 @@ def _confusion(raw: Any, targets: Any, labels: int) -> list[list[int]]:
     return [[int(cell) for cell in row] for row in matrix]
 
 
-def _representative(features: Any, calibration: CalibrationPlan) -> Any:
-    """A generator over the chosen training samples: one dict per sample, keyed by input name."""
+#: How many frames are put before the training samples to calibrate an image input: one black, one
+#: white (feature 010, research R6).
+BOUNDS_FRAMES = 2
+
+
+def _representative(features: Any, calibration: CalibrationPlan, *, bounds: bool = False) -> Any:
+    """A generator over the chosen training samples: one dict per sample, keyed by input name.
+
+    With ``bounds``, one black and one white frame come first. Calibration sets an input's scale
+    from the range it sees, and real images need not hold a pixel at 0 and one at 255; without the
+    two frames the measured scale was 0.941, and the device would have had to rescale every frame
+    (research R6). With them, the converted input takes the camera's bytes as they are.
+    """
+    import numpy as np
 
     def generate():
+        if bounds:
+            for value in (0.0, 255.0):
+                yield {
+                    name: np.full((1, *values.shape[1:]), value, dtype=np.float32)
+                    for name, values in features.items()
+                }
         for index in calibration.indices:
             yield {name: values[index : index + 1] for name, values in features.items()}
 
     return generate
+
+
+def anomaly_record(
+    output: dict[str, Any], parts: Any, quantized_path: Path, quantized_raw: Any, test_targets: Any
+) -> dict[str, Any]:
+    """The alarm threshold, and what it catches on the test part (feature 010, research R10).
+
+    The threshold is a percentile of the **int8** model's scores on the validation part's normal
+    windows: the device runs the int8 model, and a threshold from the float model's scores would be
+    on another scale. The rates are measured with the same int8 model on the test part.
+    """
+    from caravan.data.reader_bridge import select
+    from caravan.metrics.anomaly import detection, percentile
+    from caravan.runtime.measure import run_model
+
+    normal_val = [index for index in parts.split.val if int(parts.targets[index]) == 0]
+    percent = float(output["threshold_percentile"])
+    scores = run_model(quantized_path, select(parts.features, normal_val), output["name"])
+    threshold = round(percentile([float(value) for value in scores.reshape(-1)], percent), 6)
+    normal, abnormal = split_scores(quantized_raw, test_targets)
+    rates = detection(normal, abnormal, threshold)
+    return {
+        "threshold": {
+            "rule": "percentile",
+            "percentile": percent,
+            "value": threshold,
+            "computed_on": "int8 scores of the validation part's normal windows",
+            "windows": len(normal_val),
+        },
+        "detection": {
+            "split": "test",
+            "abnormal_when": "score >= threshold",
+            **{key: None if value is None else round(value, 6) for key, value in rates.items()},
+        },
+    }
 
 
 def _runtime_version() -> str:

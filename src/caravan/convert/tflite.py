@@ -20,7 +20,9 @@ from caravan.manifest.errors import RULE_CONVERSION_FAILED, run_rule_error
 Representative = Callable[[], Iterator[list[Any]]] | None
 
 
-def convert(model: Any, setting: str, representative: Representative = None) -> bytes:
+def convert(
+    model: Any, setting: str, representative: Representative = None, *, pixel_inputs: bool = False
+) -> bytes:
     """Convert a trained model, and return the serialised result.
 
     ``from_keras_model`` rather than an explicit export: both paths were measured and produce
@@ -36,7 +38,7 @@ def convert(model: Any, setting: str, representative: Representative = None) -> 
     # refuses the *model* fails here rather than at ``convert()``, and letting that escape would
     # report a defect in caravan for something the author needs to see about their model.
     try:
-        return _convert(model, setting, representative)
+        return _convert(model, setting, representative, pixel_inputs)
     except Exception as error:  # the converter raises its own hierarchy; the text is what matters
         run_rule_error(
             RULE_CONVERSION_FAILED,
@@ -46,7 +48,9 @@ def convert(model: Any, setting: str, representative: Representative = None) -> 
         )
 
 
-def _convert(model: Any, setting: str, representative: Representative) -> bytes:
+def _convert(
+    model: Any, setting: str, representative: Representative, pixel_inputs: bool = False
+) -> bytes:
     # Fixed to a batch of one before anything else, because a board runs one window at a time and
     # the converter otherwise emits four operators to compute a shape that never varies (feature
     # 004, research R5). It happens here rather than in a later stage so that the model the
@@ -66,6 +70,12 @@ def _convert(model: Any, setting: str, representative: Representative) -> bytes:
         # R5): a number goes in as float32 and is quantized inside the model with that feature's
         # own scale, a code goes in as int32 and stays exact, and the output comes out as float32
         # after a DEQUANTIZE. The firmware applies no scale and no zero point.
+        if pixel_inputs:
+            # An image (feature 010, research R6): the boundary becomes uint8, so the frame is not
+            # copied into float32 working memory first. A model with an image input has no other
+            # input (CF-19), so this setting, which applies to every input, touches only the
+            # image. Calibration's black and white frames make its scale 1 and zero point 0.
+            converter.inference_input_type = tf.uint8
     elif setting == "float16":
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         converter.target_spec.supported_types = [tf.float16]
