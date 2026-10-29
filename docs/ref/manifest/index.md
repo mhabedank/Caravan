@@ -52,8 +52,10 @@ a table of its fields for scanning and then gives every field an entry that answ
 - **Extremes** — what goes wrong at either end.
 
 If you are choosing rather than looking up, start with a topic guide:
-[feature types](../../topics/feature-types.md) for `number`, `category` and `binary`;
-[templates](../../topics/templates.md) for `mlp` and `conv1d`;
+[feature types](../../topics/feature-types.md) for `number`, `category`, `binary`, `image` and
+`anomaly`;
+[templates](../../topics/templates.md) for `mlp`, `conv1d`, `conv2d` and `autoencoder`;
+[applications](../../topics/applications.md) for which template serves which kind of problem;
 [budgets and gates](../../topics/budgets-and-gates.md) for the two checks that can stop a run.
 
 **Two terms used throughout.** The {term}`training part` is the share of windows the model learns

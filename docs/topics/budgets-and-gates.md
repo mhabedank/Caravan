@@ -50,6 +50,11 @@ it is allowed only because it is not the gate.
   the mean absolute error may grow, in the column's own unit. **{term}`MAE`** is
   *mean absolute error*: the average distance between the answer and
   the truth, so if the column is degrees, the budget is in degrees.
+- {mf}`auc_drop_max <output_features[].auc_drop_max>` — for an `anomaly` output. How much of the
+  area under the ROC (receiver operating characteristic) curve you will give up. That area is the
+  chance that a randomly picked abnormal test window scores higher than a randomly picked normal
+  one: 1.0 separates them perfectly, 0.5 is a coin toss. It is measured over every threshold at
+  once, so it judges the score itself rather than one place to cut it.
 
 **What happens when it is exceeded:** the run fails with exit code `1` under rule {rule}`Q-4`,
 exports nothing, and
@@ -95,7 +100,8 @@ where that is not true.
 ## Where to see it happen
 
 Every {term}`run` writes `quantization.json`: the int8 model's accuracy against the trained one,
-the budget, and the verdict. [Part 4 of the tutorial](../intro/tutorial04.md) makes the fit check
+the budget, and the verdict. For an `anomaly` output it also records the alarm threshold the run
+chose, with the detection and false alarm rates that threshold gives on the test part. [Part 4 of the tutorial](../intro/tutorial04.md) makes the fit check
 refuse a run on purpose, so that the first refusal you see is one you caused, and
 [Choose a budget](../howto/choose-a-budget.md) is the recipe for the number.
 
@@ -103,7 +109,8 @@ refuse a run on purpose, so that the first refusal you see is one you caused, an
 install size, which is the project's own budget discipline rather than your model's.
 
 :::{seealso}
-{mf}`export.targets`, {mf}`output_features[].accuracy_drop_max` and
-{mf}`output_features[].mae_increase_max` in the manifest reference, and the rules {rule}`F-1` and
+{mf}`export.targets`, {mf}`output_features[].accuracy_drop_max`,
+{mf}`output_features[].mae_increase_max`, {mf}`output_features[].auc_drop_max` and
+{mf}`output_features[].threshold_percentile` in the manifest reference, and the rules {rule}`F-1` and
 {rule}`Q-4`.
 :::

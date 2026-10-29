@@ -2,7 +2,8 @@
 
 **Goal:** an {mf}`accuracy_drop_max <output_features[].accuracy_drop_max>` for your model that you
 can justify from the numbers your own run printed. For a `number` output the same steps choose
-{mf}`mae_increase_max <output_features[].mae_increase_max>`, in the column's own unit.
+{mf}`mae_increase_max <output_features[].mae_increase_max>`, in the column's own unit, and for an
+`anomaly` output {mf}`auc_drop_max <output_features[].auc_drop_max>`, in area under the curve.
 
 **You need:** a manifest that already runs end to end, as at the end of
 [part 2 of the tutorial](../intro/tutorial02.md).

@@ -33,7 +33,7 @@ the test part stays unseen. [Feature types](feature-types.md) says what each typ
 **Build** turns the {term}`template` and its parameters into a model, with each column's
 preprocessing built in as layers. The fit check then compares lower bounds on the model's flash and
 RAM with each {term}`target`. A model that cannot fit is refused here, before any training
-(rule {rule}`F-1`). [Templates](templates.md) explains the two templates.
+(rule {rule}`F-1`). [Templates](templates.md) explains the four templates.
 
 **Train** trains for {mf}`trainer.epochs`, stopping early when the validation loss has not improved
 for {mf}`trainer.early_stop` epochs, then measures the trained model on the {term}`test part`.
