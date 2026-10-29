@@ -1,0 +1,115 @@
+name: docs-checks
+
+# What a documentation change needs checked, without the framework matrix behind it.
+#
+# Before this workflow, `ci.yml` named three documents as exceptions to its own "documentation runs
+# nothing" rule — `README.md`, the entry guide and `docs/releases/**` — because tests read them.
+# The effect was all or nothing: editing a sentence in the README started nine jobs, one of them a
+# five-minute training run, to check a handful of assertions that need no framework at all.
+#
+# So the checks that a document can actually fail live here, on one Python with no extras, and
+# `ci.yml` keeps the matrix for changes that touch code. Two things run:
+#
+#   - the tests that read the pages and compare them with the code — the references against the
+#     parser, the schema, the rule table and the registries; the README's commands and its install
+#     line; the release note's sections; the guide's version strings;
+#   - the site build with every warning an error, which catches a broken link, a dead anchor and a
+#     page no navigation reaches. That check used to happen only on a release tag, so this workflow
+#     gives documentation changes a check they did not have before.
+#
+# What is deliberately NOT here: executing the tutorial's parts. That needs the training framework and
+# is the five minutes this workflow exists to avoid. It still runs in `ci.yml`'s `train` job on
+# every change that touches code, and the release workflow runs part 1 of the tutorial literally — install,
+# fetch and run — against the published release before the release is announced.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "README.md"
+      # The site's build tools are pinned here; a bump must prove the build still passes with -W.
+      - "pyproject.toml"
+      - ".github/workflows/docs-checks.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "README.md"
+      - "pyproject.toml"
+      - ".github/workflows/docs-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    # FR-050: the constitution bounds this job at ten minutes, and a bound nothing measures is a
+    # suggestion. Exceeding it fails the job, and the remedy the constitution names is to take
+    # checks out of it rather than to raise the bound.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: start the clock
+        run: echo "started=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv python install 3.13
+      - name: install the default package and the site's build tools
+        run: uv sync --python 3.13 --group docs
+      - name: the pages the suite checks against the code
+        run: >
+          uv run --python 3.13 pytest -q
+          tests/contract/test_docs_reference.py
+          tests/contract/test_docs_guide.py
+          tests/contract/test_docs_glossary.py
+          tests/contract/test_docs_hygiene.py
+          tests/integration/test_readme.py
+          tests/unit/test_release_note.py
+      - name: the site builds, every warning an error (broken links, anchors, orphan pages)
+        # No CARAVAN_VERSION: this build is a check, not the published site, so conf.py reads the
+        # package's own version. The release workflow builds the site that ships.
+        run: uv run --python 3.13 sphinx-build -W -b html docs _site
+      - name: the site's weight, against the 3 MB budget
+        # FR-029 and SC-009. Principle V: a budget nothing measures is a suggestion, and a stage
+        # that cannot tell whether a budget holds MUST fail rather than pass. The ceiling is written
+        # here and nowhere else - there is deliberately no input, flag or environment variable that
+        # can raise or silence it, because a gate that can be silenced is not a gate.
+        #
+        # What is measured: the sum of the files the site actually serves. `_site/.doctrees` is
+        # build cache and is excluded - counting it reads 2 MB for a site that serves 0.7 MB. The
+        # sum is of apparent bytes, not disk blocks: `du` rounds every file to 4 KB and a site of
+        # fifty small files pays about 120 KB of rounding it does not weigh.
+        run: |
+          CEILING=3000000
+          if [ ! -d _site ]; then
+            echo "no _site to measure: the budget cannot be determined, so this fails (Principle V)."
+            exit 1
+          fi
+          bytes=$(find _site -path _site/.doctrees -prune -o -type f -printf '%s\n' \
+            | awk '{s+=$1} END {print s+0}')
+          if [ -z "$bytes" ] || [ "$bytes" -eq 0 ]; then
+            echo "measured 0 bytes, which cannot be right: failing rather than passing on doubt."
+            exit 1
+          fi
+          pct=$(( bytes * 100 / CEILING ))
+          printf 'site weight: %s bytes, %d%% of the %s byte ceiling (%s bytes of headroom)\n' \
+            "$bytes" "$pct" "$CEILING" "$(( CEILING - bytes ))" >> "$GITHUB_STEP_SUMMARY"
+          printf 'site weight: %s bytes, %d%% of %s, %s bytes spare\n' \
+            "$bytes" "$pct" "$CEILING" "$(( CEILING - bytes ))"
+          if [ "$bytes" -gt "$CEILING" ]; then
+            echo "over the $CEILING byte budget by $(( bytes - CEILING )) bytes."
+            echo "The remedy is fewer or lighter images - drop the 1600 px derivative off the"
+            echo "subjects that are not the first screen, or move to AVIF. Not a bigger number."
+            exit 1
+          fi
+
+      - name: how long this job took, against the ten minutes it is allowed
+        if: always()
+        run: |
+          elapsed=$(( $(date +%s) - started ))
+          printf 'documentation checks: %dm %02ds of the 10m this job is bounded to\n' \
+            $(( elapsed / 60 )) $(( elapsed % 60 )) >> "$GITHUB_STEP_SUMMARY"
+          if [ "$elapsed" -gt 600 ]; then
+            echo "over the ten minutes the constitution bounds this job to. The remedy is to take"
+            echo "checks out of it, not to raise the bound."
+            exit 1
+          fi

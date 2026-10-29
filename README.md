@@ -1,14 +1,15 @@
 # Caravan
 
-A declarative pipeline for small machine learning models that run on microcontrollers.
+**A CSV goes in. A model your microcontroller runs comes out.**
 
-One YAML manifest per model names the columns the model reads, each with a type, as in Ludwig; the
-column it answers; and the boards it must fit. Each type brings its preprocessing into the model,
-so a firmware passes raw values. The pipeline does the rest: architecture from a template, a fit check against
-the boards before training, training, int8 quantization, export with the model's interface
-contract, footprint analysis, emulated verification, hardware benchmark and, optionally,
-publication. The manifest asks only for what a stage uses: no compliance block, no description
-fields, nothing the data already says.
+You describe your data once, in one YAML file: which columns the model reads, which column it
+answers, and which boards it has to fit. Caravan trains the model, shrinks it to 8-bit integers,
+stops if shrinking cost more accuracy than you allowed, and writes the C files your firmware
+compiles.
+
+Each column's preprocessing is built into the model, so your firmware passes raw sensor values and
+there is no preprocessing code to port. The manifest asks only for what a stage uses: no compliance
+block, no description fields, nothing the data already says.
 
 Caravan is the build tool for the embedded models of the
 [Mobility Model Zoo](https://github.com/mhabedank/mobility-model-zoo) and lives in its own
@@ -22,18 +23,19 @@ architecture search. See `.specify/memory/constitution.md`.
 
 ## Status
 
-**0.1.0rc3, the third release candidate.** Every stage from manifest to C array exists: `validate`,
+**0.1.0rc4, the fourth release candidate.** Every stage from manifest to C array exists: `validate`,
 `render`, `build`, `train`, `quantize` and `export`, with `templates` and `boards` to list what is
-registered. Two templates, `mlp` and `conv1d`, and three boards, `s32k144`, `stm32h743` and `esp32`.
+registered. Four templates, `mlp`, `conv1d`, `conv2d` and `autoencoder`, and three boards, `s32k144`,
+`stm32h743` and `esp32`.
 The manifest names its columns as Ludwig does (`caravan/v0.2`). rc1 read the previous form,
 `caravan/v0.1`. `docs/releases/0.1.0.md` says what is in 0.1.0 and what is not.
 
-rc3 adds the documentation site and test windows in the export. The board guide runs an exported
-model on a LILYGO LoRa32 and compares its answers with the host's (`docs/guides/lora32.md`). The
-first recorded board run is still to come.
+rc3 adds the documentation site and test windows in the export. Part 3 of the tutorial runs an
+exported model on a generic ESP32 and compares its answers with the host's. The first recorded board
+run is still to come.
 
-**On `main` since rc3, not yet in a release:** two more templates and two more feature types, derived
-from the application classes Caravan targets (`docs/applications.md`). `conv2d` convolves a plane —
+rc4 adds two templates and two feature types, derived
+from the application classes Caravan targets (`docs/topics/applications.md`). `conv2d` convolves a plane —
 feature frames as in keyword spotting, or an image — and `autoencoder` detects anomalies from normal
 data through a new `anomaly` output. A new `image` input type hands the device raw 8-bit pixels.
 Nine of the twelve application classes are served.
@@ -42,13 +44,18 @@ Not on the package index. Each version is installed from its GitHub release.
 
 ## Documentation
 
-**<https://mhabedank.github.io/Caravan/>**, built from `docs/`. It has the guides, a CLI reference,
-a manifest reference with every field and rule, what is compatible today, and the roadmap.
+**<https://mhabedank.github.io/Caravan/>**, built from `docs/`. It opens with what Caravan does and
+offers one way in: **the tutorial**, four parts from nothing to a model answering on a board. Its
+[contents page](https://mhabedank.github.io/Caravan/contents.html) leads to the rest: the topic
+guides a reader needs to choose (what `mlp` means and when to use it, what each feature type does,
+how the gates work), a CLI and manifest reference with every field, a glossary, what is verified
+today, and the roadmap.
 
 ## Try it
 
-`docs/try-it.md` goes from an empty directory to an exported model in one sequence of commands.
-With a checkout, the example manifest validates on any supported Python:
+[Part 1 of the tutorial](https://mhabedank.github.io/Caravan/intro/tutorial01.html) goes from an
+empty directory to an exported int8 model. With a
+checkout, the example manifest validates on any supported Python:
 
 ```bash
 # step: readme
@@ -61,14 +68,14 @@ caravan render examples/picket-mlp.yaml --stdout
 From the release, in a virtual environment:
 
 ```bash
-pip install "caravan-ml @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc3/caravan_ml-0.1.0rc3-py3-none-any.whl"
-pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc3/caravan_ml-0.1.0rc3-py3-none-any.whl"
+pip install "caravan-ml @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc4/caravan_ml-0.1.0rc4-py3-none-any.whl"
+pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc4/caravan_ml-0.1.0rc4-py3-none-any.whl"
 ```
 
 The first line is the core: `validate` and `render`, on Python 3.13 to 3.15. The second adds
 training and converting (Python 3.13) and reading exported models (3.13 and 3.14). To build from
 the tagged source instead:
-`pip install "caravan-ml[train,verify] @ git+https://github.com/mhabedank/Caravan@v0.1.0rc3"`.
+`pip install "caravan-ml[train,verify] @ git+https://github.com/mhabedank/Caravan@v0.1.0rc4"`.
 
 The default installation has two runtime dependencies, weighs about 9 MiB and pulls no
 machine-learning framework, because checking and resolving a manifest does not need one.
@@ -89,7 +96,7 @@ checked rather than assumed. `caravan validate` and `caravan render` run on all 
 packaging has no per-extra version window, so the published floor is 3.13 until a stable
 TensorFlow ships for the current Python. All of 3.13, 3.14 and 3.15 are supported and tested; on
 3.14 and 3.15 the extra installs Caravan's training code and no framework, and `build` and `train`
-then say so rather than failing in the resolver. `docs/budgets.md` carries the reasoning and the
+then say so rather than failing in the resolver. `docs/ref/budgets.md` carries the reasoning and the
 condition that closes the window.
 
 ## Use
@@ -113,7 +120,7 @@ Every command exits:
 - 4 when the environment is missing something that installs separately.
 
 Every rejection names the offending field, what was wrong with it and what is accepted there.
-`docs/reference/cli.md` and `docs/reference/manifest.md` have the details.
+`docs/ref/cli.md` and `docs/ref/manifest/` have the details.
 
 Caravan carries no compliance layer. The rights to the data, and the use of a model trained on it,
 are the author's. Caravan neither asks about them nor claims to have checked them.
@@ -126,10 +133,10 @@ are the author's. Caravan neither asks about them nor claims to have checked the
 | `specs/<nnn>-<name>/` | one feature's spec, plan, research, data model, contracts and tasks |
 | `docs/` | the documentation site's pages; `docs/conf.py` builds them with Sphinx |
 | `docs/roadmap.md` | what is planned per version, and the non-goals, each with its reason |
-| `examples/` | the example manifest, and `lora32/`, the board guide's firmware |
+| `examples/` | the example manifest, and `esp32/`, the firmware part 3 of the tutorial builds |
 | `docs/design/` | the design document Caravan was started from, frozen as a dated record |
 | `docs/research/` | sourced research notes that decisions cite |
-| `docs/budgets.md` | the dependency, install and Python-version budgets, with measurements |
+| `docs/ref/budgets.md` | the dependency, install and Python-version budgets, with measurements |
 | `src/caravan/targets/boards/` | the board descriptions, one data file per board |
 
 ## Development

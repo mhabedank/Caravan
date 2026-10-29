@@ -1,0 +1,62 @@
+id: route-onto-the-bench
+series: siebdruck
+theme: route
+subject: onto-the-bench
+generation:
+  model: Qwen/Qwen-Image-2512
+  revision: 25468b98e3276ca6700de15c6628e51b7de54a26
+  model_licence: Apache-2.0
+  model_card: https://huggingface.co/Qwen/Qwen-Image-2512
+  pipeline: QwenImagePipeline
+  prompt: a small orange-yellow electronic module the size of a matchbox lying on a clean wooden workbench,
+    connected by one thin cable to a small deep navy bench power supply, a magnifying lamp bending over
+    it, morning light across the grain, 1970s modernist poster illustration, flat colour fields with crisp
+    edges, screen print texture, clean geometric forms, calm ordered composition with long diagonals,
+    soft gradient sky in pale mint and warm cream, deep navy shadows and ground, the one object the picture
+    is about painted in a warm orange-yellow accent colour, everything else only navy, mint and cream,
+    early morning light as graphic shapes, quietly futurist and precise, West German graphic design of
+    the seventies, restrained, no text, no lettering, no logos, no faces, people only as small simple
+    silhouettes
+  negative_prompt: text, letters, words, numbers, watermark, logo, signature, face, portrait, photo, photorealistic,
+    glossy, 3d render, neon, chrome, robot, spaceship, retro kitsch, cluttered, blurry, orange sky, orange
+    ground, brain, glowing network, hologram, floating icons, circuit pattern, circuit board traces, server
+    rack, data centre, binary digits, matrix rain, glowing cube, keyboard, laptop, smartphone, screen
+    full of code
+  seed: 390731
+  steps: 50
+  guidance: 4.0
+  width: 1584
+  height: 1056
+  generated: '2026-10-29'
+  hardware: dgx-spark
+  generator:
+    commit: 1f56728
+    image_digest: sha256:373249621b54580b0c38d284e4ddfe433d733800569e5d253b01792ad7c75bcc
+    script_sha256: 1deb5d6af046b8e5898d651ce5d0ccac9d33adf27154962996da4b4e2a96fd18
+licence: CC0-1.0
+placements:
+- part 3 of the tutorial, onto a board
+scene: A small electronic module on a workbench, wired to a bench power supply under a magnifying lamp
+alt: A matchbox-sized orange-yellow electronic module lies on a wooden workbench, wired by one thin cable
+  to a small bench power supply, under a magnifying lamp (AI-generated image)
+focal_point:
+- 0.5
+- 0.5
+aspect: '3:2'
+source:
+  width: 1584
+  height: 1056
+  sha256: 5c8a9bf6a84c013c35228600c6b002140fd5dbd99dc8ceaed8d6b14066127789
+derivatives:
+  '480':
+    file: route-onto-the-bench-480.webp
+    bytes: 10188
+    sha256: 6d3b2a9ba88fd0284da97f62c71e762531c3f6620d61b9ae79ba0dc790b78081
+  '960':
+    file: route-onto-the-bench-960.webp
+    bytes: 25020
+    sha256: d4c1a0a7bf05135eb0eb04dd84d8b8576980ee7b91b3060201e20999a7259598
+  '1600':
+    file: route-onto-the-bench-1600.webp
+    bytes: 45988
+    sha256: 0addd7c30602003c406087a4d9a52d669e9905db83026166823e0800133d14d4

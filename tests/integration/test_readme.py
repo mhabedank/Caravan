@@ -16,7 +16,7 @@ from tests.support_docs import commands
 
 ROOT = Path(__file__).resolve().parents[2]
 README = ROOT / "README.md"
-GUIDE = ROOT / "docs" / "try-it.md"
+GUIDE = ROOT / "docs" / "intro" / "install.md"
 
 
 def test_the_readme_commands_run(monkeypatch, capsys) -> None:
@@ -36,7 +36,7 @@ def test_no_install_line_assumes_the_package_index() -> None:
     assert not bare, "the README installs caravan-ml by name, which is not on the package index"
 
 
-def test_the_readme_installs_what_the_guide_installs() -> None:
+def test_the_readme_installs_what_the_installation_page_installs() -> None:
     wheel = f"releases/download/v{__version__}/caravan_ml-{__version__}-py3-none-any.whl"
     assert wheel in README.read_text(encoding="utf-8")
     assert wheel in " ".join(commands(GUIDE, "install"))

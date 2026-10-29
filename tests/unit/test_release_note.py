@@ -33,4 +33,6 @@ def test_at_least_four_known_limits() -> None:
 
 
 def test_the_change_note_is_linked() -> None:
-    assert "docs/manifest-changes.md" in sections()["Change notes"]
+    # A link a reader can follow, rather than a repository path. Either spelling satisfies the
+    # thing being checked, which is that the section points at the change notes at all.
+    assert "manifest-changes.md" in sections()["Change notes"]

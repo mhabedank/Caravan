@@ -1,0 +1,61 @@
+id: route-first-load
+series: siebdruck
+theme: route
+subject: first-load
+generation:
+  model: Qwen/Qwen-Image-2512
+  revision: 25468b98e3276ca6700de15c6628e51b7de54a26
+  model_licence: Apache-2.0
+  model_card: https://huggingface.co/Qwen/Qwen-Image-2512
+  pipeline: QwenImagePipeline
+  prompt: a single orange-yellow crate standing on a flat handcart beside a long table stacked with sheets
+    of paper, a workshop lamp above, early light from a tall window, 1970s modernist poster illustration,
+    flat colour fields with crisp edges, screen print texture, clean geometric forms, calm ordered composition
+    with long diagonals, soft gradient sky in pale mint and warm cream, deep navy shadows and ground,
+    the one object the picture is about painted in a warm orange-yellow accent colour, everything else
+    only navy, mint and cream, early morning light as graphic shapes, quietly futurist and precise, West
+    German graphic design of the seventies, restrained, no text, no lettering, no logos, no faces, people
+    only as small simple silhouettes
+  negative_prompt: text, letters, words, numbers, watermark, logo, signature, face, portrait, photo, photorealistic,
+    glossy, 3d render, neon, chrome, robot, spaceship, retro kitsch, cluttered, blurry, orange sky, orange
+    ground, brain, glowing network, hologram, floating icons, circuit pattern, circuit board traces, server
+    rack, data centre, binary digits, matrix rain, glowing cube, keyboard, laptop, smartphone, screen
+    full of code
+  seed: 479186
+  steps: 50
+  guidance: 4.0
+  width: 1584
+  height: 1056
+  generated: '2026-10-29'
+  hardware: dgx-spark
+  generator:
+    commit: 1f56728
+    image_digest: sha256:373249621b54580b0c38d284e4ddfe433d733800569e5d253b01792ad7c75bcc
+    script_sha256: 1deb5d6af046b8e5898d651ce5d0ccac9d33adf27154962996da4b4e2a96fd18
+licence: CC0-1.0
+placements:
+- part 1 of the tutorial, your first model
+scene: A crate on a handcart beside a long table of stacked paper
+alt: A single orange-yellow crate stands on a handcart beside a long table stacked with paper, under a
+  workshop lamp (AI-generated image)
+focal_point:
+- 0.5
+- 0.5
+aspect: '3:2'
+source:
+  width: 1584
+  height: 1056
+  sha256: 34c30aff74cabcb389ed558e86fda5c5cd11984252fb969172c52f708713c8ed
+derivatives:
+  '480':
+    file: route-first-load-480.webp
+    bytes: 9716
+    sha256: 8022b03b69dee99ccde9bcd3adbea6fec97fc7f1e34fb59aefc8a934a101ebdf
+  '960':
+    file: route-first-load-960.webp
+    bytes: 26122
+    sha256: e6177c107267b127ed0e1e03d6f2a3c7fd5ce88e26d09e32dc8a64d00f57ca69
+  '1600':
+    file: route-first-load-1600.webp
+    bytes: 49332
+    sha256: edc59f4775ae4a06ff441123362bfcf9b86c177d34e5c2e59cc59b7b2fc09dc7

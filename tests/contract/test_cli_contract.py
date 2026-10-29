@@ -131,7 +131,7 @@ def test_the_previous_form_is_refused_with_the_change_note(capsys) -> None:
     err = capsys.readouterr().err
     assert "apiVersion" in err
     assert "caravan/v0.1" in err
-    assert "docs/manifest-changes.md" in err
+    assert "docs/ref/manifest-changes.md" in err
 
 
 def test_a_manifest_without_a_version_is_refused_not_read_as_some_version(capsys) -> None:

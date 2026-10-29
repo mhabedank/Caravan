@@ -1,0 +1,202 @@
+# Art direction of the Caravan website imagery: the house style SIEBDRUCK.
+#
+# COPIED, NOT SHARED. The style, the negative prompt and the file's shape come from the Mobility
+# Model Zoo's `zoo/site/images/series/siebdruck.yaml`, copied on 2026-10-27. The constitution
+# forbids depending on the zoo, so this is a copy for the same reason the design tokens are. The
+# two may drift and nothing keeps them in step.
+#
+# WHAT CARAVAN CHANGED:
+#   - The subjects are its own. The zoo's are mobility scenes — trains, trams, locks, viaducts.
+#     Caravan has no vehicles to photograph; it has a route, loads that must get smaller, a gate
+#     that refuses them, a workbench and a board. A picture here is about one of those.
+#   - The accent sentence. The zoo reserves its warm ink for "the main vehicle or machine"; here it
+#     is "the one object the picture is about", which is the same rule stated for a subject matter
+#     that has no vehicles. It matches the site's own accent rule: reserved in the interface for
+#     the budget and its verdict, and in an illustration for the subject of the picture.
+#   - The negative prompt gained the clichés THIS subject attracts. A model asked for "machine
+#     learning on a small device" reaches for glowing brains, circuit traces and server racks.
+#     None of them is a thing Caravan does, and all of them are in `negative` below.
+#   - No `palette` or `duplicate_max_bits` block. Those are the thresholds of the zoo's automatic
+#     checks I6 and I7, and the checks are not ported (README.md says why). Carrying thresholds
+#     that nothing reads would be a claim about this repository that is not true.
+#
+# Every image's prompt is one subject below followed by `style`.
+name: siebdruck
+style: >-
+  1970s modernist poster illustration, flat colour fields with crisp edges, screen print texture,
+  clean geometric forms, calm ordered composition with long diagonals, soft gradient sky in pale mint and warm cream,
+  deep navy shadows and ground, the one object the picture is about painted in a warm orange-yellow accent colour,
+  everything else only navy, mint and cream, early morning light as graphic shapes, quietly futurist and precise,
+  West German graphic design of the seventies, restrained, no text, no lettering, no logos, no faces,
+  people only as small simple silhouettes
+negative: >-
+  text, letters, words, numbers, watermark, logo, signature, face, portrait, photo, photorealistic,
+  glossy, 3d render, neon, chrome, robot, spaceship, retro kitsch, cluttered, blurry,
+  orange sky, orange ground, brain, glowing network, hologram, floating icons, circuit pattern,
+  circuit board traces, server rack, data centre, binary digits, matrix rain, glowing cube,
+  keyboard, laptop, smartphone, screen full of code
+models:
+  # The draft model takes NO negative prompt. `gen.py` passes `negative` only to a model that
+  # declares `true_cfg_scale`, which is the final model and not this one, so the clichés listed
+  # under `negative` below are excluded on the final pass only. Read a draft for one thing — does
+  # the model understand this subject at all — and never reject a draft for lettering or a cliché
+  # the negative prompt would have caught. Four seconds an image is what buys that narrowness.
+  draft:
+    id: black-forest-labs/FLUX.2-klein-4B
+    pipeline: Flux2KleinPipeline
+    licence: Apache-2.0
+    card: https://huggingface.co/black-forest-labs/FLUX.2-klein-4B
+    steps: 4
+    guidance: 1.0
+  final:
+    id: Qwen/Qwen-Image-2512
+    pipeline: QwenImagePipeline
+    licence: Apache-2.0
+    card: https://huggingface.co/Qwen/Qwen-Image-2512
+    steps: 50
+    true_cfg_scale: 4.0
+    # The resolutions the model card gives for these aspects (README of revision 25468b98, checked
+    # 2026-10-29). The zoo rendered at 1344x768 and 1200x800, below what the model was trained on
+    # and below the 1600 px derivative, which was therefore an upscale. At these sizes the 1600 px
+    # derivative is a downscale (16:9) or within 1% of native (3:2). Cost: about 1.5x the pixels.
+    sizes:
+      "16:9": [1664, 928]
+      "3:2": [1584, 1056]
+
+# `placement` is a note, not a mechanism: nothing reads it, and no image is on the site until
+# someone puts it there. It is here so the sheet can say what each subject is FOR, because a
+# picture is easier to judge against the page it is meant for than on its own.
+themes:
+
+  # The journey the project is named after: a load that starts large and arrives small.
+  route:
+    - id: road-to-the-board
+      aspect: "16:9"
+      placement: the first screen
+      prompt: a small delivery van driving along a long straight road across flat open country at dawn towards a low workshop building on the horizon, the van orange-yellow, the road and fields deep navy, wide empty sky
+      scene: A small van on a long straight road at dawn, heading for a workshop on the horizon
+      alt: A small orange-yellow van drives along a long straight road across flat country at dawn, towards a low workshop building on the horizon
+    - id: setting-off
+      aspect: "16:9"
+      placement: the route index
+      prompt: a small tractor pulling a loaded cart and two smaller trailers out of a walled yard onto an empty country road at first light, the loaded cart orange-yellow, the tractor and trailers deep navy, long shadows across the gravel
+      scene: A tractor pulling a loaded cart and two trailers out of a yard at first light
+      alt: A small tractor pulls a loaded orange-yellow cart and two smaller trailers out of a walled yard onto an empty road at first light
+    - id: first-load
+      aspect: "3:2"
+      placement: leg 1, your first model
+      prompt: a single orange-yellow crate standing on a flat handcart beside a long table stacked with sheets of paper, a workshop lamp above, early light from a tall window
+      scene: A crate on a handcart beside a long table of stacked paper
+      alt: A single orange-yellow crate stands on a handcart beside a long table stacked with paper, under a workshop lamp
+    - id: sorting-the-columns
+      aspect: "3:2"
+      placement: leg 2, your own columns
+      prompt: a long sorting table in a quiet post office with a wall of open wooden pigeonholes behind it, a small silhouetted clerk seen from behind sliding a blank envelope into one of them, that one pigeonhole painted orange-yellow, the rest deep navy
+      scene: A clerk sorting envelopes into a wall of pigeonholes
+      alt: In a quiet post office a small silhouetted clerk slides an envelope into one of a wall of pigeonholes; that one is painted orange-yellow
+    - id: onto-the-bench
+      aspect: "3:2"
+      placement: leg 3, onto a board
+      prompt: a small orange-yellow electronic module the size of a matchbox lying on a clean wooden workbench, connected by one thin cable to a small deep navy bench power supply, a magnifying lamp bending over it, morning light across the grain
+      scene: A small electronic module on a workbench, wired to a bench power supply under a magnifying lamp
+      alt: A matchbox-sized orange-yellow electronic module lies on a wooden workbench, wired by one thin cable to a small bench power supply, under a magnifying lamp
+    - id: the-load-that-will-not-fit
+      aspect: "3:2"
+      placement: leg 4, when it does not fit
+      prompt: a waist-high deep navy crate on a hand truck halted in front of a narrow doorway, the crate just a little wider than the opening, a small silhouetted worker standing beside it, the doorframe orange-yellow, a measuring rod leaning against the wall
+      scene: A crate on a hand truck stopped at a doorway it is just too wide for
+      alt: A waist-high navy crate on a hand truck has stopped at an orange-yellow doorway it is just a little too wide to pass through; a small figure stands beside it
+
+  # The budget and its verdict. Principle V: a budget is a gate, not a warning.
+  gate:
+    - id: the-barrier
+      aspect: "16:9"
+      placement: concepts, budgets and gates
+      prompt: a level crossing barrier lowered across an empty country road at dawn, the barrier arm orange-yellow, a small deep navy lorry waiting in front of it, flat fields running to the horizon
+      scene: A lowered barrier across a country road with a small lorry waiting at it
+      alt: An orange-yellow barrier is lowered across an empty country road at dawn; a small navy lorry waits in front of it
+    - id: the-weighbridge
+      aspect: "3:2"
+      placement: the budgets page
+      prompt: a small deep navy lorry standing on the long steel weighing platform of a weighbridge set flush into the ground of a goods yard, a small weighbridge office hut with a window right beside the platform, the steel platform orange-yellow, long morning shadows across the yard
+      scene: A small lorry standing on the weighing platform of a weighbridge, beside the weighbridge hut
+      alt: A small navy lorry stands on the orange-yellow steel platform of a weighbridge in a goods yard, beside the small weighbridge hut
+    - id: the-checkpoint
+      aspect: "3:2"
+      placement: the rules reference
+      prompt: a roadside inspection point on a country road, a small deep navy lorry pulled over beside a little inspection booth, a small silhouetted inspector holding a clipboard checking it, the booth orange-yellow, flat country behind
+      scene: A small lorry stopped at a roadside inspection booth
+      alt: A small navy lorry has pulled over at an orange-yellow roadside inspection booth; a small silhouetted inspector with a clipboard checks it
+    - id: cleared
+      aspect: "16:9"
+      reserve: true
+      placement: reserve — a passing verdict
+      prompt: a raised level crossing barrier and a small deep navy lorry driving away down an empty road, the barrier arm orange-yellow, wide flat country at dawn
+      scene: A raised barrier and a lorry driving on down the road
+      alt: An orange-yellow barrier stands raised as a small navy lorry drives away down an empty road at dawn
+
+  # Where the work is done: the concepts and the reference.
+  workshop:
+    - id: the-template-rack
+      aspect: "3:2"
+      placement: concepts, templates
+      prompt: a tall rack of shallow drawers in a workshop, one drawer pulled open to show a single orange-yellow machine part lying in it, morning light from the left
+      scene: A rack of shallow drawers, one open on a single part
+      alt: A tall rack of shallow drawers with one drawer pulled open, an orange-yellow machine part lying inside
+    - id: the-sorting-trays
+      aspect: "3:2"
+      placement: concepts, feature types
+      prompt: four shallow trays on a workbench holding four different kinds of small parts, one tray orange-yellow and the others navy, a pair of tweezers resting beside them
+      scene: Four trays of different parts on a bench, one tray picked out
+      alt: Four shallow trays of different small parts stand on a workbench; one tray is orange-yellow and a pair of tweezers rests beside them
+    - id: the-logbook
+      aspect: "3:2"
+      placement: concepts, what a run leaves
+      prompt: an open logbook lying on a desk, its ruled columns filled with neat rows of small tick marks and no writing, an orange-yellow rubber stamp resting on the open page, a desk lamp and a steel rule beside it
+      scene: An open logbook with rows of tick marks and a stamp resting on the page
+      alt: An open logbook lies on a desk, its ruled columns filled with rows of small tick marks; an orange-yellow rubber stamp rests on the page beside a steel rule
+    - id: the-callipers
+      aspect: "3:2"
+      placement: the manifest reference
+      prompt: a pair of callipers closed around a small orange-yellow block on a workbench, a long steel rule and a closed notebook beside them, clean morning light
+      scene: Callipers closed around a small block on a workbench
+      alt: A pair of callipers is closed around a small orange-yellow block on a workbench beside a steel rule and a notebook
+    - id: the-control-panel
+      aspect: "3:2"
+      placement: the CLI reference
+      prompt: a flat machine control panel on a workshop wall with a row of plain unlabelled toggle switches and one taller orange-yellow lever, deep navy casing, morning light raking across it
+      scene: A machine control panel with a row of switches and one tall lever
+      alt: A navy machine control panel on a workshop wall has a row of plain toggle switches and one taller orange-yellow lever
+    - id: the-amendment
+      aspect: "3:2"
+      placement: manifest changes
+      prompt: a drafting table with two sheets of simple line drawings of a machine part laid over each other, the upper sheet folded back at one corner to show the drawing beneath, no lettering on the sheets, an orange-yellow pencil lying across them
+      scene: Two drawings of a machine part on a drafting table, the top one folded back at the corner
+      alt: Two line drawings of a machine part lie on a drafting table, the top sheet folded back at one corner to show the one beneath; an orange-yellow pencil lies across them
+
+  # Where the data comes from, and how far it has been taken.
+  field:
+    - id: the-sensor-post
+      aspect: "16:9"
+      placement: the data, wherever it is explained
+      prompt: a small weather station on a slender mast standing alone in flat open country at dawn, the instrument housing at its top orange-yellow, a thin cable running down the mast into the grass
+      scene: A small weather station mast alone in open country at dawn
+      alt: A small weather station stands alone on a slender mast in flat open country at dawn, its orange-yellow instrument housing at the top
+    - id: the-depot
+      aspect: "16:9"
+      placement: what is verified today
+      prompt: a long wooden shelf in a quiet stockroom holding a row of small instrument cases, each with a blank paper inspection tag tied to its handle, one case orange-yellow and the rest deep navy, soft light from a high window
+      scene: A row of small instrument cases on a stockroom shelf, each with an inspection tag
+      alt: A row of small instrument cases stands on a stockroom shelf, each with a blank inspection tag tied to its handle; one case is orange-yellow, the rest navy
+    - id: the-route-map
+      aspect: "3:2"
+      placement: the roadmap
+      prompt: a route map unrolled flat on a table, the travelled part of the route drawn as a solid orange-yellow line and the rest as a faint dashed line, a plain brass weight holding one corner down, no hands, no lettering on the map
+      scene: A route map on a table, the travelled part drawn solid and the rest dashed
+      alt: A route map lies unrolled on a table; the travelled part of the route is a solid orange-yellow line, the rest a faint dashed one, with a weight holding one corner down
+    - id: the-field-run
+      aspect: "3:2"
+      placement: board runs
+      prompt: a small weatherproof orange-yellow sensor box strapped to a weathered wooden fence post at the edge of a field, a thin cable running down the post into the grass, long dawn shadows across the grass
+      scene: A small sensor box strapped to a fence post at the edge of a field
+      alt: A small orange-yellow sensor box is strapped to a weathered wooden fence post at the edge of a field, a thin cable running down into the grass

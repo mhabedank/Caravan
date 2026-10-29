@@ -1,0 +1,61 @@
+id: route-road-to-the-board
+series: siebdruck
+theme: route
+subject: road-to-the-board
+generation:
+  model: Qwen/Qwen-Image-2512
+  revision: 25468b98e3276ca6700de15c6628e51b7de54a26
+  model_licence: Apache-2.0
+  model_card: https://huggingface.co/Qwen/Qwen-Image-2512
+  pipeline: QwenImagePipeline
+  prompt: a small delivery van driving along a long straight road across flat open country at dawn towards
+    a low workshop building on the horizon, the van orange-yellow, the road and fields deep navy, wide
+    empty sky, 1970s modernist poster illustration, flat colour fields with crisp edges, screen print
+    texture, clean geometric forms, calm ordered composition with long diagonals, soft gradient sky in
+    pale mint and warm cream, deep navy shadows and ground, the one object the picture is about painted
+    in a warm orange-yellow accent colour, everything else only navy, mint and cream, early morning light
+    as graphic shapes, quietly futurist and precise, West German graphic design of the seventies, restrained,
+    no text, no lettering, no logos, no faces, people only as small simple silhouettes
+  negative_prompt: text, letters, words, numbers, watermark, logo, signature, face, portrait, photo, photorealistic,
+    glossy, 3d render, neon, chrome, robot, spaceship, retro kitsch, cluttered, blurry, orange sky, orange
+    ground, brain, glowing network, hologram, floating icons, circuit pattern, circuit board traces, server
+    rack, data centre, binary digits, matrix rain, glowing cube, keyboard, laptop, smartphone, screen
+    full of code
+  seed: 808827
+  steps: 50
+  guidance: 4.0
+  width: 1664
+  height: 928
+  generated: '2026-10-28'
+  hardware: dgx-spark
+  generator:
+    commit: 1f56728
+    image_digest: sha256:373249621b54580b0c38d284e4ddfe433d733800569e5d253b01792ad7c75bcc
+    script_sha256: 1deb5d6af046b8e5898d651ce5d0ccac9d33adf27154962996da4b4e2a96fd18
+licence: CC0-1.0
+placements:
+- the tutorial's first page
+scene: A small van on a long straight road at dawn, heading for a workshop on the horizon
+alt: A small orange-yellow van drives along a long straight road across flat country at dawn, towards
+  a low workshop building on the horizon (AI-generated image)
+focal_point:
+- 0.5
+- 0.5
+aspect: '16:9'
+source:
+  width: 1664
+  height: 928
+  sha256: 748f6893d8700caac7561206d2d942e026a0ccd7e1895d76057ac7689aa628e5
+derivatives:
+  '480':
+    file: route-road-to-the-board-480.webp
+    bytes: 5958
+    sha256: 488228d46a7e891eea55d4a97097f064e3ebc6955a21b06ab0cbc217a789def2
+  '960':
+    file: route-road-to-the-board-960.webp
+    bytes: 13958
+    sha256: 79a6bb9fdd7edf75830d72453e0bff9b8e40b968dedc2cd2140865b56da1edcf
+  '1600':
+    file: route-road-to-the-board-1600.webp
+    bytes: 26012
+    sha256: 39a98a8189d28bcd1b4d5b0e3ea0e08c9bd3762f51df0e3a48c0a53310b60fcc

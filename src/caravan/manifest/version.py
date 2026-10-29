@@ -15,7 +15,7 @@ from typing import Any
 SCHEMA_VERSION = "caravan/v0.2"
 
 #: Where each breaking change is described, with the edit an author makes by hand.
-CHANGE_NOTE = "docs/manifest-changes.md"
+CHANGE_NOTE = "docs/ref/manifest-changes.md"
 
 
 class UnknownSchemaVersion(Exception):

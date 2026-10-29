@@ -1,8 +1,19 @@
 name: ci
 
-# Documentation-only changes run nothing (constitution 4.1.0, Resources & Cost Discipline): CI
-# minutes are spent where they verify code. A change that also touches code runs everything, and
-# so does a change to a document the suite executes or checks. Later patterns override earlier.
+# Documentation changes run nothing here (constitution 4.1.0, Resources & Cost Discipline): CI
+# minutes are spent where they verify code. A change that touches code runs everything, including
+# every test that reads a document, because those tests live in the suite this job runs.
+#
+# No document is an exception any more. `README.md`, the entry guide and `docs/releases/**` used
+# to be, since tests read them — but the exception started the whole matrix, nine jobs and a
+# five-minute training run, to check assertions that need no framework. Those checks moved to
+# `docs-checks.yml`, which runs them on one Python with no extras and also builds the site with
+# every warning an error. Editing a page is now cheaper AND better checked than before.
+#
+# One check is not in that workflow: executing the tutorial's parts needs the framework, so it stays
+# in the `train` job below. A change to the guide alone therefore does not execute it here; the
+# release workflow runs the guide against the published release before announcing it, and any
+# change that touches code brings the `train` job back.
 on:
   push:
     branches: [main]
@@ -12,14 +23,6 @@ on:
       - "!docs/**"
       - "!**/*.md"
       - "!.specify/**"
-      # Documents the suite executes or checks still run it (SC-003 of feature 007).
-      - "README.md"
-      - "docs/try-it.md"
-      - "docs/releases/**"
-      # Feature 009 deliberately adds no page here: the references (docs/reference/**,
-      # docs/compatibility.md) are checked against the code by the suite on every change that
-      # touches code, and on every release, where the site is also built with -W. A change to
-      # documentation alone starts nothing (constitution, Resources & Cost Discipline).
   pull_request:
     paths:
       - "**"
@@ -27,10 +30,6 @@ on:
       - "!docs/**"
       - "!**/*.md"
       - "!.specify/**"
-      # Documents the suite executes or checks still run it (SC-003 of feature 007).
-      - "README.md"
-      - "docs/try-it.md"
-      - "docs/releases/**"
 
 permissions:
   contents: read
@@ -41,8 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
-      - run: uv run ruff check src tests
-      - run: uv run ruff format --check src tests
+      - run: uv run ruff check src tests docs/_ext
+      - run: uv run ruff format --check src tests docs/_ext
 
   test:
     runs-on: ubuntu-latest
@@ -111,7 +110,7 @@ jobs:
           VIRTUAL_ENV=/tmp/no-runtime uv pip install -e .
           if VIRTUAL_ENV=/tmp/no-runtime uv pip list | grep -qi ai-edge-litert; then
             echo "the runtime resolved on 3.15; its window has widened and the marker, the"
-            echo "messages and docs/budgets.md all need updating"; exit 1
+            echo "messages and docs/ref/budgets.md all need updating"; exit 1
           fi
           VIRTUAL_ENV=/tmp/no-runtime /tmp/no-runtime/bin/caravan quantize \
             tests/fixtures/manifests/valid/picket-mlp-fixture.yaml || code=$?

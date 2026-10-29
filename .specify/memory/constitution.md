@@ -1,7 +1,54 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 4.0.0 → 4.1.0
+Version change: 4.1.0 → 4.2.0
+Bump rationale: MINOR. Guidance is materially expanded: the documentation rule in Resources & Cost
+Discipline is split in two, and a bounded allowance is added that did not exist before. No
+principle is removed or redefined, and no gate is loosened. Source: the owner, 2026-10-27, after
+the analysis of feature 010 raised the conflict as CRITICAL.
+
+What was wrong: the rule said a documentation-only change "MUST NOT trigger CI", full stop. The
+intent behind it, stated in the same section, is that continuous-integration minutes are spent
+where they verify code. But the two are not the same sentence. Read literally, the rule forbade
+checking documentation at all — so the pages could drift out of step with the code they describe,
+a link could die, and an accessibility claim could be made without ever being measured, and all
+three would be the compliant outcome.
+
+Before this amendment the repository obeyed the intent and broke the letter. `ci.yml` had carried
+three documents as exceptions to its own exclusion — `README.md`, `docs/try-it.md` and
+`docs/releases/**` — because tests read them, which meant a comma in the README started nine jobs
+including a five-minute training run. Feature 010 moved those checks into one small job, which cut
+the cost by roughly nine tenths for exactly the changes that were most expensive, and at the same
+time started a job where the letter of the rule allowed none.
+
+Modified sections:
+- Resources & Cost Discipline: the documentation bullet becomes two. The first keeps the hard
+  prohibition where the cost actually is — the framework matrix — and keeps spec, plan, tasks,
+  analysis and this constitution at zero jobs. The second allows one bounded job for published
+  documentation, lists what it may check, and bounds it at one job, one Python version, no extras
+  and ten minutes, with the explicit rule that a job outgrowing the bound loses checks rather than
+  gaining time.
+
+Added sections: none. Removed sections: none.
+
+Unchanged on purpose: one pull request per feature; the batching rule for pushes; the release
+workflow and red-pull-request fixes not being batched away; every merge gate. The framework matrix
+still runs on every change that touches code, and still runs every test that reads a document,
+because those tests live in the suite it runs.
+
+What this legitimises, and what it does not: `.github/workflows/docs-checks.yml` as it stands —
+one job, Python 3.13, no extras — now conforms. The accessibility audit feature 010 plans to add
+to it is permitted and must stay inside the ten minutes; its own estimate is three to four. The
+job may not grow to a second matrix, and `ci.yml` may not reacquire documentation exceptions.
+
+Follow-up (not done by this amendment):
+- feature 010, FR-049: the requirement restates this rule as "MUST NOT trigger the code test
+  matrix", a narrowing that was not authorised when it was written and that this amendment now
+  makes accurate. The spec should be reread against the wording above rather than assumed aligned.
+- `docs-checks.yml`: the ten-minute bound is now a rule and nothing measures it. The job should
+  fail when it exceeds it, as the install budget does for the cold install.
+
+Previous report: 4.0.0 → 4.1.0
 Bump rationale: MINOR. Resources & Cost Discipline gains rules on continuous-integration minutes,
 and the Development Workflow gains a gate before a pull request is opened. No principle is removed
 or redefined. Source: the owner, 2026-10-23: "nicht so häufig PRs anlegen, um meine GitHub-Minuten
@@ -895,8 +942,15 @@ These choices are architectural and apply until amended with a stated rationale:
   - one pull request per feature, opened when its implementation is built and the local validation
     (lint, format, the whole suite in the environments of the CI matrix) has passed. Spec, plan,
     tasks and analysis are committed and pushed to the feature branch without a pull request;
-  - a change that touches only documentation (specs, `docs/`, Markdown, the constitution) MUST NOT
-    trigger CI. It rides with the feature it belongs to, or several are merged in one pull request;
+  - a change that touches only documentation MUST NOT start the framework test matrix — the jobs
+    that verify code on every supported Python, with and without each extra. Specs, plans, tasks
+    and analyses, and this constitution, start nothing at all; they ride with the feature they
+    belong to, or several are merged in one pull request;
+  - a change to the published documentation (`docs/`, `README.md`) MAY start one job that checks
+    that documentation and nothing else: the pages against the code they describe, the site build
+    with every warning an error, and the accessibility audit of the rendered pages. The job is
+    bounded — one job, one Python version, none of the distribution's extras, and ten minutes. A
+    job that outgrows the bound has checks taken out of it; the bound is not raised to fit it;
   - pushes to an open pull request are batched: one validated push per round of fixes or review
     answers, not one per fix;
   - the release workflow on a tag and a fix for a red pull request are not batched away; they run
@@ -947,4 +1001,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 4.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-23
+**Version**: 4.2.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-27

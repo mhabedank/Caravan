@@ -1,0 +1,49 @@
+{%- extends "layout.html" -%}
+{#- The first screen, and the only page on the site that is not an article.
+
+    The hero is here rather than in the Markdown because it is structure, not content: a navy panel
+    hard against a picture, which is the poster composition the identity is built on. What it SAYS
+    comes from the page's own front matter (`eyebrow`, `tagline`, `lead`), so changing the words is
+    still an edit to `docs/index.md`.
+
+    This also keeps the heading levels honest: the h1 is here, the page's own sections are h2, and
+    nothing is wrapped in a container directive — a heading inside one renders as a rubric
+    paragraph rather than a heading, which costs the page its structure.
+-#}
+{%- block main %}
+  <section class="hero-full" aria-labelledby="hero-title">
+    <div class="hero-panel scheme-dark">
+      <div class="hero-panel-in">
+        {%- if meta and meta.get('eyebrow') %}
+        <p class="eyebrow">{{ meta.get('eyebrow') }}</p>
+        {%- endif %}
+        <h1 id="hero-title">{{ meta.get('tagline', project) }}</h1>
+        {%- if meta and meta.get('lead') %}
+        <p class="lead">{{ meta.get('lead') }}</p>
+        {%- endif %}
+        <div class="row">
+          <a class="btn" href="{{ pathto('intro/tutorial01') }}">Start the tutorial</a>
+          <a class="btn btn-ghost" href="{{ pathto('ref/cli') }}">CLI reference</a>
+          <a class="btn btn-ghost" href="{{ pathto('ref/manifest/index') }}">Manifest reference</a>
+        </div>
+        <p class="cap">Or read <a href="{{ pathto('intro/overview') }}">Caravan at a glance</a> first.</p>
+      </div>
+    </div>
+    <figure class="hero-stage">
+      {#- Feature 011: generated, not drawn. How it was made sits beside the files, in
+          _static/images/model-picket-forest-bench/image.yaml, and the credits page names it. The
+          stage is 53% of the width on a desk and all of it below 860px, so `sizes` says so and a
+          phone never fetches the 1600px file. Not lazy: this is the first thing on the screen. -#}
+      {%- set hero = '_static/images/model-picket-forest-bench/model-picket-forest-bench-' %}
+      <img src="{{ pathto(hero ~ '960.webp', 1) }}"
+           srcset="{{ pathto(hero ~ '480.webp', 1) }} 480w, {{ pathto(hero ~ '960.webp', 1) }} 960w, {{ pathto(hero ~ '1600.webp', 1) }} 1600w"
+           sizes="(max-width: 860px) 100vw, 53vw" width="1600" height="1067"
+           decoding="async" fetchpriority="high"
+           alt="A small circuit board with an orange-yellow diagnostic plug on a workbench, an
+                oscilloscope trace behind it (AI-generated image)">
+    </figure>
+  </section>
+  <div class="landing">
+    {{ body }}
+  </div>
+{%- endblock %}

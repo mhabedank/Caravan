@@ -1,0 +1,6 @@
+# The build context is this directory; the container needs the Dockerfile's packages and nothing
+# from here at build time (gen.py is mounted at run time, not copied in).
+series/*.html
+rounds/
+README.md
+*.py

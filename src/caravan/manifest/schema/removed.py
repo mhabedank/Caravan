@@ -1,8 +1,8 @@
 """The fields schema versions ``caravan/v0.1`` and ``caravan/v0.2`` removed or moved, and why.
 
 Read by the loader, for the message a manifest that still carries one of these fields is refused
-with, and mirrored by the change note in ``docs/manifest-changes.md``. Nothing migrates them: before
-Caravan 1.0.0 an older form is refused, not converted (constitution 4.0.0, Principle IX).
+with, and mirrored by the change note in ``docs/ref/manifest-changes.md``. Nothing migrates them:
+before Caravan 1.0.0 an older form is refused, not converted (constitution 4.0.0, Principle IX).
 
 The messages come from ``specs/006-declared-io/contracts/manifest.md`` and
 ``specs/008-typed-features/contracts/manifest.md`` (Removed). A removed field gets its own message

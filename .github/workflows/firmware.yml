@@ -1,16 +1,18 @@
 name: firmware
 
-# The board guide's firmware (examples/lora32), built against the example's export, for both
-# LoRa32 environments (feature 009, FR-009, research R6). It proves the exported C and the firmware
-# compile for the ESP32; it does not run them — that is the owner's board run.
+# The firmware the site documents, and the owner's own board beside it.
+#
+# `examples/esp32` is what part 3 of the tutorial tells a reader to build, so it is the one this
+# workflow exists for (feature 010, FR-042): its blocks are executed as written, and a firmware
+# that does not build blocks the release. `examples/lora32` is the owner's personal board, kept in
+# the repository and off the site (D2); it is built too, so it cannot rot.
+#
+# Either way this proves the exported C and the firmware *compile*. It does not run them — that is
+# a board run, one rung further up the ladder.
 #
 # When it runs:
-#   - from the release workflow, before anything is published: a firmware that does not build
-#     blocks the release;
-#   - on pull requests that change what the firmware compiles. Deliberately not on a change to
-#     docs/guides/lora32.md alone: a documentation-only change starts nothing (constitution,
-#     Resources & Cost Discipline). The guide's blocks are checked here on the next code change and
-#     on every release;
+#   - from the release workflow, before anything is published;
+#   - on pull requests that change what the firmware compiles;
 #   - by hand.
 
 on:
@@ -21,6 +23,7 @@ on:
       - "src/caravan/export/**"
       - "src/caravan/stages/export.py"
       - "src/caravan/data/test_part.py"
+      - "examples/esp32/**"
       - "examples/lora32/**"
       - "examples/picket-mlp.yaml"
       - ".github/workflows/firmware.yml"
@@ -46,31 +49,38 @@ jobs:
             ~/.platformio/.cache
             ~/.cache/pip
           key: platformio-${{ hashFiles('examples/lora32/platformio.ini', 'examples/lora32/dependencies.lock') }}
-      - name: Caravan and the example's export, as the try-it guide installs and runs them
+      - name: Caravan and the example's export, as part 1 of the tutorial installs and runs them
         run: |
           python3.13 -m venv /tmp/env
           . /tmp/env/bin/activate
           pip install -e ".[train,verify]"
           caravan export examples/picket-mlp.yaml
-      - name: the board guide's blocks, as written
+      # FR-042: the check exercises the same commands part 3 of the tutorial gives a reader, so a part that stops
+      # working fails here rather than at the reader's desk.
+      - name: tutorial part 3's blocks, as written
         run: |
           . /tmp/env/bin/activate
           for step in board-tools board-copy board-build; do
-            python -m tests.support_docs docs/guides/lora32.md "$step" > "/tmp/$step.sh"
+            python -m tests.support_docs docs/intro/tutorial03.md "$step" > "/tmp/$step.sh"
           done
           start=$(date +%s)
-          bash -euo pipefail -c '. /tmp/env/bin/activate; . /tmp/board-tools.sh; . /tmp/board-copy.sh; . /tmp/board-build.sh' | tee /tmp/build.log
-          echo "lora32: $(( $(date +%s) - start ))s from installing PlatformIO to a built firmware" >> "$GITHUB_STEP_SUMMARY"
-      - name: the V1.0 environment
+          bash -euo pipefail -c '. /tmp/env/bin/activate; . /tmp/board-tools.sh; . /tmp/board-copy.sh; . /tmp/board-build.sh' | tee /tmp/build-esp32.log
+          echo "esp32: $(( $(date +%s) - start ))s from installing PlatformIO to a built firmware" >> "$GITHUB_STEP_SUMMARY"
+      - name: the owner's board, kept building though it is off the site
         run: |
           . /tmp/env/bin/activate
+          cp examples/esp32/src/model/model_data.h examples/esp32/src/model/model_data.cc \
+             examples/esp32/src/model/resolver.h examples/esp32/src/model/test_windows.h \
+             examples/lora32/src/model/
           cd examples/lora32
-          pio run -e lora32-v1 | tee /tmp/build-v1.log
+          pio run -e lora32 | tee /tmp/build-lora32.log
+          pio run -e lora32-v1 | tee /tmp/build-lora32-v1.log
       - name: the linker's figures (estimated, not measured on a board)
         run: |
           {
             echo '```'
-            grep -E "RAM:|Flash:" /tmp/build.log | sed 's/^/lora32    /'
-            grep -E "RAM:|Flash:" /tmp/build-v1.log | sed 's/^/lora32-v1 /'
+            grep -E "RAM:|Flash:" /tmp/build-esp32.log | sed 's/^/esp32      /'
+            grep -E "RAM:|Flash:" /tmp/build-lora32.log | sed 's/^/lora32     /'
+            grep -E "RAM:|Flash:" /tmp/build-lora32-v1.log | sed 's/^/lora32-v1  /'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

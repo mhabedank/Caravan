@@ -7,11 +7,12 @@ of side effects and must never reach a training framework (Principle XII); the l
 
 from __future__ import annotations
 
-#: The third release candidate of 0.1.0: every stage from the manifest to the C array, with typed
-#: features (feature 008), test windows for a board and the documentation site (feature 009). The
-#: string is provenance: it is
+#: The fourth release candidate of 0.1.0: every stage from the manifest to the C array, with typed
+#: features (feature 008), test windows for a board and the documentation site (feature 009), the
+#: templates for the application classes (conv2d, autoencoder, the image input and the anomaly
+#: output) and the documentation organised like Django's. The string is provenance: it is
 #: written into every run report and every exported artifact's record, so it must not claim a
 #: milestone the code has not reached.
-__version__ = "0.1.0rc3"
+__version__ = "0.1.0rc4"
 
 __all__ = ["__version__"]

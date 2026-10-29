@@ -48,7 +48,7 @@ EXTRA_INSTALL_COMMAND = install_command("train")
 RUNTIME_INSTALL_COMMAND = install_command("verify")
 
 #: The highest Python minor the framework publishes a stable wheel for, with the evidence. One
-#: place to edit when the window closes: see docs/budgets.md for the obligation.
+#: place to edit when the window closes: see docs/ref/budgets.md for the obligation.
 FRAMEWORK_WHEEL_CEILING = (3, 13)
 FRAMEWORK_EVIDENCE = "checked 2026-10-22: tensorflow 2.21.0 ships cp310 through cp313"
 

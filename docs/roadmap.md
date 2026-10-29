@@ -25,45 +25,39 @@ YAML like the zoo's.
 
 | Item | Planned | State | Driver |
 |---|---|---|---|
-| Manifest schema, `validate`, `render`, package skeleton | v0.1 | **delivered** (feature 001) | `picket-mlp` |
-| `mlp` template, parameter half | v0.1 | **delivered** (feature 001) | `picket-mlp` |
-| build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **delivered** (feature 002) | `picket-mlp` |
-| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | **delivered** (feature 003) | `picket-mlp` |
-| export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | **delivered** (feature 004) | `picket-mlp` |
-| `conv1d` template, both halves | v0.1 | **delivered** (feature 005) | **`pace-cnn`** (decided 2026-10-22) |
-| Declared inputs and outputs, labels and columns from the data, the fit check before training, the interface contract in the export | v0.1 | **delivered** (feature 006) | `picket-mlp`; constitution 3.0.0 |
-| A fixed split from a column of the data; the framework's output in `framework.log`; the try-it guide; the release workflow | v0.1 | **delivered** (feature 007) | **`pace-cnn`** (the split); the release |
-| Typed features in Ludwig's names: one input per column (`number`, `category`, `binary`), preprocessing fitted on the training part and built into the model, outputs `category`, `binary`, `number`; manifest `caravan/v0.2` | v0.1 | **delivered** (feature 008) | `picket-mlp` (derived labels pass int8); **`pace-cnn`**; owner decision D7, 2026-10-24 |
+| Manifest schema, `validate`, `render`, package skeleton | v0.1 | **delivered** in 0.1.0 | `picket-mlp` |
+| `mlp` template, parameter half | v0.1 | **delivered** in 0.1.0 | `picket-mlp` |
+| build + train: the template's builder half, TensorFlow behind the `train` extra | v0.1 | **delivered** in 0.1.0 | `picket-mlp` |
+| quantize: int8 with the accuracy gate, per-layer error table on failure | v0.1 | **delivered** in 0.1.0 | `picket-mlp` |
+| export: flatbuffer and C array, minimal operator resolver, per-operator kernel coverage | v0.1 | **delivered** in 0.1.0 | `picket-mlp` |
+| `conv1d` template, both halves | v0.1 | **delivered** in 0.1.0 | **`pace-cnn`** (decided 2026-10-22) |
+| Declared inputs and outputs, labels and columns from the data, the fit check before training, the interface contract in the export | v0.1 | **delivered** in 0.1.0 | `picket-mlp` |
+| A fixed split from a column of the data; the framework's output in `framework.log`; the entry guide; the release workflow | v0.1 | **delivered** in 0.1.0 | **`pace-cnn`** (the split); the release |
+| Typed features in Ludwig's names: one input per column (`number`, `category`, `binary`), preprocessing fitted on the training part and built into the model, outputs `category`, `binary`, `number`; manifest `caravan/v0.2` | v0.1 | **delivered** in 0.1.0 | `picket-mlp` (derived labels pass int8); **`pace-cnn`** |
 | Export with only the runtime installed, when training and quantization are cached | v0.1 | **deferred** by the owner, 2026-10-23 | a known limit of 0.1.0 |
-| The documentation site; test windows in the export (`export.test_windows`); the first exported model on a microcontroller, a LILYGO LoRa32, with its guide and a firmware build before every release | v0.1 | **in progress** (feature 009) | the owner's goal for rc3, 2026-10-26 |
+| The documentation site; test windows in the export (`export.test_windows`); the first exported model on a microcontroller, with its part of the tutorial and a firmware build before every release | v0.1 | **in progress** | the owner's goal for rc3, 2026-10-26 |
+| The site rebuilt around a reader's first steps: a landing page, a four-part tutorial, topic guides that explain the choices, a reference that says what each setting is for, and a browser audit of every page | v0.1 | **in progress** | the owner, 2026-10-27 |
+| The documentation organised like Django's: a contents page, the four documentation types, every field, command, rule and board an entry that running text links to, and a glossary | v0.1 | **in progress** | the owner, 2026-10-29 |
 
 **The goal for rc3, 2026-10-26.** In the owner's words: complete documentation, "eine kleine
 Landingpage, dann Dokumentation der Schnittstelle, also wie funktioniert die CLI, wie funktioniert
 das [YAML]-Format, was sind momentan die Kompatibilitäten … und was wird in Zukunft gehen". Then
-"ein, zwei kleine Projekte … Ende zu Ende wirklich bis auf den Mikrocontroller drauf". Feature 009
-builds both:
-- the site, from `docs/`;
-- the [board guide](guides/lora32.md) for the LoRa32 the owner has.
+"ein, zwei kleine Projekte … Ende zu Ende wirklich bis auf den Mikrocontroller drauf". Both are
+built:
+- this site;
+- [the tutorial](intro/tutorial.md), whose third part puts an exported model on a generic ESP32.
 
-What a board run establishes is recorded in [board runs](board-runs/index.md), and the
-[compatibility page](compatibility.md) states how far each board has been verified. Tagging rc3 is
+What a board run establishes is recorded in [board runs](ref/board-runs/index.md), and the
+[compatibility page](ref/compatibility.md) states how far each board has been verified. Tagging rc3 is
 the owner's decision, after their own projects have run.
 
-The working records this roadmap cites live in the repository, not on the site: the
-[design document](https://github.com/mhabedank/Caravan/tree/main/docs/design) and the
-[research notes](https://github.com/mhabedank/Caravan/tree/main/docs/research).
+**The release, 2026-10-23.** Candidate `v0.1.0rc1` first: the version to try by hand and the
+version the `pace-cnn` port pins. `v0.1.0` follows once the port has run and every Caravan defect it
+found is fixed; [the release note](releases/0.1.0.md) says what is in it and what is not. Installed
+from the GitHub release; the package index is not used for 0.1.0 (owner decision).
 
-**The release, 2026-10-23.** Candidate `v0.1.0rc1` first: the version to try by hand
-(`docs/try-it.md`) and the version the `pace-cnn` port pins. `v0.1.0` follows once the port has run
-and every Caravan defect it found is fixed (feature 007; `docs/releases/0.1.0.md`). Installed from
-the GitHub release; the package index is not used for 0.1.0 (owner decision).
-
-Feature numbers under `specs/` and git branch names are independent; features are named here
-rather than numbered, because the numbering continues from 001 while a chore branch may carry any
-name.
-
-**The `conv1d` decision, 2026-10-22.** The design document put `conv1d` in v0.1. During feature
-001 it was deferred, correctly, because Principle X builds a template when a named model needs one
+**The `conv1d` decision, 2026-10-22.** The design document put `conv1d` in v0.1. It was deferred
+at first, correctly, because Principle X builds a template when a named model needs one
 and nothing did. `pace-cnn` — IMU activity recognition, a time-series model already published at
 0.1.0 — is now the named driver, so `conv1d` returns to v0.1 where the design document had it.
 It arrives with the feature that ports `pace-cnn`, not before.
@@ -82,7 +76,7 @@ kernel. So the head is a parameter with a measured trade: on the fixture, the re
 six operators in eight nodes at 7,888 bytes with four of six accelerated. `BatchNormalization`
 folds entirely into the preceding convolution — no operator, 648 bytes of folded weights — which is
 why it is offered. Separable convolution was measured too and is deliberately *not* offered: no
-named model needs it (Principle X), and the measurement is in `specs/005-conv1d-template/research.md`
+named model needs it (Principle X), and the measurement is in the release note
 so the next model that wants it finds it rather than repeating it.
 
 **What the port is and is not.** Rebuilding `pace-cnn` through Caravan happens in the zoo, not
@@ -92,19 +86,19 @@ reproduce the *card*: the footprint and latency figures come from `analyze` (v0.
 (v1.0) and stay hand-made until then. And because a published version is immutable (zoo
 Principle IX), a Caravan-built `pace-cnn` is a new version, not a replacement of 0.1.0.
 
-**What feature 004 changed about every number before it.** The conversion now fixes the model's
+**What that work changed about every number before it.** The conversion now fixes the model's
 input batch to one, because a board runs one window at a time. The converted mlp previously carried
 `SHAPE`, `STRIDED_SLICE`, `PACK` and `RESHAPE` to compute a flatten shape from a dimension that
 never varies — four kernels in flash and four resolver entries for arithmetic whose answer was
 known. On the pilot fixture the quantized model went from six distinct operators in eight nodes to
 three in five, and from 15,664 bytes to 14,848. The function is unchanged within float32 round-off
 — the decisions identical, the scores inside a thousandth of a percent, checked on an `mlp` and on a
-`conv1d` model; this first claimed bit-identity and a runner disproved it, which feature 004's
-research R5 now records — and it happens inside the
-conversion so that the model the accuracy gate measures is the model that ships. Converting twice
+`conv1d` model. Bit-identity was claimed first and a runner disproved it, which is why the claim
+here is round-off and not equality. It happens inside the conversion, so that the model the
+accuracy gate measures is the model that ships. Converting twice
 would have meant two models and two accuracies, with the shipped one ungated.
 
-**An obligation feature 004 recorded rather than improvised.** `caravan export` needs both extras,
+**An obligation that work recorded rather than improvised.** `caravan export` needs both extras,
 although the export *stage* needs only the runtime that reads a model file. The cause is the
 environment check in the pipeline runner: it asks for every part the plan *could* need rather than
 every part it *will* need, and a cached upstream result is what makes the difference. So an author
@@ -112,19 +106,19 @@ on Python 3.14 holding a quantized model from a 3.13 machine cannot export it, e
 the stage does requires anything their installation lacks.
 
 Fixing it means consulting the cache before the environment check, which needs the dataset
-resolved, which collides with two invariants feature 002 wrote down on purpose: the run directory
+resolved, which collides with two invariants that work wrote down on purpose: the run directory
 is created *before* the dataset is resolved, so a dataset that disagrees with the manifest lands in
 a report rather than only on a terminal; and a missing extra creates no run directory at all. One
 of the two has to move, and which one is a decision with reasons on both sides. It is not a thing
 to improvise inside a feature about exporting, so it is written down here instead.
 
-**The Python floor, and when it comes back up.** Feature 002 lowered the published floor from 3.14
+**The Python floor, and when it comes back up.** That work lowered the published floor from 3.14
 to 3.13, because TensorFlow publishes no stable wheel above 3.13 and Python packaging has no
-per-extra version window (constitution v2.3.0, research R1 of feature 002). All three of 3.13, 3.14
-and 3.15 are tested, so the claim in the metadata is true. The floor returns to `>=3.14` and the
+per-extra version window — a single `requires-python` covers the package and all its extras. All
+three of 3.13, 3.14 and 3.15 are tested, so the claim in the metadata is true. The floor returns to `>=3.14` and the
 3.13 job is deleted as soon as a stable TensorFlow ships a cp314 wheel depending on a released
 `keras`; 2.22.0rc0 already ships the wheel and depends on `keras-nightly`, so the wait is for the
-final release (still a candidate, checked 2026-10-23). This is the one open obligation of v0.1 that is not a feature.
+final release (still a candidate, checked 2026-10-23). This is the one open obligation of v0.1 that is not a planned item.
 
 **The conversion question is answered, and the floor stays.** The Technical Baseline left open
 whether an int8 conversion path exists without the training framework, to be settled when the
@@ -134,7 +128,7 @@ path (checked 2026-10-22). So conversion keeps the framework and the published f
 until a stable TensorFlow ships for the current Python.
 
 What *did* come out of asking is the other half: **reading and running** an exported model needs no
-training framework at all, and costs 114 MiB against 1,971. Feature 003 put that in its own extra,
+training framework at all, and costs 114 MiB against 1,971. That work put that in its own extra,
 so the four stages after it — analysis, emulated verification, the benchmark and the card — inherit
 it instead of each solving it again.
 
@@ -149,9 +143,9 @@ said wrongly before the extra was measured against the index rather than against
 | `analyze`: per-layer activation memory, peak with the layer that causes it, flash, latency estimate | v0.2 | planned | the arena cannot be derived from the flatbuffer; see the prior-art note, C1 |
 | Hardware requirement record, resolved against the board descriptions | v0.2 | planned | |
 | Automatic template scaling when a budget is exceeded | v0.2 | planned | |
-| `smallcnn` template | v0.2 | **built as `conv2d`** (feature 010) | 2026-10-29: renamed and built ahead of the analysis items; see below |
-| `autoencoder` template and the `anomaly` output | v0.2 | **built** (feature 010) | first planned 2026-10-29; `hum-fan` and machine-sound anomaly detection |
-| `image` input type | v0.2 | **built** (feature 010) | first planned 2026-10-29; Visual Wake Words and image classification |
+| `smallcnn` template | v0.2 | **built as `conv2d`** | 2026-10-29: renamed and built ahead of the analysis items; see below |
+| `autoencoder` template and the `anomaly` output | v0.2 | **built** | first planned 2026-10-29; `hum-fan` and machine-sound anomaly detection |
+| `image` input type | v0.2 | **built** | first planned 2026-10-29; Visual Wake Words and image classification |
 | A recurrent template (LSTM) | v0.2 | **considered 2026-10-29, not built** | see below |
 | `forest` template over ONNX | v0.2 | **dropped 2026-10-22** | see below |
 
@@ -159,7 +153,7 @@ said wrongly before the extra was measured against the index rather than against
 application classes of the research note need, and to build them ("lass uns mal daraus entwickeln
 welche templates wir brauchen und diese dann implementieren"), choosing the widest of four scopes:
 the autoencoder, the two-dimensional convolution and the image input type. The
-[applications](applications.md) page has the derivation: nine of twelve classes are served now.
+[applications](topics/applications.md) page has the derivation: nine of twelve classes are served now.
 `smallcnn` was the design document's name for the two-dimensional template; it is built as `conv2d`
 because the author describes a convolution over two axes, as `conv1d` describes one over one. Its
 driver is a documented application class, keyword spotting, which Principle X accepts beside a named
@@ -167,7 +161,7 @@ model. "Built" here means merged; an item counts as delivered when the version t
 released.
 
 **The recurrent template, considered 2026-10-29.** Battery health and CAN intrusion detection have
-small recurrent models that run on microcontrollers (a CNN-LSTM of 8,961 parameters and an LSTM
+small recurrent models that run on microcontrollers (a CNN-LSTM, a convolutional neural network feeding a recurrent one, of 8,961 parameters and an LSTM
 autoencoder of 6,272, both on an ST SPC58, from the zoo's model-ideas research of 2026-10-11). Both
 classes are served by the existing templates, the ESP32's accelerated library has no recurrent
 kernel (`esp-nn`, read 2026-10-22), and no named model needs one. It becomes a live question with
@@ -175,7 +169,8 @@ the first model that does.
 
 **`forest` dropped, 2026-10-22.** The design document planned a tree-model template reaching the
 microcontroller through ONNX. A random forest has no tensor arena, no int8 quantization in the
-TFLite sense and no TFLM kernels, so supporting it means a second export path and a second
+TFLite sense and no kernels in TensorFlow Lite for Microcontrollers (TFLM), so supporting it
+means a second export path and a second
 on-device runtime — which Principle II refuses ("not becoming an inference runtime") and the
 technical baseline rules out by fixing TFLM.
 

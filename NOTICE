@@ -4,3 +4,24 @@ Copyright 2026 Martin Habedank
 This product includes software developed as part of the Caravan project
 (https://github.com/mhabedank/Caravan), licensed under the Apache License,
 Version 2.0.
+
+Third-party files in this repository
+------------------------------------
+
+The following is not part of the distribution: the wheel ships `src/caravan` alone.
+
+- docs/_static/images/ — the site's imagery (feature 011). The images are generated, never
+  fetched: each one is drawn by a diffusion model from a written prompt, and the full recipe sits
+  beside it in its `image.yaml`. The images themselves are released under CC0 1.0 Universal
+  (https://creativecommons.org/publicdomain/zero/1.0/) — no rights reserved. The models that
+  produced them are both Apache License 2.0:
+    - black-forest-labs/FLUX.2-klein-4B (draft passes) —
+      https://huggingface.co/black-forest-labs/FLUX.2-klein-4B
+    - Qwen/Qwen-Image-2512 (final passes) — https://huggingface.co/Qwen/Qwen-Image-2512
+  These are published with the documentation site and are not part of the distribution.
+
+- docs/_themes/caravan/static/fonts/ — Archivo and JetBrains Mono, variable, Latin subset.
+  Copyright 2020 The Archivo Project Authors; copyright 2020 The JetBrains Mono Project Authors.
+  SIL Open Font License 1.1, full text in OFL.txt beside the files. These are published with the
+  documentation site.
+
