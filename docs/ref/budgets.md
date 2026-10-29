@@ -168,6 +168,17 @@ accelerated on each built-in board. Recorded for the same reason the mlp's figur
 `pace-cnn` port will be compared against hand-built firmware, and the comparison turns on numbers
 somebody wrote down beforehand.
 
+## What `conv2d`, `autoencoder` and the `image` input added to the budget
+
+Nothing, a third time. Images are read by the training framework the `train` extra already
+installs, and the measures an `anomaly` output is judged by — the area under the curve, the
+percentile, the detection rates — are written against the standard library, so they run in the
+core on every supported Python. The dependency count is still two, the extras count still two, and
+the Python policy is unchanged.
+
+The figures these templates add are their reference models', measured by building and converting:
+[Applications](../topics/applications.md) records them.
+
 ## Changing a number
 
 The dependency and extras limits come from the constitution (Principle XII). Changing one is a

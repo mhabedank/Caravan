@@ -5,13 +5,25 @@ description: The words Caravan's documentation uses, each defined in one or two 
 # Glossary
 
 ```{glossary}
+anomaly score
+  How unusual a window is: the mean squared difference between the window and the `autoencoder`'s
+  reconstruction of it, computed inside the model. A window scoring at or above the threshold the
+  run chose is abnormal. See [Feature types](topics/feature-types.md).
+
+autoencoder
+  A network trained to give back its own input through a narrow middle layer. Trained on normal
+  data only, it rebuilds normal windows well and unusual ones badly, which is what the
+  {term}`anomaly score` measures. Caravan's `autoencoder` template is one. See
+  [Templates](topics/templates.md).
+
 board
   A microcontroller Caravan builds for, described in a data file that states its core, memory,
   accelerated kernels and toolchain, with a source for every value. See [Boards](ref/boards.md).
 
 budget
   The most a model may lose when it is shrunk to {term}`int8`, set per output in the manifest:
-  {mf}`output_features[].accuracy_drop_max` or {mf}`output_features[].mae_increase_max`. See
+  {mf}`output_features[].accuracy_drop_max`, {mf}`output_features[].mae_increase_max` or
+  {mf}`output_features[].auc_drop_max`. See
   [Budgets and gates](topics/budgets-and-gates.md).
 
 C array
@@ -19,8 +31,9 @@ C array
   firmware compiles in. See [What a run leaves](topics/what-a-run-leaves.md).
 
 CNN
-  Convolutional neural network: a model that slides small kernels of weights along time to find a
-  pattern wherever it occurs. Caravan's `conv1d` template is one. See [Templates](topics/templates.md).
+  Convolutional neural network: a model that slides small kernels of weights along time, or across
+  a plane such as an image, to find a pattern wherever it occurs. Caravan's `conv1d` and `conv2d`
+  templates are two. See [Templates](topics/templates.md).
 
 derived
   A value only the data can say — a vocabulary, the order of the labels, an embedding size. The
@@ -31,8 +44,9 @@ feature
   declared in the manifest with a {term}`feature type`. See [Feature types](topics/feature-types.md).
 
 feature type
-  What kind of thing a column is: `number`, `category` or `binary`. The type decides what is learned
-  from the column and what your firmware passes for it. See [Feature types](topics/feature-types.md).
+  What kind of thing a column is: `number`, `category`, `binary` or `image` for an input, and
+  `anomaly` besides for an output. The type decides what is learned from the column and what your
+  firmware passes for it. See [Feature types](topics/feature-types.md).
 
 fit check
   The check after the model is built and before training that compares lower bounds on its flash
@@ -105,8 +119,8 @@ target
   A {term}`board` named in {mf}`export.targets`. The model has to fit every target.
 
 template
-  The shape of the model, named in {mf}`model.template` and sized by {mf}`model.params`: `mlp` or
-  `conv1d`. See [Templates](topics/templates.md).
+  The shape of the model, named in {mf}`model.template` and sized by {mf}`model.params`: `mlp`,
+  `conv1d`, `conv2d` or `autoencoder`. See [Templates](topics/templates.md).
 
 test part
   The windows held back from training and validation. The trained and the int8 model are both

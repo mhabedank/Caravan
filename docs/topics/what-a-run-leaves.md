@@ -27,9 +27,12 @@ model, its shape, its element type, its quantization scale and zero point, what 
 and what to pass when a reading is missing; and what the output means. Bind by **name**, never by
 position: the converter does not promise to keep your declared order.
 
-**`quantization.json`** — what making the model 8-bit cost, and the gate's verdict.
+**`quantization.json`** — what making the model 8-bit cost, and the gate's verdict. For an
+`anomaly` output, also the alarm threshold the run chose and the detection and false alarm rates it
+gives on the test part; `model/interface.json` states the same threshold for your firmware.
 
-**`metrics.json`** — the trained model's accuracy and confusion matrix on the test part.
+**`metrics.json`** — the trained model's accuracy and confusion matrix on the test part, or, for an
+`anomaly` output, how well its score separates normal from abnormal windows.
 
 ## The rest, by what you would want it for
 

@@ -84,6 +84,6 @@ The research note cites 38.6K parameters for the keyword-spotting DS-CNN. The ML
 
 :::{seealso}
 {mf}`model.template` and {mf}`model.params` for every template's parameters,
-{mf}`input_features[].type` for the `image` input, and [Templates](templates.md) for `mlp` and
-`conv1d` in depth.
+{mf}`input_features[].type` for the `image` input, [Templates](templates.md) for each template in
+depth, and [Feature types](feature-types.md) for the `image` input and the `anomaly` output.
 :::
