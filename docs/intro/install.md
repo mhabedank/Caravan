@@ -28,7 +28,7 @@ is the long wait: start it and read on.
 # step: install
 python3.13 -m venv caravan-try
 . caravan-try/bin/activate
-pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc3/caravan_ml-0.1.0rc3-py3-none-any.whl"
+pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc4/caravan_ml-0.1.0rc4-py3-none-any.whl"
 caravan --version
 ```
 
@@ -41,7 +41,7 @@ The `.` line activates the environment, and every later command of the tutorial 
 The last line of the block is the check. It prints:
 
 ```text
-caravan-ml 0.1.0rc3
+caravan-ml 0.1.0rc4
 ```
 
 That is Caravan installed, with the training and verification parts. Go on to

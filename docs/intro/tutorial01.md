@@ -20,8 +20,8 @@ reads. No `git` needed.
 
 ```bash
 # step: fetch
-curl -sL https://github.com/mhabedank/Caravan/archive/refs/tags/v0.1.0rc3.tar.gz \
-  | tar xz --strip-components=1 Caravan-0.1.0rc3/examples Caravan-0.1.0rc3/tests/fixtures/datasets/synthetic
+curl -sL https://github.com/mhabedank/Caravan/archive/refs/tags/v0.1.0rc4.tar.gz \
+  | tar xz --strip-components=1 Caravan-0.1.0rc4/examples Caravan-0.1.0rc4/tests/fixtures/datasets/synthetic
 ```
 
 Part 1 uses the example's own data, and its export finishes in under a minute. Your own table is

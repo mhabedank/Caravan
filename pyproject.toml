@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "caravan-ml"
-version = "0.1.0rc3"
+version = "0.1.0rc4"
 description = "Declarative pipeline for small machine learning models on microcontrollers"
 readme = "README.md"
 # 3.13 rather than 3.14, and only because of the train extra: packaging has no per-extra Python
