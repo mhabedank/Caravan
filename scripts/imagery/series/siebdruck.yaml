@@ -100,12 +100,17 @@ themes:
       prompt: a small orange-yellow electronic module the size of a matchbox lying on a clean wooden workbench, connected by one thin cable to a small deep navy bench power supply, a magnifying lamp bending over it, morning light across the grain
       scene: A small electronic module on a workbench, wired to a bench power supply under a magnifying lamp
       alt: A matchbox-sized orange-yellow electronic module lies on a wooden workbench, wired by one thin cable to a small bench power supply, under a magnifying lamp
+    # Rejected twice before this: a crate at a doorway (the scale of a crate is drawn literally and
+    # came out absurd) and a lowered barrier (the prompt said "level crossing", so the model drew
+    # railway tracks under it and the picture read as a level crossing, not a refusal). Both lessons
+    # are the same one: this style draws vehicles, roads, buildings and landscape well, and mechanism
+    # and size comparisons badly. A bridge the lorry is too tall for is only shapes.
     - id: the-load-that-will-not-fit
-      aspect: "3:2"
+      aspect: "16:9"
       placement: leg 4, when it does not fit
-      prompt: a waist-high deep navy crate on a hand truck halted in front of a narrow doorway, the crate just a little wider than the opening, a small silhouetted worker standing beside it, the doorframe orange-yellow, a measuring rod leaning against the wall
-      scene: A crate on a hand truck stopped at a doorway it is just too wide for
-      alt: A waist-high navy crate on a hand truck has stopped at an orange-yellow doorway it is just a little too wide to pass through; a small figure stands beside it
+      prompt: a small deep navy box lorry stopped on an empty country road immediately in front of a low stone bridge crossing over the road, the roof of the lorry clearly higher than the arched opening it would have to pass under, the arch of the bridge orange-yellow, flat fields running to the horizon, long morning shadows
+      scene: A lorry stopped at a low bridge whose arch it is too tall to pass under
+      alt: A small navy box lorry has stopped on an empty country road at a low stone bridge; its roof stands higher than the orange-yellow arch it would have to pass under
 
   # The budget and its verdict. Principle V: a budget is a gate, not a warning.
   gate:
