@@ -23,6 +23,8 @@ on:
       - "!docs/**"
       - "!**/*.md"
       - "!.specify/**"
+      # The site's image series and its placing script: site work, which no framework test reads.
+      - "!scripts/imagery/**"
   pull_request:
     paths:
       - "**"
@@ -30,6 +32,8 @@ on:
       - "!docs/**"
       - "!**/*.md"
       - "!.specify/**"
+      # The site's image series and its placing script: site work, which no framework test reads.
+      - "!scripts/imagery/**"
 
 permissions:
   contents: read
