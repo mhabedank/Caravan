@@ -78,40 +78,45 @@ themes:
       alt: A small orange-yellow van drives along a long straight road across flat country at dawn, towards a low workshop building on the horizon
     - id: setting-off
       aspect: "16:9"
-      placement: the route index
+      placement: the tutorial's first page
       prompt: a small tractor pulling a loaded cart and two smaller trailers out of a walled yard onto an empty country road at first light, the loaded cart orange-yellow, the tractor and trailers deep navy, long shadows across the gravel
       scene: A tractor pulling a loaded cart and two trailers out of a yard at first light
       alt: A small tractor pulls a loaded orange-yellow cart and two smaller trailers out of a walled yard onto an empty road at first light
     - id: first-load
       aspect: "3:2"
-      placement: leg 1, your first model
+      placement: part 1 of the tutorial, your first model
       prompt: a single orange-yellow crate standing on a flat handcart beside a long table stacked with sheets of paper, a workshop lamp above, early light from a tall window
       scene: A crate on a handcart beside a long table of stacked paper
       alt: A single orange-yellow crate stands on a handcart beside a long table stacked with paper, under a workshop lamp
     - id: sorting-the-columns
       aspect: "3:2"
-      placement: leg 2, your own columns
+      placement: part 2 of the tutorial, your own data
       prompt: a long sorting table in a quiet post office with a wall of open wooden pigeonholes behind it, a small silhouetted clerk seen from behind sliding a blank envelope into one of them, that one pigeonhole painted orange-yellow, the rest deep navy
       scene: A clerk sorting envelopes into a wall of pigeonholes
       alt: In a quiet post office a small silhouetted clerk slides an envelope into one of a wall of pigeonholes; that one is painted orange-yellow
     - id: onto-the-bench
       aspect: "3:2"
-      placement: leg 3, onto a board
+      placement: part 3 of the tutorial, onto a board
       prompt: a small orange-yellow electronic module the size of a matchbox lying on a clean wooden workbench, connected by one thin cable to a small deep navy bench power supply, a magnifying lamp bending over it, morning light across the grain
       scene: A small electronic module on a workbench, wired to a bench power supply under a magnifying lamp
       alt: A matchbox-sized orange-yellow electronic module lies on a wooden workbench, wired by one thin cable to a small bench power supply, under a magnifying lamp
+    # Rejected twice before this: a crate at a doorway (the scale of a crate is drawn literally and
+    # came out absurd) and a lowered barrier (the prompt said "level crossing", so the model drew
+    # railway tracks under it and the picture read as a level crossing, not a refusal). Both lessons
+    # are the same one: this style draws vehicles, roads, buildings and landscape well, and mechanism
+    # and size comparisons badly. A bridge the lorry is too tall for is only shapes.
     - id: the-load-that-will-not-fit
-      aspect: "3:2"
-      placement: leg 4, when it does not fit
-      prompt: a waist-high deep navy crate on a hand truck halted in front of a narrow doorway, the crate just a little wider than the opening, a small silhouetted worker standing beside it, the doorframe orange-yellow, a measuring rod leaning against the wall
-      scene: A crate on a hand truck stopped at a doorway it is just too wide for
-      alt: A waist-high navy crate on a hand truck has stopped at an orange-yellow doorway it is just a little too wide to pass through; a small figure stands beside it
+      aspect: "16:9"
+      placement: part 4 of the tutorial, when it does not fit
+      prompt: a small deep navy box lorry stopped on an empty country road immediately in front of a low stone bridge crossing over the road, the roof of the lorry clearly higher than the arched opening it would have to pass under, the arch of the bridge orange-yellow, flat fields running to the horizon, long morning shadows
+      scene: A lorry stopped at a low bridge whose arch it is too tall to pass under
+      alt: A small navy box lorry has stopped on an empty country road at a low stone bridge; its roof stands higher than the orange-yellow arch it would have to pass under
 
   # The budget and its verdict. Principle V: a budget is a gate, not a warning.
   gate:
     - id: the-barrier
       aspect: "16:9"
-      placement: concepts, budgets and gates
+      placement: topic guide, budgets and gates
       prompt: a level crossing barrier lowered across an empty country road at dawn, the barrier arm orange-yellow, a small deep navy lorry waiting in front of it, flat fields running to the horizon
       scene: A lowered barrier across a country road with a small lorry waiting at it
       alt: An orange-yellow barrier is lowered across an empty country road at dawn; a small navy lorry waits in front of it
@@ -139,19 +144,19 @@ themes:
   workshop:
     - id: the-template-rack
       aspect: "3:2"
-      placement: concepts, templates
+      placement: topic guide, templates
       prompt: a tall rack of shallow drawers in a workshop, one drawer pulled open to show a single orange-yellow machine part lying in it, morning light from the left
       scene: A rack of shallow drawers, one open on a single part
       alt: A tall rack of shallow drawers with one drawer pulled open, an orange-yellow machine part lying inside
     - id: the-sorting-trays
       aspect: "3:2"
-      placement: concepts, feature types
+      placement: topic guide, feature types
       prompt: four shallow trays on a workbench holding four different kinds of small parts, one tray orange-yellow and the others navy, a pair of tweezers resting beside them
       scene: Four trays of different parts on a bench, one tray picked out
       alt: Four shallow trays of different small parts stand on a workbench; one tray is orange-yellow and a pair of tweezers rests beside them
     - id: the-logbook
       aspect: "3:2"
-      placement: concepts, what a run leaves
+      placement: topic guide, what a run leaves
       prompt: an open logbook lying on a desk, its ruled columns filled with neat rows of small tick marks and no writing, an orange-yellow rubber stamp resting on the open page, a desk lamp and a steel rule beside it
       scene: An open logbook with rows of tick marks and a stamp resting on the page
       alt: An open logbook lies on a desk, its ruled columns filled with rows of small tick marks; an orange-yellow rubber stamp rests on the page beside a steel rule
