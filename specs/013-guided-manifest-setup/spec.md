@@ -36,6 +36,17 @@ The result is the same manifest an author would have written by hand. The guided
 replace the manifest or become a second way to describe a model; it is a way to get to the first
 one faster.
 
+## Clarifications
+
+### Session 2026-11-16
+
+- Q: Where does the guided setup live, given Principle XII's fixed set of verbs? → A: A new verb,
+  `caravan init`, with a constitution amendment.
+- Q: Line-by-line dialogue or full-screen interface? → A: Line by line now; a full-screen
+  interface later, as an optional extra.
+- Q: Create new manifests only, or also edit existing ones? → A: Create only now; editing is a
+  separate, later feature.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - From a data directory to a manifest that validates (Priority: P1)
@@ -162,9 +173,9 @@ validates.
 
 - **FR-001**: Caravan MUST offer a guided setup that, from a data directory and the author's
   answers, writes one manifest file.
-- **FR-002**: The guided setup MUST be started through [NEEDS CLARIFICATION: Principle XII fixes
-  the set of command-line verbs and requires an amendment to add one. Is the guided setup a new
-  verb (`caravan init`, with a constitution amendment), or does it live elsewhere?].
+- **FR-002**: The guided setup MUST be started through a new verb, `caravan init`. Principle XII
+  fixes the set of verbs, so the constitution MUST be amended to admit `init` before the feature
+  is released, and the roadmap MUST gain the item.
 - **FR-003**: The written manifest MUST pass the same validation as `caravan validate`, and the
   setup MUST run that validation itself before it reports success.
 - **FR-004**: The setup MUST NOT overwrite an existing file without the author's explicit
@@ -218,15 +229,16 @@ validates.
   and XII).
 - **FR-024**: The setup MUST NOT add a runtime dependency to the default installation beyond the
   budget of Principle XII, and any dependency it adds MUST be isolated behind one module.
-- **FR-025**: The interaction style MUST be [NEEDS CLARIFICATION: line-by-line questions in the
-  terminal (a CLI dialogue), or a full-screen interface with lists, panes and keyboard navigation (a
-  TUI)?].
+- **FR-025**: The setup MUST ask its questions line by line in the terminal (a dialogue), with
+  no new runtime dependency. A full-screen interface with lists and keyboard navigation is a later
+  step; if it comes, it MUST arrive as an optional extra (Principle XII) and MUST ask the same
+  questions and write the same file as the dialogue.
 
 **Scope**
 
-- **FR-026**: The setup MUST [NEEDS CLARIFICATION: only create new manifests, or also open an
-  existing manifest and change it (add a column, change a board) while keeping the author's
-  comments and layout?].
+- **FR-026**: The setup MUST only create new manifests. Opening an existing manifest and changing
+  it (adding a column, changing a board) while keeping the author's comments and layout is out of
+  scope here and is recorded on the roadmap as a later feature.
 
 ### Key Entities
 
@@ -278,5 +290,7 @@ validates.
 - **English only**: the questions are in English, like the rest of Caravan's output.
 - **Before 1.0.0** (Principle IX), the setup writes the current schema version only and does not
   need to produce manifests for earlier versions.
-- **Dependency on governance**: if the answer to FR-002 is a new verb, a constitution amendment to
-  Principle XII is required before the feature is released, and the roadmap gains the item.
+- **Dependency on governance**: the new verb `init` requires an amendment of Principle XII before
+  the feature is released (FR-002).
+- **Later steps on the roadmap**: a full-screen interface as an optional extra (FR-025) and editing
+  an existing manifest (FR-026).

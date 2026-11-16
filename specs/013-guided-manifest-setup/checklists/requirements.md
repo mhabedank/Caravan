@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,9 +31,10 @@
 
 ## Notes
 
-- Three clarifications are open: FR-002 (where the setup lives, given Principle XII's fixed verb
-  set), FR-025 (line-by-line dialogue or full-screen interface) and FR-026 (create only, or also
-  edit an existing manifest).
+- Three clarifications resolved by the owner on 2026-11-16 (see the spec's Clarifications section):
+  `caravan init` with a constitution amendment (FR-002), a line-by-line dialogue now and a
+  full-screen interface later as an extra (FR-025), create only now and editing later (FR-026).
+- All items pass.
 - Terms such as "terminal", "CSV" and "keystroke" describe the product's existing surface (a
   command-line tool reading tabular files), not an implementation choice.
 - No library, framework or module is named; FR-023/FR-024 restate constitutional constraints
