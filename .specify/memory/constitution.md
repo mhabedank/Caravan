@@ -1,7 +1,42 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 4.1.0 → 4.2.0
+Version change: 4.2.0 → 4.3.0
+Bump rationale: MINOR. Principle XII is materially expanded: it now names the admitted verbs and
+admits one more, `init`, with bounds. No principle is removed or redefined, no gate is loosened,
+and no dependency or extra slot is spent. Source: the owner, 2026-11-16, in the clarification of
+feature 013 ("caravan init" with an amendment; a line-by-line dialogue now, a full-screen
+interface later as an extra; create only, editing later).
+
+Why: writing the manifest by hand is the first obstacle a new author meets, and the owner found
+it tedious. Feature 013 specifies a guided setup that reads the data, proposes what the data
+already says, asks only for the author's intent and writes a manifest that validates. Principle
+XII closes the verb set, so the setup needs this amendment before it may be released.
+
+What the bounds protect: `init` is kept from becoming a second way to describe a model. It writes
+the same manifest a person would (Principle I), asks nothing no stage reads (Principle VI), takes
+its choices from the registries (Principle VII), stays in the default installation and offline
+(Principles VIII and XII), and is testable without a terminal. Editing an existing manifest is
+excluded on purpose: it would mean rewriting the author's file, which sits next to what
+Principle IX forbids when the framework loads a manifest, so it is left for its own amendment.
+
+Modified principles:
+- XII. Small Core, Few Dependencies: the verb bullet names the admitted verbs; a new bullet admits
+  `init` and states its bounds.
+
+Added sections: none. Removed sections: none.
+
+Unchanged on purpose: the dependency budget (six direct, four extras), the layering rule, the
+install budget. The stage verbs the Pipeline & Artifact Contract names but that are not built yet
+(analyze, verify, bench, publish) remain admitted by that section, as before.
+
+Follow-up (not done by this amendment):
+- docs/roadmap.md: add `caravan init` (feature 013), and the two later steps the owner named —
+  a full-screen interface as an extra, and editing an existing manifest.
+- docs/ref/cli.md and the README's command list gain `init` when feature 013 is built.
+- specs/013-guided-manifest-setup/spec.md: FR-002 cites this amendment; no change needed.
+
+Previous report: 4.1.0 → 4.2.0
 Bump rationale: MINOR. Guidance is materially expanded: the documentation rule in Resources & Cost
 Discipline is split in two, and a bounded allowance is added that did not exist before. No
 principle is removed or redefined, and no gate is loosened. Source: the owner, 2026-10-27, after
@@ -762,7 +797,23 @@ builds models must make that ban structural, not a matter of how each user happe
 ### XII. Small Core, Few Dependencies
 
 - The feature set is closed by the roadmap. The command line interface has one fixed set of
-  verbs, and adding a verb requires an amendment.
+  verbs, and adding a verb requires an amendment. The admitted verbs are `validate`, `render`,
+  `build`, `train`, `quantize`, `export`, `templates`, `boards` and `init`, plus one verb per
+  pipeline stage named in the Pipeline & Artifact Contract when that stage is built.
+- `init` is admitted as an authoring aid, not as a stage, and under these bounds:
+  - it writes one new manifest and nothing else: no run directory, no cache, no report, and never
+    over an existing file without the author's explicit confirmation;
+  - what it writes is an ordinary manifest of the current schema version, one a person could have
+    written by hand, and it MUST pass `validate` before `init` reports success;
+  - it asks only for what a stage reads (Principles I and VI) and offers only registered templates
+    and boards (Principle VII);
+  - it runs in the default installation, offline, on every supported Python version, and adds no
+    runtime dependency to it; a richer interface MAY come only as an optional extra, inside the
+    extras budget below;
+  - it MUST be usable without a terminal, with every answer given up front, so that it is tested
+    like any other verb;
+  - it never edits an existing manifest. Editing one while keeping the author's comments and
+    layout is a different capability and would need its own amendment.
 - Dependency budget: the default installation MUST have at most six direct runtime dependencies,
   and the project MUST have at most four optional extras, grouped by stage (training,
   verification, benchmarking, publication).
@@ -1001,4 +1052,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 4.2.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-27
+**Version**: 4.3.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-11-16
