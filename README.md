@@ -23,7 +23,7 @@ architecture search. See `.specify/memory/constitution.md`.
 
 ## Status
 
-**0.1.0rc4, the fourth release candidate.** Every stage from manifest to C array exists: `validate`,
+**0.1.0rc5, the fifth release candidate.** Every stage from manifest to C array exists: `validate`,
 `render`, `build`, `train`, `quantize` and `export`, with `templates` and `boards` to list what is
 registered. Four templates, `mlp`, `conv1d`, `conv2d` and `autoencoder`, and three boards, `s32k144`,
 `stm32h743` and `esp32`.
@@ -39,6 +39,12 @@ from the application classes Caravan targets (`docs/topics/applications.md`). `c
 feature frames as in keyword spotting, or an image — and `autoencoder` detects anomalies from normal
 data through a new `anomaly` output. A new `image` input type hands the device raw 8-bit pixels.
 Nine of the twelve application classes are served.
+
+rc5 makes windows know their recordings (manifest `caravan/v0.3`). A window never spans two files or
+two runs of a `recording_column`; the default split keeps each recording, or a block of one, on one
+side, so a test score no longer rests on windows beside training ones. `window_stride` lets windows
+overlap, and `window_label` says which label a window takes: the last row's for a number, any row
+holding a value for short bursts. The export's contract is version 4.
 
 Not on the package index. Each version is installed from its GitHub release.
 
@@ -68,14 +74,14 @@ caravan render examples/picket-mlp.yaml --stdout
 From the release, in a virtual environment:
 
 ```bash
-pip install "caravan-ml @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc4/caravan_ml-0.1.0rc4-py3-none-any.whl"
-pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc4/caravan_ml-0.1.0rc4-py3-none-any.whl"
+pip install "caravan-ml @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc5/caravan_ml-0.1.0rc5-py3-none-any.whl"
+pip install "caravan-ml[train,verify] @ https://github.com/mhabedank/Caravan/releases/download/v0.1.0rc5/caravan_ml-0.1.0rc5-py3-none-any.whl"
 ```
 
 The first line is the core: `validate` and `render`, on Python 3.13 to 3.15. The second adds
 training and converting (Python 3.13) and reading exported models (3.13 and 3.14). To build from
 the tagged source instead:
-`pip install "caravan-ml[train,verify] @ git+https://github.com/mhabedank/Caravan@v0.1.0rc4"`.
+`pip install "caravan-ml[train,verify] @ git+https://github.com/mhabedank/Caravan@v0.1.0rc5"`.
 
 The default installation has two runtime dependencies, weighs about 9 MiB and pulls no
 machine-learning framework, because checking and resolving a manifest does not need one.
