@@ -1,0 +1,41 @@
+# Feature 014 end to end: six recordings, overlapping windows, the split left to the data.
+#
+# The data is tests/fixtures/datasets/recordings/: one file per session, file lengths that are not
+# multiples of the window. No split is named, so the run derives one: six recordings yield windows,
+# so every recording goes to one part whole. A new window starts every 8 rows, a quarter of the
+# window; that is allowed because the split keeps every row in one part (rule CF-21).
+apiVersion: caravan/v0.3
+
+model:
+  name: recordings-conv1d
+  version: 0.1.0
+  template: conv1d
+  params:
+    blocks:
+      - {filters: 8, kernel: 5, pool: 2}
+      - {filters: 16, kernel: 3}
+    head: average
+
+input_features:
+  - {name: a, type: number}
+  - {name: b, type: number}
+  - {name: c, type: number}
+
+output_features:
+  - name: label
+    type: category
+    accuracy_drop_max: 0.05
+
+preprocessing:
+  window_size: 32
+  window_stride: 8
+
+dataset: ../../datasets/recordings
+
+trainer: {epochs: 20, batch_size: 32, learning_rate: 0.005, early_stop: 5}
+random_seed: 42
+
+export:
+  targets: [s32k144]
+  representative_samples: 100
+  test_windows: 4

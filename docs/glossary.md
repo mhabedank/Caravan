@@ -98,6 +98,11 @@ quantization gate
   with the trained model's. A loss beyond the {term}`budget` fails the run and exports nothing. See
   [Budgets and gates](topics/budgets-and-gates.md).
 
+recording
+  A stretch of rows taken in one go: a data file, or a run of equal values of
+  {mf}`preprocessing.recording_column`. No {term}`window` reaches from one recording into the next,
+  and the default split keeps every recording in one part.
+
 representative samples
   The training windows run through the model to learn the range of every tensor, which int8
   conversion needs to choose its scales. {mf}`export.representative_samples` sets how many.
@@ -143,5 +148,6 @@ WCAG
 
 window
   Consecutive rows of your table that together make one sample, as many as
-  {mf}`preprocessing.window_size` says. Windows never overlap.
+  {mf}`preprocessing.window_size` says, all from one {term}`recording`. A new window starts every
+  {mf}`preprocessing.window_stride` rows, and its label follows {mf}`preprocessing.window_label`.
 ```

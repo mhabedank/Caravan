@@ -60,6 +60,30 @@ would make an old run report lie.
 `tests/unit/test_fixture_coverage.py` enforces both directions: every rule that can reject a
 manifest has a fixture, and no identifier that cannot reject one has a fixture claiming it does.
 
+## `caravan/v0.2` → `caravan/v0.3` (2026-11-17)
+
+A changed meaning, so a new version. Windows now know their recordings, and the split of windowed
+data no longer leaks by default.
+
+- **What changed:** a manifest with {mf}`preprocessing.window_size` and no
+  {mf}`preprocessing.split.type` used to split windows at random; it now splits by recording when
+  three or more recordings yield windows, and in contiguous blocks otherwise. The run records which
+  it chose, and `render` shows `derived`. Windows no longer reach from one data file into the next,
+  and each file starts its own grid of windows.
+- **New, optional:** {mf}`preprocessing.window_stride` (overlapping windows),
+  {mf}`preprocessing.window_label` (how a window's label is chosen; a `number` output now takes the
+  newest row's value instead of dropping every window whose values differ),
+  {mf}`preprocessing.recording_column` (recordings inside one file), and the split types
+  `recording`, `group` and `blocked`.
+- **The export:** the interface contract is version 4. Its `stride` is now `training_stride`, with a
+  note that a firmware may read with any step, and `window_label` says what a window's prediction
+  means.
+- **Your edit:** change `apiVersion` to `caravan/v0.3`. To keep the old split exactly, write
+  `split: {type: random}` (or `stratify`); `validate` then adds a notice that neighbouring windows
+  can make the test score look better than the model is.
+
+A manifest still declaring `caravan/v0.2` is refused with V-1 at `apiVersion`.
+
 ## `caravan/v0` → `caravan/v0.1` (2026-10-23)
 
 Principle VI removed the compliance layer and every field no stage reads

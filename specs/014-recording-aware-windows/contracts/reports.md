@@ -6,36 +6,38 @@
 
 ```json
 {
-  "window": {"size": 64, "stride": 16, "label_rule": "last"},
+  "window": {"size": 32, "stride": 8, "label_rule": "all_equal"},
   "recordings": [
-    {"file": "a.csv", "key": null, "rows": 1000, "windows": 58, "leftover_rows": 8}
+    {"file": "r1.csv", "key": null, "rows": 450, "windows": 48, "leftover_rows": 2}
   ],
   "recordings_too_short": [],
-  "windows_dropped": {"mixed": 3, "tied": 0, "mixed_split": 0, "purged": 6},
-  "split": {
+  "windows_dropped": {"mixed": 81, "tied": 0, "mixed_split": 0, "purged": 0},
+  "split": {"train": 205, "val": 50, "test": 38},
+  "split_plan": {
     "type": "recording", "derived": true, "seed": 42,
-    "assignment": {"train": ["a.csv", "c.csv", "d.csv", "f.csv"], "val": ["b.csv"], "test": ["e.csv"]},
-    "shares": {"train": 0.68, "val": 0.16, "test": 0.16},
-    "counts": {"train": 160, "val": 38, "test": 37},
-    "per_label": {"walk": {"train": 80, "val": 19, "test": 18}}
+    "assignment": {"train": ["r1.csv", "r3.csv", "r5.csv", "r6.csv"], "val": ["r2.csv"], "test": ["r4.csv"]},
+    "shares": {"train": 0.6997, "val": 0.1706, "test": 0.1297}
   }
 }
 ```
+
+(Figures from the end-to-end run on `tests/fixtures/manifests/valid/recordings-conv1d.yaml`.) As
+built, `split` keeps its earlier meaning — the count of windows per part, which earlier readers use —
+and the new detail sits in `split_plan` beside it rather than inside it. `split_per_label` (train
+stage) keeps the per-class counts.
 
 The existing keys `windows_kept`, `windows_discarded_mixed`, `windows_discarded_mixed_split`,
 `records_dropped_remainder`, `split_source` keep their names and meanings. For `blocked`, the
 assignment lists blocks as `"<file>[<first row>:<end row>]"`.
 
-## Console summary (stderr) — one block after the data stage
+## Console summary (stderr) — one line after the data line
 
 ```text
-data: 6 recordings, 5,412 rows → 235 windows of 64 rows, every 16 (label: last)
-      dropped: 3 mixed, 6 at part boundaries · 40 leftover rows
-split: by recording (derived: 6 recordings) — train 4 · val 1 · test 1 recordings
-       shares 0.68 / 0.16 / 0.16 (asked 0.70 / 0.15 / 0.15)
+windows: 293 of 32 rows, every 8 (label: all_equal), from 6 recordings; split by recording (derived: 6 recordings), shares 0.70 / 0.17 / 0.13; left out: 81 mixed
 ```
 
-With `random` or `stratify` and a window, the notice of `contracts/manifest-fields.md` follows.
+With `random` or `stratify` and a window, the notice of `contracts/manifest-fields.md` is printed
+before the stages run.
 
 ## `model/interface.json` — contract version 4
 

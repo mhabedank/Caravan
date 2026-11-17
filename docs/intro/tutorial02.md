@@ -109,8 +109,8 @@ is what you are willing to lose by making the model 8-bit. This is the {term}`bu
 
 **{mf}`window_size <preprocessing.window_size>`: `16`.** Sixteen consecutive rows are one
 {term}`window`, one sample. Choose it from the physics — how many time steps it takes to see the
-thing you want to recognise — not from the model. Windows never overlap, and a window whose rows
-disagree about `state` is discarded and counted, which is why the table above comes in stretches
+thing you want to recognise — not from the model. By default windows do not overlap, and a window
+whose rows disagree about `state` is discarded and counted, which is why the table above comes in stretches
 rather than alternating row by row. Label stretches of time, not rows.
 
 **The {term}`template`.** `mlp` is a multilayer perceptron: dense layers over the whole window, and
