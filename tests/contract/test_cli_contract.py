@@ -119,6 +119,8 @@ def test_the_parser_exposes_only_the_documented_commands() -> None:
         "export",
         "templates",
         "boards",
+        # Admitted by amendment v4.3.0 as an authoring aid, not a stage (feature 013).
+        "init",
     }
 
 

@@ -13,12 +13,30 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.metadata import entry_points
 
 from pydantic import BaseModel
+
+
+@dataclass(frozen=True)
+class TemplateStarter:
+    """Where ``caravan init`` starts the template's parameters (feature 013, research R7).
+
+    A proposal shown in a dialogue, never a default a manifest resolves (Principle I): a manifest
+    that omits the parameters is still refused, and one that states these values states them.
+    """
+
+    #: Accepted by the template's own parameter model; a test checks every registered starter.
+    params: Mapping[str, object]
+    #: Records per window the parameters fit, or ``None`` for a template that consumes none.
+    window: int | None
+    #: Lower is proposed first when several templates answer the output; ties by identifier.
+    rank: int
+    #: One line on when to choose this template.
+    note: str
 
 
 @dataclass(frozen=True)
@@ -53,6 +71,15 @@ class TemplateParameterSpec:
     plane_fit: (
         Callable[[BaseModel, int | None, int | None], tuple[str, tuple[str, ...]] | None] | None
     ) = None
+    #: Optional: what ``caravan init`` proposes for this template (feature 013). A template without
+    #: one is still offered; its parameters are then asked for with no proposal.
+    starter: TemplateStarter | None = None
+    #: Optional: the layers the builder will make, as ``caravan.targets.fit.LayerRecord``s, from
+    #: the validated parameters, the steps of a window (1 without one) and the channels per step —
+    #: without the output head, which follows from the output type. Returns the records and the
+    #: width of the last one. Lets ``caravan init`` estimate memory before building with the same
+    #: floors ``build`` checks (feature 013, research R13); a template without it gets no estimate.
+    layers: Callable[[BaseModel, int, int], tuple[list[object], int]] | None = None
 
 
 class TemplateRegistry:

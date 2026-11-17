@@ -125,17 +125,13 @@ def _image_files(
     return tuple(sorted(found, key=lambda path: str(path.relative_to(inside))))
 
 
-def resolve_dataset(
-    source: str, manifest_dir: Path, image_columns: Sequence[str] = ()
-) -> DatasetFiles:
-    """Resolve ``dataset`` against the manifest's own directory, and fingerprint it.
+def data_files(root: Path, source: str | None = None) -> tuple[Path, tuple[Path, ...]]:
+    """The directory and the data files the pipeline reads from ``root``, in its order.
 
-    The reference is relative to the manifest, so a manifest and its data move together. Every
-    failure here is DS-1 and names the path and which of the three things went wrong, because
-    "could not read the dataset" without saying why is the message FR-010 exists to prevent.
+    Public for ``caravan init`` (feature 013), which profiles the same files ``resolve_dataset``
+    fingerprints, without hashing them. A missing path or a directory with no data file is DS-1.
     """
-    root = (manifest_dir / source).resolve() if not Path(source).is_absolute() else Path(source)
-
+    source = str(root) if source is None else source
     if not root.exists():
         run_rule_error(
             RULE_DATASET_UNREADABLE,
@@ -156,9 +152,21 @@ def resolve_dataset(
                 ),
                 found=source,
             )
-    else:
-        files = (root,)
-        root = root.parent
+        return root, files
+    return root.parent, (root,)
+
+
+def resolve_dataset(
+    source: str, manifest_dir: Path, image_columns: Sequence[str] = ()
+) -> DatasetFiles:
+    """Resolve ``dataset`` against the manifest's own directory, and fingerprint it.
+
+    The reference is relative to the manifest, so a manifest and its data move together. Every
+    failure here is DS-1 and names the path and which of the three things went wrong, because
+    "could not read the dataset" without saying why is the message FR-010 exists to prevent.
+    """
+    root = (manifest_dir / source).resolve() if not Path(source).is_absolute() else Path(source)
+    root, files = data_files(root, source)
 
     images = _image_files(root, files, image_columns, source) if image_columns else ()
     hash_root = root.resolve() if images else root

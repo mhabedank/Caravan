@@ -102,6 +102,18 @@ class FitVerdict:
         )
 
 
+def dense_record(name: str, inputs: int, units: int, *, bias: bool = True) -> LayerRecord:
+    """A dense layer of ``inputs`` to ``units``, for a template's ``layers`` (feature 013)."""
+    return LayerRecord(
+        kind="dense",
+        name=name,
+        kernel_elements=inputs * units,
+        bias_elements=units if bias else 0,
+        input_elements=inputs,
+        output_elements=units,
+    )
+
+
 def floors(records: Sequence[LayerRecord], quantization: str) -> tuple[FitFloor, FitFloor]:
     """The weight floor (flash) and the working-memory floor (ram) of one model."""
     kernel_bytes, bias_bytes, activation_bytes = ELEMENT_BYTES[quantization]

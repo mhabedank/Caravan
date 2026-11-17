@@ -30,8 +30,10 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from caravan.targets.fit import LayerRecord
 from caravan.templates.plane import as_pair, walk_plane
-from caravan.templates.registry import TemplateParameterSpec
+from caravan.templates.registry import TemplateParameterSpec, TemplateStarter
+from caravan.templates.sequence import length_after_conv
 
 Positive = Annotated[int, Field(gt=0)]
 #: An int for a square, or [rows, columns].
@@ -102,6 +104,82 @@ def plane_fit(
     return problem, tuple(alternatives)
 
 
+def layers(params: BaseModel, steps: int, channels: int) -> tuple[list[object], int]:
+    """A window as a plane of steps by channels, through ``builders/conv2d.py``'s layers."""
+    assert isinstance(params, Conv2dParameters)
+    records: list[object] = []
+    rows, columns, depth = steps, channels, 1
+    for position, block in enumerate(params.blocks, start=1):
+        kernel = as_pair(block.kernel)
+        stride = as_pair(block.stride)
+        assert kernel is not None and stride is not None
+        out_rows = length_after_conv(
+            rows, kernel=kernel[0], stride=stride[0], padding=block.padding
+        )
+        out_cols = length_after_conv(
+            columns, kernel=kernel[1], stride=stride[1], padding=block.padding
+        )
+        if not out_rows or not out_cols:
+            return records, rows * columns * depth
+        out_rows, out_cols = int(out_rows), int(out_cols)
+        if block.kind == "standard":
+            records.append(
+                LayerRecord(
+                    kind="conv",
+                    name=f"conv_{position}",
+                    kernel_elements=kernel[0] * kernel[1] * depth * block.filters,
+                    bias_elements=block.filters,
+                    input_elements=rows * columns * depth,
+                    output_elements=out_rows * out_cols * block.filters,
+                )
+            )
+        else:
+            records.append(
+                LayerRecord(
+                    kind="conv",
+                    name=f"depthwise_{position}",
+                    kernel_elements=kernel[0] * kernel[1] * depth,
+                    bias_elements=depth,
+                    input_elements=rows * columns * depth,
+                    output_elements=out_rows * out_cols * depth,
+                )
+            )
+            records.append(
+                LayerRecord(
+                    kind="conv",
+                    name=f"pointwise_{position}",
+                    kernel_elements=depth * block.filters,
+                    bias_elements=block.filters,
+                    input_elements=out_rows * out_cols * depth,
+                    output_elements=out_rows * out_cols * block.filters,
+                )
+            )
+        rows, columns, depth = out_rows, out_cols, block.filters
+        pool = as_pair(block.pool)
+        if pool is not None:
+            pooled_rows, pooled_cols = rows // pool[0], columns // pool[1]
+            records.append(
+                LayerRecord(
+                    kind="pooling",
+                    name=f"pool_{position}",
+                    input_elements=rows * columns * depth,
+                    output_elements=pooled_rows * pooled_cols * depth,
+                )
+            )
+            rows, columns = pooled_rows, pooled_cols
+    if params.head == "average":
+        records.append(
+            LayerRecord(
+                kind="pooling",
+                name="pool_head",
+                input_elements=rows * columns * depth,
+                output_elements=depth,
+            )
+        )
+        return records, depth
+    return records, rows * columns * depth
+
+
 SPEC = TemplateParameterSpec(
     identifier="conv2d",
     parameters=Conv2dParameters,
@@ -112,4 +190,24 @@ SPEC = TemplateParameterSpec(
     ),
     takes_images=True,
     plane_fit=plane_fit,
+    layers=layers,
+    # examples/frames-conv2d.yaml's parameters (feature 013, research R7).
+    starter=TemplateStarter(
+        params={
+            "blocks": [
+                {"filters": 8, "kernel": 3, "padding": "same", "normalise": True},
+                {
+                    "kind": "separable",
+                    "filters": 16,
+                    "kernel": 3,
+                    "stride": 2,
+                    "padding": "same",
+                    "normalise": True,
+                },
+            ],
+        },
+        window=12,
+        rank=2,
+        note="filters over time and columns at once: for frames of coefficients, like audio",
+    ),
 )
