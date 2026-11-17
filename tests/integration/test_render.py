@@ -18,11 +18,17 @@ def test_the_resolved_manifest_has_no_implicit_values(tmp_path, capsys) -> None:
     # Every field of the schema appears, at every level (SC-007).
     assert set(data) == set(Manifest.model_fields)
     assert data["random_seed"] == 42
+    # A windowed manifest without a split leaves the type to the data (feature 014): the run
+    # chooses by recording or by block and records what it chose.
     assert data["preprocessing"]["split"] == {
-        "type": "random",
+        "type": "derived",
         "probabilities": [0.7, 0.15, 0.15],
         "column": None,
     }
+    window = data["preprocessing"]["window_size"]
+    assert data["preprocessing"]["window_stride"] == window
+    assert data["preprocessing"]["window_label"] == "all_equal"
+    assert data["preprocessing"]["recording_column"] is None
     assert data["export"]["formats"] == ["flatbuffer", "c_array"]
     assert data["export"]["quantization"] == "int8"
     # The template's own default is expanded too, not left to the training stage to guess.

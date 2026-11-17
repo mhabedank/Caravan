@@ -108,11 +108,13 @@ def test_the_document_is_sorted_indented_and_ends_with_a_newline() -> None:
 
 def test_the_document_says_which_model_how_to_bind_and_where_the_preprocessing_is() -> None:
     parsed = json.loads(document())
-    assert parsed["contract_version"] == 3
+    assert parsed["contract_version"] == 4
     assert parsed["model"] == MODEL
     assert "by position" in parsed["runtime_binding"]
     assert parsed["preprocessing"] == "inside the model; pass raw values"
-    assert parsed["window_size"] == parsed["stride"] == 64
+    assert parsed["window_size"] == parsed["training_stride"] == 64
+    assert "stride" not in parsed
+    assert "any step" in parsed["training_stride_note"]
 
 
 def test_every_input_has_its_name_position_dtype_shape_and_type() -> None:

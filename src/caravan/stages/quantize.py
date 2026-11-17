@@ -64,6 +64,11 @@ SPEC = StageSpec(
         "export.representative_samples",
         "preprocessing.window_size",
         "preprocessing.split",
+        # Feature 014: where recordings end, how often a window starts and what it is labelled
+        # decide which windows exist, so every stage that forms windows reads them.
+        "preprocessing.window_stride",
+        "preprocessing.window_label",
+        "preprocessing.recording_column",
         "input_features",
         "output_features[0].name",
         "output_features[0].type",

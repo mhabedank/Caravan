@@ -9,7 +9,7 @@
 #
 # The gate judges the area under the ROC curve lost to int8; the alarm threshold is the 95th
 # percentile of the int8 scores of the validation part's normal windows.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: anomaly-ae

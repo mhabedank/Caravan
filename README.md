@@ -27,7 +27,7 @@ architecture search. See `.specify/memory/constitution.md`.
 `render`, `build`, `train`, `quantize` and `export`, with `templates` and `boards` to list what is
 registered. Four templates, `mlp`, `conv1d`, `conv2d` and `autoencoder`, and three boards, `s32k144`,
 `stm32h743` and `esp32`.
-The manifest names its columns as Ludwig does (`caravan/v0.2`). rc1 read the previous form,
+The manifest names its columns as Ludwig does (`caravan/v0.3`; rc2 to rc4 read `caravan/v0.2`). rc1 read the previous form,
 `caravan/v0.1`. `docs/releases/0.1.0.md` says what is in 0.1.0 and what is not.
 
 rc3 adds the documentation site and test windows in the export. Part 3 of the tutorial runs an

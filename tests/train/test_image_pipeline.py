@@ -56,7 +56,7 @@ def manifest(
 ) -> Path:
     path = root / "probe.yaml"
     path.write_text(
-        f"""apiVersion: caravan/v0.2
+        f"""apiVersion: caravan/v0.3
 model:
   name: probe
   version: 0.0.1
@@ -111,7 +111,8 @@ def test_the_device_passes_raw_pixels(exported) -> None:
     assert (entry["height"], entry["width"], entry["num_channels"]) == (16, 16, 3)
     assert entry["channel_order"] == "RGB"
     assert "does not resize" in entry["frame"]
-    assert contract["window_size"] is None and contract["stride"] is None
+    assert contract["window_size"] is None and contract["training_stride"] is None
+    assert contract["training_stride_note"] is None and contract["window_label"] is None
     windows = (exported / "model" / "test_windows.h").read_text(encoding="utf-8")
     assert "static const uint8_t kInput_image" in windows
 

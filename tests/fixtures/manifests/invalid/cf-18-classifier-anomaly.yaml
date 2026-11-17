@@ -1,6 +1,6 @@
 # Invalid on purpose. An anomaly output needs a template that reconstructs its input; mlp classifies (feature 010).
 # Expected: CF-18 at model.template
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

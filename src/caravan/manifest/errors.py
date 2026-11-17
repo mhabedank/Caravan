@@ -51,6 +51,15 @@ RULE_TEMPLATE_OUTPUT = "CF-18"
 #: An ``image`` input in a combination that cannot be built: beside another input, with a window, or
 #: with a template that does not take images (feature 010).
 RULE_IMAGE_INPUT = "CF-19"
+#: A window field without a window, or a training stride outside 1 … the window (feature 014).
+RULE_WINDOW_FIELD = "CF-20"
+#: Overlapping training windows with a split that assigns windows one by one (feature 014): a row
+#: shared by two windows could land in training and in test.
+RULE_OVERLAP_NEEDS_GROUPS = "CF-21"
+#: A window label rule that does not apply to the output type (feature 014).
+RULE_WINDOW_LABEL = "CF-22"
+#: The recording column or the group column in a role that contradicts it (feature 014).
+RULE_RECORDING_COLUMN = "CF-23"
 
 #: Rules that can refuse a manifest. Every one of these must have an invalid manifest fixture,
 #: and ``tests/unit/test_fixture_coverage.py`` fails when one does not.
@@ -74,6 +83,10 @@ MANIFEST_REJECTION_RULES: frozenset[str] = frozenset(
         RULE_ONE_OUTPUT,
         RULE_TEMPLATE_OUTPUT,
         RULE_IMAGE_INPUT,
+        RULE_WINDOW_FIELD,
+        RULE_OVERLAP_NEEDS_GROUPS,
+        RULE_WINDOW_LABEL,
+        RULE_RECORDING_COLUMN,
     }
 )
 
@@ -108,6 +121,13 @@ RULE_NOTHING_NORMAL = "DS-16"
 #: An image the column names cannot be read as declared: missing, not an image this build reads,
 #: or of a size that disagrees with the others when none is stated (feature 010).
 RULE_IMAGE_UNREADABLE = "DS-17"
+#: A split by recording or group with fewer groups than parts (feature 014).
+RULE_TOO_FEW_GROUPS = "DS-18"
+#: No assignment of recordings, groups or blocks gives every part every class (feature 014).
+RULE_CLASS_NOT_IN_EVERY_PART = "DS-19"
+#: The data does not hold what a window field names: the value of ``{any: v}``, or the recording
+#: or group column (feature 014).
+RULE_WINDOW_COLUMN_OR_VALUE = "DS-20"
 
 #: Run rules. Every one of these must have a test that provokes it, and
 #: ``tests/unit/test_run_rules_coverage.py`` fails when one does not. DS-7 is deliberately absent:
@@ -129,6 +149,9 @@ RUN_RULES: frozenset[str] = frozenset(
         RULE_BINARY_SPELLINGS,
         RULE_NOTHING_NORMAL,
         RULE_IMAGE_UNREADABLE,
+        RULE_TOO_FEW_GROUPS,
+        RULE_CLASS_NOT_IN_EVERY_PART,
+        RULE_WINDOW_COLUMN_OR_VALUE,
     }
 )
 

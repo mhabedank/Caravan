@@ -156,6 +156,9 @@ class Report:
     fit: dict[str, Any] | None = None
     #: The interface contract the export wrote.
     interface: dict[str, Any] | None = None
+    # --- added by feature 014 -----------------------------------------------------------------
+    #: Notices about a valid manifest: never findings, never a change of outcome.
+    notices: Sequence[str] = field(default_factory=tuple)
 
     def as_dict(self) -> dict[str, Any]:
         """The contract's field order, which is also the order a reader wants it in."""
@@ -196,6 +199,8 @@ class Report:
             out["fit"] = self.fit
         if self.interface is not None:
             out["interface"] = self.interface
+        if self.notices:
+            out["notices"] = list(self.notices)
         return out
 
     def as_json(self) -> str:

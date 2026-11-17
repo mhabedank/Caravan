@@ -1,6 +1,6 @@
 # Invalid on purpose. Names a target board that does not exist.
 # Expected: B-1 at export.targets[0]
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

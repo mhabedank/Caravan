@@ -200,6 +200,47 @@ def _attach_quantization(report: Report, run_dir: Path) -> None:
     )
 
 
+def merge_split(resolved: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """The split type the data stage derived, written into the run's resolved manifest.
+
+    Principle I: a value that follows from the data is recorded in the resolved manifest of the
+    run that derived it. ``render`` shows ``derived``; the run shows what it became.
+    """
+    plan = schema.get("split_plan")
+    split = resolved["preprocessing"]["split"]
+    if not plan or split.get("type") != "derived":
+        return resolved
+    merged = {**resolved, "preprocessing": {**resolved["preprocessing"]}}
+    merged["preprocessing"]["split"] = {**split, "type": plan["type"], "derived": True}
+    return merged
+
+
+def split_line(schema: dict[str, Any]) -> str | None:
+    """How the windows were cut and split, in one line (feature 014, contracts/reports.md)."""
+    window = schema.get("window")
+    plan = schema.get("split_plan")
+    if not window or not plan or window.get("size") is None:
+        return None
+    dropped = schema["windows_dropped"]
+    recordings = len(schema["recordings"])
+    kind = {"recording": "by recording", "group": "by group", "blocked": "in blocks"}.get(
+        plan["type"], plan["type"]
+    )
+    how = (
+        f" (derived: {recordings} recording{'s' if recordings != 1 else ''})"
+        if plan["derived"]
+        else ""
+    )
+    shares = " / ".join(f"{plan['shares'][name]:.2f}" for name in ("train", "val", "test"))
+    left_out = [f"{count} {reason}" for reason, count in dropped.items() if count]
+    return (
+        f"windows: {schema['windows_kept']} of {window['size']} rows, every {window['stride']} "
+        f"(label: {window['label_rule']}), from {recordings} recording"
+        f"{'s' if recordings != 1 else ''}; split {kind}{how}, shares {shares}"
+        + (f"; left out: {', '.join(left_out)}" if left_out else "")
+    )
+
+
 def data_line(schema: dict[str, Any]) -> str:
     """What the data said, in one line: the features, the output's order, what was ignored."""
     count = len(schema["features"])
@@ -270,6 +311,9 @@ def run_pipeline(
     assert outcome.manifest is not None
     manifest = outcome.manifest
     resolved = resolve(manifest)
+    if not args.quiet and not args.json:
+        for notice in outcome.notices:
+            print(f"{name}: notice — {notice}", file=sys.stderr)
 
     run_dir = create_run_directory(Path(args.runs_dir), file_digest(path))
     # Written once the data stage has fitted the preprocessing, so a run's resolved manifest carries
@@ -310,6 +354,8 @@ def run_pipeline(
                 features=tuple((feature.name, feature.type) for feature in manifest.input_features),
                 output=(manifest.output_features[0].name, manifest.output_features[0].type),
                 split_column=split.column if split.type == "fixed" else None,
+                recording_column=manifest.preprocessing.recording_column,
+                group_column=split.column if split.type == "group" else None,
             )
 
             # The data stage reads the features as written; every later stage reads them with what
@@ -331,6 +377,7 @@ def run_pipeline(
             outcomes.append(result)
             schema = data_stage.load_schema(run_dir)
             resolved = merge_fitted(resolved, data_stage.load_fitted(run_dir))
+            resolved = merge_split(resolved, schema)
             (run_dir / RESOLVED_MANIFEST_NAME).write_text(dump_mapping(resolved), encoding="utf-8")
             report.data = schema
 
@@ -456,6 +503,9 @@ def run_pipeline(
         summary(name, run_dir, measured)
         if report.data is not None:
             print(f"    {data_line(report.data)}", file=sys.stderr)
+            windows = split_line(report.data)
+            if windows is not None:
+                print(f"    {windows}", file=sys.stderr)
         for stage in outcomes:
             if stage.outcome == cache_module.OUTCOME_REUSED:
                 print(

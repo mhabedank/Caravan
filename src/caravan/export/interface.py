@@ -23,7 +23,15 @@ from typing import Any
 #: 2 since feature 008: one input per feature, raw values in, preprocessing inside the model.
 #: 3 since feature 010: an image input entry and an anomaly output entry, with fields a reader must
 #: know.
-CONTRACT_VERSION = 3
+#: 4 since feature 014: ``stride`` became ``training_stride`` — how the training data was cut, not a
+#: step the device must read with — and ``window_label`` says what a window's prediction means.
+CONTRACT_VERSION = 4
+
+#: Beside ``training_stride``, so nobody reads it as an instruction to the firmware (FR-019).
+TRAINING_STRIDE_NOTE = (
+    "how the training data was cut; a firmware may read with any step, and a step smaller than "
+    "window_size gives a prediction more often"
+)
 
 RUNTIME_BINDING = (
     "by position in subgraph 0: interpreter.input(position) / interpreter.output(position)"
@@ -120,6 +128,9 @@ def interface_document(
     features: Sequence[Mapping[str, Any]],
     output: Mapping[str, Any],
     window_size: int | None,
+    *,
+    training_stride: int | None = None,
+    window_label: Any = None,
 ) -> str:
     """``model/interface.json``: sorted keys, two-space indentation, one trailing newline."""
     by_name = {feature["name"]: feature for feature in features}
@@ -135,8 +146,9 @@ def interface_document(
         "model_file": "model/model.tflite",
         "runtime_binding": RUNTIME_BINDING,
         "window_size": window_size,
-        # Windows do not overlap: the next one starts where this one ended.
-        "stride": window_size,
+        "training_stride": training_stride if training_stride is not None else window_size,
+        "training_stride_note": TRAINING_STRIDE_NOTE if window_size is not None else None,
+        "window_label": window_label,
         "preprocessing": PREPROCESSING,
         "inputs": inputs,
         "outputs": outputs,

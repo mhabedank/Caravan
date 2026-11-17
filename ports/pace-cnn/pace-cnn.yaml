@@ -12,7 +12,7 @@
 # constant, without the zoo's cosine decay; convolutions keep their bias, which batch
 # normalisation absorbs; calibration draws 500 training windows by seed rather than the first
 # 500. The budget is the zoo's kill criterion K2.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: pace-cnn

@@ -26,7 +26,11 @@ Every run also writes `report.json`, the {term}`run report`, and `resolved-manif
 manifest with every default and every {term}`derived` value filled in.
 
 **Data** reads only the columns the features name; every other column is ignored and listed as
-such. Windows never overlap. Everything learned from the data — a shift and a scale, a
+such. It cuts each {term}`recording` into windows and labels each by
+{mf}`preprocessing.window_label`; no window crosses from one recording to the next. Unless the
+manifest names a split, whole recordings — or contiguous blocks of one — go to the training,
+validation and test parts, so a test window is never a near-copy of a training window beside it.
+Everything learned from the data — a shift and a scale, a
 {term}`vocabulary`, the order of the labels — is learned from the {term}`training part` only, so
 the test part stays unseen. [Feature types](feature-types.md) says what each type learns.
 

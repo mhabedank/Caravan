@@ -1,6 +1,6 @@
 # Invalid on purpose. A field that exists in the schema but sits at the wrong level.
 # Expected: no rule identifier at model.window_size
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

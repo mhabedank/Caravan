@@ -51,7 +51,7 @@ def latest_run(runs: Path) -> Path:
     return max(runs.iterdir(), key=lambda path: path.stat().st_mtime)
 
 
-MANIFEST_TEMPLATE = """apiVersion: caravan/v0.2
+MANIFEST_TEMPLATE = """apiVersion: caravan/v0.3
 
 model:
   name: rule-case

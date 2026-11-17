@@ -19,7 +19,7 @@ Retired identifiers are never reused.
 ## Schema version
 
 :::{rule} V-1
-**Checks:** the manifest declares the schema version this build reads, `apiVersion: caravan/v0.2`.
+**Checks:** the manifest declares the schema version this build reads, `apiVersion: caravan/v0.3`.
 
 **Reported at:** `apiVersion`.
 
@@ -225,6 +225,48 @@ else; `mlp`, `conv1d` and `conv2d` answer `category`, `binary` and `number`.
 **Fix:** remove the other inputs or the window, or use `conv2d`.
 :::
 
+:::{rule} CF-20
+**Checks:** the window fields have a window to describe:
+- `window_stride`, `window_label` and `recording_column` appear only with
+  `preprocessing.window_size`;
+- `window_stride` is between 1 and the window size.
+
+**Reported at:** the field.
+
+**Fix:** set a window, leave the field out, or bring the stride within the window.
+:::
+
+:::{rule} CF-21
+**Checks:** overlapping windows (`window_stride` below the window) come with a split that keeps
+every record in one part: `recording`, `group`, `blocked`, `fixed`, or the default. A `random` or
+`stratify` split places windows one by one, so a record two windows share could land in training
+and in test.
+
+**Reported at:** `preprocessing.window_stride`.
+
+**Fix:** leave the split type out, or choose one of the splits named above.
+:::
+
+:::{rule} CF-22
+**Checks:** the window label rule applies to the output: `mean` only to a `number`; `majority` and
+`{any: <value>}` not to a `number`.
+
+**Reported at:** `preprocessing.window_label`.
+
+**Fix:** `last` or `mean` for a number; `all_equal`, `last`, `majority` or `{any: <value>}` for a
+class.
+:::
+
+:::{rule} CF-23
+**Checks:** the columns that organise the data stay out of the model:
+- `recording_column` is not an input feature, the output or the split column;
+- a `group` split names its `column`.
+
+**Reported at:** `preprocessing.recording_column` or `preprocessing.split.column`.
+
+**Fix:** name another column, or add the group column.
+:::
+
 ## Data
 
 These fire when a run reads the data. The manifest can be valid while the data disagrees with it.
@@ -378,6 +420,38 @@ A missing file, or a path leaving the dataset directory, is refused earlier, wit
 `width` or `num_channels`.
 
 **Fix:** replace the file, or state the size every image is brought to.
+:::
+
+:::{rule} DS-18
+**Checks:** a split by recording or by group has at least as many recordings or groups that yield
+windows as there are parts (three), and a blocked split of a `number` output at least three blocks.
+
+**Reported at:** `preprocessing.split.type`, with the counts.
+
+**Fix:** use `blocked`, which cuts recordings into blocks, or bring more recordings.
+:::
+
+:::{rule} DS-19
+**Checks:** every part can hold every class:
+- by recording or group, some assignment of the groups gives every part every class (the stated
+  seed and the 99 after it are tried, and the seed used is reported);
+- in blocks, every class has at least three blocks.
+
+**Reported at:** `preprocessing.split.type`, with the windows per class per group or block.
+
+**Fix:** bring more data of the rare class, or more recordings that hold it; a class confined to
+one recording cannot be trained on and measured at once.
+:::
+
+:::{rule} DS-20
+**Checks:** the data holds what a window field names:
+- the value of `window_label: {any: <value>}` occurs in the output column;
+- every file has the `recording_column`, and the group column of a `group` split, exactly once.
+
+**Reported at:** `preprocessing.window_label`, `preprocessing.recording_column` or
+`preprocessing.split.column`, with the values or the header found.
+
+**Fix:** correct the value or the column name.
 :::
 
 ## Fit check

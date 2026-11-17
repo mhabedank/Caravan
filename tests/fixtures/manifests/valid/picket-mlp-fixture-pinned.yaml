@@ -1,7 +1,7 @@
 # The pilot on the committed fixture with the label order and the vocabulary pinned rather than
 # derived. It must give the same samples and the same split as picket-mlp-fixture.yaml: pinning only
 # fixes an order (feature 008, T018).
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp

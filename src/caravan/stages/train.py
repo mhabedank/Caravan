@@ -14,7 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from caravan.data.reader_bridge import assemble_samples, select
-from caravan.data.windows import plan_windows, split_for
+from caravan.data.test_part import plan_for, window_report
+from caravan.data.windows import split_for
 from caravan.manifest.errors import RULE_NOTHING_NORMAL, RULE_TRAINING_DIVERGED, run_rule_error
 from caravan.stages._framework import framework_record
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
@@ -48,6 +49,11 @@ SPEC = StageSpec(
         "random_seed",
         "preprocessing.window_size",
         "preprocessing.split",
+        # Feature 014: where recordings end, how often a window starts and what it is labelled
+        # decide which windows exist, so every stage that forms windows reads them.
+        "preprocessing.window_stride",
+        "preprocessing.window_label",
+        "preprocessing.recording_column",
         "input_features",
         "output_features[0].name",
         "output_features[0].type",
@@ -164,9 +170,7 @@ def stage(context: StageContext) -> StageFunction:
         keras.utils.set_random_seed(seed)
 
         records = context.records()
-        window_plan = plan_windows(
-            records.labels, inputs["preprocessing.window_size"], parts=records.parts
-        )
+        window_plan = plan_for(records, inputs)
         split = split_for(
             window_plan,
             inputs["preprocessing.split"],
@@ -462,6 +466,7 @@ def _write_measurements(
             # The windows training learned from: the training part, or its normal windows for an
             # anomaly output (feature 010).
             "training_windows": trained_on,
+            **window_report(window_plan, split),
         },
         "training": {
             **framework_record(),

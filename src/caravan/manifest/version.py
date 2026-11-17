@@ -11,8 +11,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-#: The form this build reads: typed input and output features in Ludwig's names (feature 008).
-SCHEMA_VERSION = "caravan/v0.2"
+#: The form this build reads: typed input and output features in Ludwig's names (feature 008), with
+#: windows that know their recordings and a split that does not leak by default (feature 014).
+SCHEMA_VERSION = "caravan/v0.3"
 
 #: Where each breaking change is described, with the edit an author makes by hand.
 CHANGE_NOTE = "docs/ref/manifest-changes.md"

@@ -1,7 +1,7 @@
 # Invalid on purpose. Two output features: exactly one is implemented; several arrive with the first
 # named model or documented application that needs them (Principle X).
 # Expected: CF-17 at output_features
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

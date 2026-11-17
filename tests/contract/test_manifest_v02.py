@@ -14,7 +14,7 @@ import pytest
 
 from caravan.manifest._yaml import dump_mapping
 from caravan.manifest.load import load_manifest
-from caravan.manifest.version import CHANGE_NOTE
+from caravan.manifest.version import CHANGE_NOTE, SCHEMA_VERSION
 from tests.support import INVALID
 from tests.unit.test_features_schema import BASE
 
@@ -83,4 +83,4 @@ def test_the_previous_form_as_a_whole_is_refused_with_v_1_and_the_change_note() 
     assert finding.rule == "V-1"
     assert finding.found == "caravan/v0.1"
     assert CHANGE_NOTE in finding.problem
-    assert "caravan/v0.2" in finding.problem
+    assert SCHEMA_VERSION in finding.problem

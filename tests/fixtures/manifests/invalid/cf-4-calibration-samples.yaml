@@ -1,6 +1,6 @@
 # Invalid on purpose. int8 quantization without enough calibration samples.
 # Expected: CF-4 at export.representative_samples
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

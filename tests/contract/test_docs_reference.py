@@ -108,15 +108,27 @@ def _models(annotation: typing.Any) -> list[tuple[str, type[BaseModel]]]:
     return []
 
 
+def _also_plain(annotation: typing.Any) -> bool:
+    """A union that may also be a plain value, not only a model: ``"last" | {any: dos}``."""
+    if typing.get_origin(annotation) not in (typing.Union, types.UnionType):
+        return False
+    return any(arg is not type(None) and not _models(arg) for arg in typing.get_args(annotation))
+
+
 def field_paths(model: type[BaseModel], prefix: str = "") -> set[str]:
-    """Every field path of a model, nested models expanded, in the reference's notation."""
+    """Every field path of a model, nested models expanded, in the reference's notation.
+
+    A field that may be a plain value or a model (feature 014's ``window_label``) is a field of its
+    own as well as the parent of the model's fields.
+    """
     paths: set[str] = set()
     for name, info in model.model_fields.items():
         key = info.alias or name
         path = f"{prefix}{key}"
         nested = _models(info.annotation)
-        if not nested:
+        if not nested or _also_plain(info.annotation):
             paths.add(path)
+        if not nested:
             continue
         for suffix, inner in nested:
             paths |= field_paths(inner, f"{path}{suffix}.")

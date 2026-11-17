@@ -25,12 +25,16 @@ from caravan.manifest.errors import (
     RULE_FEATURE_TYPE,
     RULE_IMAGE_INPUT,
     RULE_ONE_OUTPUT,
+    RULE_OVERLAP_NEEDS_GROUPS,
+    RULE_RECORDING_COLUMN,
     RULE_SPLIT_COLUMN_DECLARED,
     RULE_STRATIFY_COLUMN,
     RULE_TEMPLATE_OUTPUT,
     RULE_TEMPLATE_PARAMETERS,
     RULE_UNKNOWN_BOARD,
     RULE_UNKNOWN_TEMPLATE,
+    RULE_WINDOW_FIELD,
+    RULE_WINDOW_LABEL,
     RULE_WINDOW_MATCHES_TEMPLATE,
     dotted_path,
     field_error,
@@ -50,7 +54,7 @@ from caravan.manifest.schema.features import (
     name_problem,
 )
 from caravan.manifest.schema.model import ModelSpec
-from caravan.manifest.schema.preprocessing import GlobalPreprocessing, Split
+from caravan.manifest.schema.preprocessing import AnyLabel, GlobalPreprocessing, Split
 from caravan.manifest.schema.trainer import TrainerSpec
 from caravan.manifest.version import SCHEMA_VERSION
 from caravan.targets.registry import BoardRegistry
@@ -115,7 +119,7 @@ class Manifest(BaseModel):
     model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     # The wire name, deliberately not snake_case: it is what the manifest file says.
-    apiVersion: Literal["caravan/v0.2"] = SCHEMA_VERSION
+    apiVersion: Literal["caravan/v0.3"] = SCHEMA_VERSION
     model: ModelSpec
     input_features: list[InputFeature] = Field(min_length=1)
     output_features: list[OutputFeature]
@@ -297,6 +301,102 @@ class Manifest(BaseModel):
                     "preprocessing.split.column",
                     f"column {column} is an input feature; the column that says where a record "
                     "belongs must not be something the model learns from",
+                    found=column,
+                )
+        return self
+
+    # --- the window fields of feature 014: CF-20, CF-21, CF-22, CF-23 -------------------------
+
+    @model_validator(mode="after")
+    def _window_fields_need_a_window(self) -> Manifest:
+        # CF-20: each of these says something about windows; without a window nothing reads it.
+        pre = self.preprocessing
+        window = pre.window_size
+        if window is None:
+            for key in ("window_stride", "window_label", "recording_column"):
+                if getattr(pre, key) is not None:
+                    rule_error(
+                        RULE_WINDOW_FIELD,
+                        f"preprocessing.{key}",
+                        "this field describes windows, and this manifest has no "
+                        "preprocessing.window_size; set a window or leave the field out",
+                        found=pre.label_rule() if key == "window_label" else getattr(pre, key),
+                    )
+            return self
+        stride = pre.window_stride
+        if stride is not None and not 1 <= stride <= window:
+            rule_error(
+                RULE_WINDOW_FIELD,
+                "preprocessing.window_stride",
+                f"a new window starts every 1 to {window} rows (the window size); a larger step "
+                "would leave rows between windows that nothing reads",
+                found=stride,
+                accepted=(f"1 … {window}",),
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _overlap_needs_a_grouped_split(self) -> Manifest:
+        # CF-21: overlapping windows share rows, so a split that places windows one by one could
+        # put the same row in training and in test.
+        pre = self.preprocessing
+        window, stride, kind = pre.window_size, pre.window_stride, pre.split.type
+        if window is None or stride is None or stride >= window:
+            return self
+        if kind in ("random", "stratify"):
+            rule_error(
+                RULE_OVERLAP_NEEDS_GROUPS,
+                "preprocessing.window_stride",
+                f"windows overlap at a stride of {stride} below the window of {window}, and a "
+                f"{kind} split places windows one by one, so one row could land in training and in "
+                "test; use a split by recording, group or block, or leave the type out",
+                found=stride,
+                accepted=("recording", "group", "blocked", "fixed"),
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _window_label_fits_the_output(self) -> Manifest:
+        # CF-22: mean averages numbers; majority and any choose among labels.
+        rule = self.preprocessing.window_label
+        if rule is None:
+            return self
+        output = self.output_features[0]
+        name = "any" if isinstance(rule, AnyLabel) else rule
+        allowed = (
+            ("all_equal", "last", "mean")
+            if output.type == "number"
+            else ("all_equal", "last", "majority", "any")
+        )
+        if name not in allowed:
+            rule_error(
+                RULE_WINDOW_LABEL,
+                "preprocessing.window_label",
+                f"the {name} rule does not apply to {_article(output.type)} {output.type} output",
+                found=self.preprocessing.label_rule(),
+                accepted=allowed,
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _recording_column_marks_recordings_only(self) -> Manifest:
+        # CF-23: the column says where a recording ends; the model must not read it, and it is not
+        # the answer or the part.
+        column = self.preprocessing.recording_column
+        if column is None:
+            return self
+        roles = [
+            *(("an input feature", feature.name) for feature in self.input_features),
+            ("the output", self.output_features[0].name),
+            ("the split column", self.preprocessing.split.column),
+        ]
+        for role, name in roles:
+            if name == column:
+                rule_error(
+                    RULE_RECORDING_COLUMN,
+                    "preprocessing.recording_column",
+                    f"column {column} marks where recordings end and cannot also be {role}; the "
+                    "model does not read it",
                     found=column,
                 )
         return self

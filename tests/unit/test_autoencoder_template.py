@@ -24,7 +24,7 @@ from caravan.templates.autoencoder import AutoencoderParameters
 from caravan.templates.registry import default_registry
 
 BASE: dict[str, Any] = {
-    "apiVersion": "caravan/v0.2",
+    "apiVersion": "caravan/v0.3",
     "model": {
         "name": "probe",
         "version": "0.0.1",

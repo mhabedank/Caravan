@@ -14,7 +14,7 @@ This is `examples/picket-mlp.yaml`, the worked example of the tutorial. It reads
 synthetic CAN bus traffic and answers which of four kinds of traffic a window of 64 frames is.
 
 ```yaml
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp
@@ -115,9 +115,10 @@ default filled in. {cmd}`caravan validate` checks the file without reading any d
 needs, and its result is cached, so a change that only a later stage reads never repeats an earlier
 one.
 
-**1. Data.** Reads the columns the {term}`features <feature>` name and nothing else, cuts them into
-non-overlapping {term}`windows <window>` of {mf}`preprocessing.window_size` rows, and splits the
-windows into training, validation and test parts. Each column learns its preprocessing from the
+**1. Data.** Reads the columns the {term}`features <feature>` name and nothing else, cuts each
+{term}`recording` into {term}`windows <window>` of {mf}`preprocessing.window_size` rows, and splits
+them into training, validation and test parts by recording or in blocks, so that no test window
+sits beside a training window. Each column learns its preprocessing from the
 {term}`training part` only: `dlc` and the bytes learn a shift and a scale, `can_id` learns a
 {term}`vocabulary`. See [Feature types](../topics/feature-types.md) and the
 [input features](../ref/manifest/input-features.md).

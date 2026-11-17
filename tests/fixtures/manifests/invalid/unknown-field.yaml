@@ -1,6 +1,6 @@
 # Invalid on purpose. An unknown field; not rule-numbered, so the file name uses a bare slug.
 # Expected: no rule identifier at model.hiden
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

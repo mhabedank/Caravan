@@ -1,0 +1,27 @@
+# Invalid on purpose. Overlapping windows with a split that places windows one by one.
+# Expected: CF-21 at preprocessing.window_stride
+apiVersion: caravan/v0.3
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
+  window_stride: 8
+  split:
+    type: random
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

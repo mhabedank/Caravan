@@ -7,7 +7,7 @@
 | {mf}`random_seed` | integer | `42` |
 
 :::{manifest-field} apiVersion
-**Type** `string` · **Default** none — required · must be `caravan/v0.2` · read by **every stage**
+**Type** `string` · **Default** none — required · must be `caravan/v0.3` · read by **every stage**
 
 **Does** — declares which schema the file is written in, so Caravan can refuse a file it would
 otherwise misread.

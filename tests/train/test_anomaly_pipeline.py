@@ -106,7 +106,7 @@ def test_the_gate_judges_the_auc_and_the_threshold_comes_from_int8_normals(expor
 def test_the_contract_gives_the_decision_from_one_comparison(exported) -> None:
     # SC-005: the score is the output, and the contract says what to compare it with.
     contract = json.loads((exported / "model" / "interface.json").read_text(encoding="utf-8"))
-    assert contract["contract_version"] == 3
+    assert contract["contract_version"] == 4
     (output,) = contract["outputs"]
     record = json.loads((exported / "quantization.json").read_text(encoding="utf-8"))
     assert output["type"] == "anomaly"

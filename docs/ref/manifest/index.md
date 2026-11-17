@@ -1,11 +1,11 @@
 # Manifest reference
 
-One YAML file per model version, schema `caravan/v0.2`.
+One YAML file per model version, schema `caravan/v0.3`.
 
 ## A first manifest
 
 ```yaml
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: my-classifier
@@ -92,7 +92,7 @@ export
 The example from [part 1 of the tutorial](../../intro/tutorial01.md), on the synthetic data that comes with Caravan:
 
 ```yaml
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp

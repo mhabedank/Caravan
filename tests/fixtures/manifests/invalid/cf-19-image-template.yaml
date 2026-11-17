@@ -1,6 +1,6 @@
 # Invalid on purpose. The mlp template does not take images (feature 010).
 # Expected: CF-19 at model.template
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

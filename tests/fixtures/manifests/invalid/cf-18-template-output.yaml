@@ -1,6 +1,6 @@
 # Invalid on purpose. The autoencoder template answers anomaly outputs only, and this output is a category (feature 010).
 # Expected: CF-18 at model.template
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

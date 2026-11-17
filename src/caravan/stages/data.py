@@ -18,8 +18,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from caravan.data.test_part import split_labels
-from caravan.data.windows import plan_windows, split_for
+from caravan.data.test_part import plan_for, split_labels, window_report
+from caravan.data.windows import split_for
 from caravan.manifest.resolve import DERIVED
 from caravan.stages.base import StageContext, StageFunction, StageInputs, StageSpec
 
@@ -38,6 +38,11 @@ SPEC = StageSpec(
         "output_features[0].preprocessing",
         "preprocessing.window_size",
         "preprocessing.split",
+        # Feature 014: where recordings end, how often a window starts and what it is labelled
+        # decide which windows exist, so every stage that forms windows reads them.
+        "preprocessing.window_stride",
+        "preprocessing.window_label",
+        "preprocessing.recording_column",
         "random_seed",
     ),
     reads_dataset=True,
@@ -154,7 +159,7 @@ def run_data(records: Any, inputs: StageInputs) -> tuple[dict[str, Any], dict[st
     features = inputs["input_features"]
     output_type = inputs["output_features[0].type"]
     split_spec = inputs["preprocessing.split"]
-    plan = plan_windows(records.labels, inputs["preprocessing.window_size"], parts=records.parts)
+    plan = plan_for(records, inputs)
     labels = split_labels(output_type, plan.labels)
     split = split_for(plan, split_spec, seed=int(inputs["random_seed"]), labels=labels)
 
@@ -192,6 +197,7 @@ def run_data(records: Any, inputs: StageInputs) -> tuple[dict[str, Any], dict[st
         "split": split.counts,
         "split_source": split.source,
         "fitted_on": "train",
+        **window_report(plan, split),
     }
     return schema, fitted
 
