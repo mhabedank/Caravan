@@ -1,6 +1,6 @@
 # Invalid on purpose. A model with an image input reads one record per sample; a window is refused (feature 010).
 # Expected: CF-19 at preprocessing.window_size
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

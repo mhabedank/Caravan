@@ -74,7 +74,6 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
         else dict(manifest.model.params)
     )
     output = manifest.output_features[0]
-    split = manifest.preprocessing.split
 
     return {
         "apiVersion": manifest.apiVersion,
@@ -89,18 +88,7 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
             for feature in manifest.input_features
         ],
         "output_features": [resolve_output(output)],
-        "preprocessing": {
-            "window_size": manifest.preprocessing.window_size,
-            "split": (
-                {"type": "fixed", "column": split.column}
-                if split.type == "fixed"
-                else {
-                    "type": split.type,
-                    "probabilities": list(split.probabilities or ()),
-                    "column": output.name if split.type == "stratify" else None,
-                }
-            ),
-        },
+        "preprocessing": resolve_preprocessing(manifest),
         "defaults": {
             key: _stated_defaults(entry) for key, entry in sorted(manifest.defaults.items())
         },
@@ -120,6 +108,48 @@ def resolve(manifest: Manifest, *, templates: TemplateRegistry | None = None) ->
             "representative_samples": manifest.export.representative_samples,
             "test_windows": manifest.export.test_windows,
         },
+    }
+
+
+def resolve_preprocessing(manifest: Manifest) -> dict[str, Any]:
+    """The window and the split, every default filled in (feature 014, contracts/manifest-fields).
+
+    With a window: the stride defaults to the window (no overlap), the label rule to ``last`` for a
+    ``number`` output and ``all_equal`` otherwise, and an unstated split type to ``derived`` — the
+    data stage chooses ``recording`` or ``blocked`` and records what it chose. Without a window the
+    three window fields are ``None`` and the split is ``random`` unless stated.
+    """
+    stated = manifest.preprocessing
+    split = stated.split
+    output = manifest.output_features[0]
+    window = stated.window_size
+    if window is None:
+        split_type = split.type or "random"
+        stride = label = None
+    else:
+        split_type = split.type or DERIVED
+        stride = stated.window_stride if stated.window_stride is not None else window
+        label = stated.label_rule() or ("last" if output.type == "number" else "all_equal")
+    if split_type == "fixed":
+        resolved_split: dict[str, Any] = {"type": "fixed", "column": split.column}
+    else:
+        resolved_split = {
+            "type": split_type,
+            "probabilities": list(split.probabilities or ()),
+            "column": (
+                output.name
+                if split_type == "stratify"
+                else split.column
+                if split_type == "group"
+                else None
+            ),
+        }
+    return {
+        "window_size": window,
+        "window_stride": stride,
+        "window_label": label,
+        "recording_column": stated.recording_column,
+        "split": resolved_split,
     }
 
 

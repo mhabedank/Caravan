@@ -1,6 +1,6 @@
 # Invalid on purpose. Names a template that is not registered.
 # Expected: T-1 at model.template
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

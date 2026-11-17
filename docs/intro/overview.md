@@ -14,7 +14,7 @@ This is `examples/picket-mlp.yaml`, the worked example of the tutorial. It reads
 synthetic CAN bus traffic and answers which of four kinds of traffic a window of 64 frames is.
 
 ```yaml
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp

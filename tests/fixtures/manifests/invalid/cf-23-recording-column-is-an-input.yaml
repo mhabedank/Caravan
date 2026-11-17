@@ -1,0 +1,25 @@
+# Invalid on purpose. The column that marks recordings is also read by the model.
+# Expected: CF-23 at preprocessing.recording_column
+apiVersion: caravan/v0.3
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
+  recording_column: reading
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

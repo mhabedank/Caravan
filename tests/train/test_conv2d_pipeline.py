@@ -134,7 +134,7 @@ def test_an_axis_learned_from_the_data_is_still_checked_before_training(
     (data / "records.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
     manifest = tmp_path / "probe.yaml"
     manifest.write_text(
-        f"""apiVersion: caravan/v0.2
+        f"""apiVersion: caravan/v0.3
 model:
   name: probe
   version: 0.0.1

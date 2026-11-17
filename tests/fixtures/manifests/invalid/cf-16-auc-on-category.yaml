@@ -1,6 +1,6 @@
 # Invalid on purpose. A category output states its budget as accuracy_drop_max; auc_drop_max belongs to an anomaly output (feature 010).
 # Expected: CF-16 at output_features[0].auc_drop_max
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

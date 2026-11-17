@@ -1,6 +1,6 @@
 # Invalid on purpose. The mlp template consumes a time window; this manifest states none.
 # Expected: CF-6 at preprocessing.window_size
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

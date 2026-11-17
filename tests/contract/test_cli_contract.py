@@ -7,7 +7,7 @@ import json
 import pytest
 
 from caravan.cli.main import EXIT_INTERNAL, EXIT_OK, EXIT_RULE, EXIT_USAGE, build_parser, main
-from tests.support import INVALID, PILOT, PILOT_FIXTURE
+from tests.support import INVALID, MINIMAL, PILOT, PILOT_FIXTURE
 
 
 def test_a_valid_manifest_exits_zero(tmp_path, capsys) -> None:
@@ -146,8 +146,17 @@ def test_a_manifest_without_a_version_is_refused_not_read_as_some_version(capsys
 
 
 def test_a_valid_manifest_prints_one_line(capsys) -> None:
+    assert main(["validate", str(MINIMAL), "--no-report"]) == EXIT_OK
+    assert capsys.readouterr().err.splitlines() == ["pilot-min.yaml: valid"]
+
+
+def test_a_random_or_stratified_split_with_a_window_prints_a_notice_and_stays_valid(capsys) -> None:
+    # Feature 014, FR-012: the fixture states a stratified split with a window.
     assert main(["validate", str(PILOT_FIXTURE), "--no-report"]) == EXIT_OK
-    assert capsys.readouterr().err.splitlines() == ["picket-mlp-fixture.yaml: valid"]
+    lines = capsys.readouterr().err.splitlines()
+    assert lines[-1] == "picket-mlp-fixture.yaml: valid"
+    assert lines[0].startswith("picket-mlp-fixture.yaml: notice — ")
+    assert "neighbouring windows" in lines[0]
 
 
 def test_a_removed_field_in_the_new_form_is_refused_at_its_path(capsys) -> None:
@@ -161,7 +170,7 @@ def test_render_to_stdout_writes_only_the_document(capsys) -> None:
     assert main(["render", str(PILOT), "--stdout"]) == EXIT_OK
     captured = capsys.readouterr()
     assert captured.err == ""
-    assert captured.out.startswith("apiVersion: caravan/v0.2\n")
+    assert captured.out.startswith("apiVersion: caravan/v0.3\n")
 
 
 # --- feature 007: framework output is an option of the stage verbs, never a verb ---------------

@@ -1,7 +1,7 @@
 # Invalid on purpose. An input feature reads the output's column: the model would be trained on its
 # own answer.
 # Expected: CF-11 at input_features[1].name
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

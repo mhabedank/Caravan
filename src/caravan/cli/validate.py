@@ -24,6 +24,7 @@ def json_document(manifest_name: str, outcome: LoadOutcome) -> str:
                 "schema_version": outcome.schema_version,
                 "findings": [finding.as_dict() for finding in outcome.findings],
                 "unresolved": [item.as_dict() for item in outcome.unresolved],
+                "notices": list(outcome.notices),
             },
             indent=2,
             ensure_ascii=False,
@@ -46,6 +47,7 @@ def report_for(command: str, path: Path, outcome: LoadOutcome, **extra: object) 
         findings=tuple(outcome.findings),
         unresolved=tuple(outcome.unresolved),
         seed=manifest.random_seed if manifest else None,
+        notices=tuple(outcome.notices),
         **extra,  # type: ignore[arg-type]
     )
 
@@ -58,6 +60,8 @@ def report_outcome(args: argparse.Namespace, path: Path, outcome: LoadOutcome) -
     elif not args.quiet:
         for finding in outcome.findings:
             print(render_finding(name, finding), file=sys.stderr)
+        for notice in outcome.notices:
+            print(f"{name}: notice — {notice}", file=sys.stderr)
         if outcome.is_valid:
             print(f"{name}: valid", file=sys.stderr)
         else:

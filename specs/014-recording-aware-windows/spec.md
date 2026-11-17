@@ -252,8 +252,11 @@ four times as many windows as with step 64, and no row is shared between windows
 - **FR-016**: A manifest MAY state a training step between 1 and the window size; without one, the
   step MUST equal the window (no overlap).
 - **FR-017**: A step smaller than the window MUST be refused with a random or stratified split.
-- **FR-018**: Under every split type, no window in one part MAY share a row with, or directly adjoin,
-  a window of another part in the same recording; windows that would MUST be left out and counted.
+- **FR-018**: Under every split type, no window in one part MAY share a row with a window of another
+  part; under a *blocked* split, a window that directly adjoins a window of another part in the same
+  recording MUST also be left out. Windows left out this way MUST be counted. (A random or stratified
+  split, which FR-012 keeps available with a notice, is not thinned: overlap is refused with it, so it
+  never shares rows, and adjoining windows are exactly the cost its notice names.)
 
 **Contract and compatibility**
 

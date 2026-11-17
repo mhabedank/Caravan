@@ -1,6 +1,6 @@
 # Invalid on purpose. A split part is zero: no data to train on, tune on or measure against.
 # Expected: CF-1 at preprocessing.split.probabilities
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

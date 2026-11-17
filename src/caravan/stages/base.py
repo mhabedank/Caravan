@@ -57,6 +57,10 @@ class StageContext:
     #: The column naming each record's part of a fixed split, or ``None`` (feature 007). The stages
     #: that use it declare ``preprocessing.split``, so it is part of their keys.
     split_column: str | None = None
+    #: The column that cuts files into recordings, and the column of a split by group (feature
+    #: 014). The stages that use them declare the fields, so they are part of their keys.
+    recording_column: str | None = None
+    group_column: str | None = None
     _records: Any = None
 
     @property
@@ -74,6 +78,8 @@ class StageContext:
                 features=self.features,
                 output=self.output,
                 split_column=self.split_column,
+                recording_column=self.recording_column,
+                group_column=self.group_column,
             )
         return self._records
 

@@ -2,7 +2,7 @@
 #
 # `dataset` is a path on the author's machine; picket-mlp-fixture.yaml is the same manifest pointed
 # at the committed synthetic fixture, which is what the end-to-end tests run.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp

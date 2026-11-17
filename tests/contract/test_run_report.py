@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from caravan.cli.main import main
-from tests.support import INVALID, PILOT, PILOT_FIXTURE
+from tests.support import INVALID, MINIMAL, PILOT, PILOT_FIXTURE
 
 EXPECTED_FIELDS = [
     "caravan_version",
@@ -31,14 +31,25 @@ def report_of(runs_dir: Path) -> dict:
 
 
 def test_the_report_carries_exactly_the_contract_fields_in_order(tmp_path, capsys) -> None:
-    main(["render", str(PILOT), "--runs-dir", str(tmp_path)])
+    main(["render", str(MINIMAL), "--runs-dir", str(tmp_path)])
     report = report_of(tmp_path)
     assert list(report) == EXPECTED_FIELDS
 
 
+def test_a_notice_is_recorded_after_the_contract_fields(tmp_path, capsys) -> None:
+    # Feature 014, FR-012: the pilot names a stratified split with a window. That is a notice, not
+    # a finding: the outcome stays valid, and the section exists only when there is one.
+    main(["render", str(PILOT), "--runs-dir", str(tmp_path)])
+    report = report_of(tmp_path)
+    assert list(report) == [*EXPECTED_FIELDS, "notices"]
+    assert report["outcome"] == "valid"
+    (notice,) = report["notices"]
+    assert "neighbouring windows" in notice and "stratify" in notice
+
+
 def test_the_report_carries_the_declared_schema_version(tmp_path, capsys) -> None:
     main(["validate", str(PILOT_FIXTURE), "--runs-dir", str(tmp_path)])
-    assert report_of(tmp_path)["schema_version"] == "caravan/v0.2"
+    assert report_of(tmp_path)["schema_version"] == "caravan/v0.3"
 
 
 def test_a_refused_version_is_recorded_as_written(tmp_path, capsys) -> None:

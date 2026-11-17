@@ -1,7 +1,7 @@
 # The pilot with a split the data decides (feature 007, FR-017): every record's `split` column says
 # train, validation or test. `data/` is written by the tests from the committed synthetic fixture
 # (tests/support.py, write_split_dataset), so no second dataset is committed.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp

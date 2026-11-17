@@ -109,12 +109,18 @@ to parts:
 - For a classification output, blocks are formed **within each stretch of one label**, so each class
   contributes blocks; blocks are assigned per class by the same seeded deficit walk, which makes the
   split stratified by construction.
-- Block size: `max(1, round(windows_in_stretch / 10))` windows, so a stretch yields about ten blocks
-  and three parts can be reached even for a short stretch; documented, not a manifest field.
+- Block size: `max(2 * ceil(window / stride) + 1, round(windows_in_stretch / 10))` windows, so a
+  stretch yields about ten blocks, and no block is so small that the purge at its edge takes most
+  of it (a window touches up to `ceil(window / stride)` windows on each side). Documented, not a
+  manifest field. (The lower bound was added during implementation, 2026-11-17: with a stride of
+  half the window, blocks of one window lost almost everything to the purge and a part came out
+  empty.)
 - After assignment, **purging**: walking each recording in order, a window whose rows touch or overlap
   the rows of the previous kept window of a *different* part is dropped and counted as `purged`
-  (FR-010, FR-018). With `window_stride == window_size` this leaves a gap of exactly one window at
-  each change of part.
+  (FR-018). With `window_stride == window_size` this leaves a gap of exactly one window at each change
+  of part. Under the other split types only *overlap* is purged — a window sharing a row with a kept
+  window of another part; adjoining windows stay (corrected 2026-11-17: purging adjacency under a
+  random split would thin it by about half, against FR-012).
 
 **Default** (FR-011): when `window_size` is set and `split.type` is not stated, the run derives
 `recording` if the data has at least three recordings, otherwise `blocked`. The resolved manifest of

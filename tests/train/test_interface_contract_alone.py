@@ -40,8 +40,13 @@ def exported(tmp_path_factory):
     return latest_run(root / "runs")
 
 
-def from_the_contract_alone(run_dir) -> list[str]:
-    """What someone with nothing but the two files would write."""
+def from_the_contract_alone(run_dir, step: int | None = None) -> dict[int, str]:
+    """What someone with nothing but the two files would write: start row -> prediction.
+
+    ``step`` is the firmware's own choice of how often to predict; ``None`` reads with the
+    contract's ``training_stride``. Feature 014 (FR-019): the contract says how the training data
+    was cut, and a firmware may read with any step.
+    """
     from ai_edge_litert.interpreter import Interpreter
 
     contract = json.loads((run_dir / "model" / "interface.json").read_text(encoding="utf-8"))
@@ -55,7 +60,9 @@ def from_the_contract_alone(run_dir) -> list[str]:
         return int(match.group(1))
 
     assert contract["preprocessing"] == "inside the model; pass raw values"
-    window, stride = contract["window_size"], contract["stride"]
+    window = contract["window_size"]
+    stride = step if step is not None else contract["training_stride"]
+    assert "any step" in contract["training_stride_note"]
     with (SYNTHETIC_DATASET / "records.csv").open(encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
 
@@ -73,7 +80,7 @@ def from_the_contract_alone(run_dir) -> list[str]:
     tensor_out = interpreter.get_output_details()[constant(f"output_{declared_output['name']}")]
     labels = declared_output["labels"]
 
-    answers = []
+    answers: dict[int, str] = {}
     for start in range(0, len(rows) - window + 1, stride):
         for entry in contract["inputs"]:
             position = constant(f"input_{entry['name']}")
@@ -82,7 +89,7 @@ def from_the_contract_alone(run_dir) -> list[str]:
             sample = np.asarray([values], dtype=np.dtype(entry["dtype"]))
             interpreter.set_tensor(details[position]["index"], sample)
         interpreter.invoke()
-        answers.append(labels[int(np.argmax(interpreter.get_tensor(tensor_out["index"])[0]))])
+        answers[start] = labels[int(np.argmax(interpreter.get_tensor(tensor_out["index"])[0]))]
     return answers
 
 
@@ -103,7 +110,19 @@ def test_the_contract_alone_reproduces_caravans_predictions(exported) -> None:
     alone = from_the_contract_alone(exported)
     caravan = from_caravan(exported)
     assert len(alone) == len(caravan) == 81
-    assert alone == caravan
+    assert list(alone.values()) == caravan
+
+
+def test_a_firmware_may_read_with_a_step_of_its_own(exported) -> None:
+    # FR-019: half the window gives twice the predictions; the windows both steps produce get the
+    # same answer, and the others run through the model like any window.
+    contract = json.loads((exported / "model" / "interface.json").read_text(encoding="utf-8"))
+    window = contract["window_size"]
+    at_training_stride = from_the_contract_alone(exported)
+    at_half = from_the_contract_alone(exported, step=window // 2)
+    assert len(at_half) > len(at_training_stride)
+    common = set(at_half) & set(at_training_stride)
+    assert common and all(at_half[start] == at_training_stride[start] for start in common)
 
 
 def test_the_contract_names_the_model(exported) -> None:

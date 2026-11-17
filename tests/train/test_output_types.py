@@ -38,7 +38,7 @@ export:
 """
 
 BINARY = (
-    """apiVersion: caravan/v0.2
+    """apiVersion: caravan/v0.3
 model: {name: picket-binary, version: 0.2.0, template: mlp, params: {hidden: [16]}}
 """
     + FEATURES
@@ -52,7 +52,7 @@ preprocessing:
 )
 
 NUMBER = (
-    """apiVersion: caravan/v0.2
+    """apiVersion: caravan/v0.3
 model: {name: picket-number, version: 0.2.0, template: mlp, params: {hidden: [16]}}
 """
     + FEATURES

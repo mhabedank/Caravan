@@ -25,12 +25,14 @@ from pathlib import Path
 import numpy as np
 
 from caravan.data.fingerprint import TABLE_DELIMITERS, DatasetFiles
+from caravan.data.windows import Recording, recordings_from
 from caravan.manifest.errors import (
     RULE_DATASET_CELL,
     RULE_DATASET_COLUMNS,
     RULE_DATASET_HEADERS_DIFFER,
     RULE_SPLIT_VALUE,
     RULE_UNKNOWN_INPUT_COLUMN,
+    RULE_WINDOW_COLUMN_OR_VALUE,
     run_rule_error,
 )
 from caravan.manifest.schema.preprocessing import FIXED_SPLIT_VALUES
@@ -76,6 +78,11 @@ class RecordSet:
     parts: tuple[str, ...] | None = None
     #: The dataset directory, against which an image column's paths resolve (feature 010).
     root: Path | None = None
+    #: Where each recording starts and ends: one per file, cut again by the recording column
+    #: (feature 014). Empty only for a record set built by hand in a test.
+    recordings: tuple[Recording, ...] = ()
+    #: Each record's value of the group column of a split by group (feature 014); else ``None``.
+    groups: tuple[str, ...] | None = None
 
 
 def _read_header(path: Path) -> list[str]:
@@ -98,6 +105,9 @@ class _Columns:
     label_index: int
     ignored: tuple[str, ...]
     split_index: int | None = None
+    #: The recording column and the group column of feature 014, when the manifest names them.
+    recording_index: int | None = None
+    group_index: int | None = None
 
 
 def _check_header(
@@ -106,6 +116,8 @@ def _check_header(
     features: Sequence[tuple[str, str]],
     output: str,
     split_column: str | None,
+    recording_column: str | None = None,
+    group_column: str | None = None,
 ) -> _Columns:
     if header.count(output) != 1:
         run_rule_error(
@@ -152,9 +164,42 @@ def _check_header(
                 accepted=tuple(column for column in header if column != output),
             )
         positions.append(header.index(name))
-    read = {*positions, label_index, *(() if split_index is None else (split_index,))}
+    extra: dict[str, int | None] = {}
+    for key, column, path_name in (
+        ("recording", recording_column, "preprocessing.recording_column"),
+        ("group", group_column, "preprocessing.split.column"),
+    ):
+        if column is None:
+            extra[key] = None
+            continue
+        if header.count(column) != 1:
+            # DS-20: the manifest names a column that marks recordings or groups, and this file
+            # does not have exactly one of it.
+            run_rule_error(
+                RULE_WINDOW_COLUMN_OR_VALUE,
+                path_name,
+                (
+                    f"{path.name} must have exactly one column named {column!r}, which marks "
+                    f"each record's {key}; it has {header.count(column)}"
+                ),
+                found=header,
+                accepted=(column,),
+            )
+        extra[key] = header.index(column)
+    read = {
+        *positions,
+        label_index,
+        *(index for index in (split_index, *extra.values()) if index is not None),
+    }
     ignored = tuple(name for position, name in enumerate(header) if position not in read)
-    return _Columns(tuple(positions), label_index, ignored, split_index)
+    return _Columns(
+        tuple(positions),
+        label_index,
+        ignored,
+        split_index,
+        recording_index=extra["recording"],
+        group_index=extra["group"],
+    )
 
 
 def _bad_cell(path: Path, number: int, column: str, cell: str) -> None:
@@ -313,6 +358,8 @@ def read_records(
     features: Sequence[tuple[str, str]],
     output: tuple[str, str] = ("label", "category"),
     split_column: str | None = None,
+    recording_column: str | None = None,
+    group_column: str | None = None,
 ) -> RecordSet:
     """Read every record of the dataset, in sequence order.
 
@@ -328,6 +375,9 @@ def read_records(
     text_blocks: list[np.ndarray] = []
     labels: list[str] = []
     parts: list[str] = []
+    keys: list[str] = []
+    group_values: list[str] = []
+    files: list[tuple[str, int]] = []
 
     for path in dataset.files:
         header = _read_header(path)
@@ -352,13 +402,19 @@ def read_records(
                 ),
                 found={path.name: header, first_path.name: first_header},
             )
-        columns = _check_header(path, header, features, output_name, split_column)
+        columns = _check_header(
+            path, header, features, output_name, split_column, recording_column, group_column
+        )
         if first is None:
             first = (path, header, columns)
         text_positions = [columns.positions[index] for index in texts]
         extra = [columns.label_index]
         if columns.split_index is not None:
             extra.append(columns.split_index)
+        if columns.recording_index is not None:
+            extra.append(columns.recording_index)
+        if columns.group_index is not None:
+            extra.append(columns.group_index)
         try:
             text = _read_text(path, [*text_positions, *extra])
         except ValueError:
@@ -369,8 +425,16 @@ def read_records(
         number_blocks.append(_read_numbers(path, header, [columns.positions[i] for i in numbers]))
         text_blocks.append(text)
         labels.extend(_labels(path, text[:, len(texts)], output_name, output_type))
+        offset = len(texts) + 1
         if columns.split_index is not None and split_column is not None:
-            parts.extend(_parts(path, text[:, len(texts) + 1], split_column))
+            parts.extend(_parts(path, text[:, offset], split_column))
+            offset += 1
+        if columns.recording_index is not None:
+            keys.extend(str(value) for value in text[:, offset].tolist())
+            offset += 1
+        if columns.group_index is not None:
+            group_values.extend(str(value) for value in text[:, offset].tolist())
+        files.append((_relative_name(dataset, path), text.shape[0]))
 
     assert first is not None  # resolve_dataset guarantees at least one file
     number_all = np.concatenate(number_blocks, axis=0) if numbers else None
@@ -395,4 +459,14 @@ def read_records(
         labels=tuple(labels),
         parts=tuple(parts) if split_column is not None else None,
         root=dataset.root,
+        recordings=recordings_from(files, keys if recording_column is not None else None),
+        groups=tuple(group_values) if group_column is not None else None,
     )
+
+
+def _relative_name(dataset: DatasetFiles, path: Path) -> str:
+    """How a recording's file is named in reports: relative to the dataset's root."""
+    try:
+        return str(path.relative_to(dataset.root))
+    except ValueError:  # pragma: no cover - resolve_dataset keeps every file under the root
+        return path.name

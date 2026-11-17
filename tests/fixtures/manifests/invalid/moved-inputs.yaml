@@ -1,7 +1,7 @@
 # Invalid on purpose. The caravan/v0.1 declarations in a caravan/v0.2 manifest: each is refused at
 # its path with the key that replaces it (feature 008, contracts/manifest.md, Removed).
 # Expected: no rule identifier at inputs
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

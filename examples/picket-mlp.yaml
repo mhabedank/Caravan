@@ -9,7 +9,7 @@
 # To use your own data, point `dataset` at a directory of CSV files with a header row, list the
 # columns as features with their types, name the output, and adjust the window and the boards.
 # Part 2 of the tutorial says more: docs/intro/tutorial02.md.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp

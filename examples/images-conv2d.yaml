@@ -6,7 +6,7 @@
 # `width` and `num_channels` to bring images of another size to the device's frame. The exported
 # model takes raw 8-bit pixels at that size — the camera's bytes, with no scaling in the firmware.
 # The same template as MobileNetV1 at width 0.25 on 96 x 96 x 3 is the Visual Wake Words reference.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: images-conv2d

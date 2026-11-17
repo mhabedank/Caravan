@@ -167,7 +167,7 @@ export: {targets: [s32k144, stm32h743, esp32]}
 to
 
 ```yaml
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model: {name: picket-mlp, version: 0.2.0, template: mlp, params: {hidden: [32, 16], dropout: 0.1}}
 input_features:
   - {name: can_id, type: category}      # a code, not a magnitude

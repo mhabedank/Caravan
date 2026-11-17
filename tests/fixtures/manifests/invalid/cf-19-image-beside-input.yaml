@@ -1,6 +1,6 @@
 # Invalid on purpose. An image input must be the only input of its model (feature 010).
 # Expected: CF-19 at input_features[1]
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 model:
   name: pilot-min
   version: 0.0.1

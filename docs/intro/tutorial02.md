@@ -47,7 +47,7 @@ file takes the same shape: Caravan reads it, records its digest, and asks nothin
 ```bash
 # step: own-columns
 cat > manifest.yaml <<'YAML'
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: machine-health

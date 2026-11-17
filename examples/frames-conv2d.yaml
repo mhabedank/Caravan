@@ -7,7 +7,7 @@
 # axes sees and a per-column view does not. The window is the plane's rows, the columns its
 # columns. The same template at 49 x 10 MFCC frames, a standard block of 64 filters and four
 # separable blocks, is the MLPerf Tiny keyword-spotting reference.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: frames-conv2d

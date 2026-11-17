@@ -1,0 +1,4 @@
+{
+  "rule": "CF-22",
+  "path": "preprocessing.window_label"
+}

@@ -5,7 +5,7 @@
 # the vocabulary of can_id, the shift and scale of each number. can_id is a category, a code and not
 # a magnitude; the other columns are numbers. Each feature is its own model input and brings its
 # preprocessing into the model, so the int8 gate passes with derived labels (feature 008, SC-003).
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: picket-mlp

@@ -16,7 +16,7 @@ from caravan.manifest.resolve import resolve
 from caravan.manifest.schema.features import INPUT_TYPES, OUTPUT_TYPES
 
 BASE: dict[str, Any] = {
-    "apiVersion": "caravan/v0.2",
+    "apiVersion": "caravan/v0.3",
     "model": {"name": "probe", "version": "0.0.1", "template": "mlp", "params": {"hidden": [8]}},
     "input_features": [
         {"name": "speed", "type": "number"},
@@ -69,7 +69,7 @@ def test_the_base_is_valid_and_every_default_is_resolved(tmp_path) -> None:
         "fallback_true_label": None,
     }
     assert out["preprocessing"]["split"] == {
-        "type": "random",
+        "type": "derived",
         "probabilities": [0.7, 0.15, 0.15],
         "column": None,
     }

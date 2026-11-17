@@ -23,6 +23,12 @@ PILOT_FIXTURE_PINNED = VALID / "picket-mlp-fixture-pinned.yaml"
 #: The convolutional template on the same dataset.
 CONV1D_FIXTURE = VALID / "picket-conv1d-fixture.yaml"
 SYNTHETIC_DATASET = FIXTURES / "datasets" / "synthetic"
+#: Feature 014: six recordings, one file each, of lengths that are not multiples of 64.
+RECORDINGS_DATASET = FIXTURES / "datasets" / "recordings"
+#: Feature 014: a continuous number to predict (state of charge), two files.
+SOC_DATASET = FIXTURES / "datasets" / "soc"
+#: Feature 014: 20-row ``dos`` bursts every 200 ``normal`` frames, one file.
+BURSTS_DATASET = FIXTURES / "datasets" / "bursts"
 
 #: What the committed fixture is, in numbers, so a test can assert against the shape rather than
 #: against whatever the file happens to contain. Changing the generator means changing these.
@@ -138,3 +144,12 @@ def write_number_dataset(destination: Path) -> Path:
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "records.csv").write_text("\n".join(out) + "\n", encoding="utf-8")
     return destination
+
+
+def leakage_example() -> list[str]:
+    """The review's leakage case (2026-11-16): one recording, two classes in 3,200-row blocks.
+
+    Cut into windows of 64 and split at random by window, 13 of 15 test windows had a training
+    window directly beside them. Feature 014's default split must bring that to at most 1 in 10.
+    """
+    return ["a"] * 3200 + ["b"] * 3200

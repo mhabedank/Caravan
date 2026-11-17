@@ -1,0 +1,25 @@
+# Invalid on purpose. The mean of labels has no meaning for a category output.
+# Expected: CF-22 at preprocessing.window_label
+apiVersion: caravan/v0.3
+model:
+  name: pilot-min
+  version: 0.0.1
+  template: mlp
+  params:
+    hidden:
+    - 8
+input_features:
+- name: reading
+  type: number
+output_features:
+- name: verdict
+  type: category
+  accuracy_drop_max: 0.02
+preprocessing:
+  window_size: 32
+  window_label: mean
+dataset: datasets/example/
+export:
+  representative_samples: 100
+  targets:
+  - stm32h743

@@ -1,0 +1,4 @@
+{
+  "rule": "CF-21",
+  "path": "preprocessing.window_stride"
+}

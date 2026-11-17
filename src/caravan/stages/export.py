@@ -97,6 +97,11 @@ SPEC = StageSpec(
         # stage alone; nothing before it reads the field.
         "export.test_windows",
         "preprocessing.split",
+        # Feature 014: where recordings end, how often a window starts and what it is labelled
+        # decide which windows exist, so every stage that forms windows reads them.
+        "preprocessing.window_stride",
+        "preprocessing.window_label",
+        "preprocessing.recording_column",
         "random_seed",
     ),
     # Still false with the test windows of feature 009, although they are drawn from the data: the
@@ -228,7 +233,13 @@ def stage(context: StageContext) -> StageFunction:
         model_identity = {"name": inputs["model.name"], "version": inputs["model.version"]}
         (out_dir / INTERFACE).write_text(
             interface.interface_document(
-                model_identity, bindings, features, output, inputs["preprocessing.window_size"]
+                model_identity,
+                bindings,
+                features,
+                output,
+                inputs["preprocessing.window_size"],
+                training_stride=inputs.get("preprocessing.window_stride"),
+                window_label=inputs.get("preprocessing.window_label"),
             ),
             encoding="utf-8",
         )

@@ -19,7 +19,7 @@ Retired identifiers are never reused.
 ## Schema version
 
 :::{rule} V-1
-**Checks:** the manifest declares the schema version this build reads, `apiVersion: caravan/v0.2`.
+**Checks:** the manifest declares the schema version this build reads, `apiVersion: caravan/v0.3`.
 
 **Reported at:** `apiVersion`.
 

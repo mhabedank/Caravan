@@ -4,7 +4,7 @@
 # because quantization defaults to int8 (CF-4), and accuracy_drop_max because a category output
 # must state its budget (Principle V). The label order and every fitted value come from the
 # training part at run time.
-apiVersion: caravan/v0.2
+apiVersion: caravan/v0.3
 
 model:
   name: pilot-min

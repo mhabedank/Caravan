@@ -48,6 +48,9 @@ class LoadOutcome:
     unresolved: list[Unresolved] = field(default_factory=list)
     #: The ``apiVersion`` the manifest declares, as written; ``None`` when it declares none.
     schema_version: str | None = None
+    #: Things worth knowing about a valid manifest that are not findings: they never change the
+    #: exit code (feature 014, FR-012).
+    notices: list[str] = field(default_factory=list)
 
     @property
     def is_valid(self) -> bool:
@@ -263,6 +266,7 @@ def load_manifest(
         return outcome
 
     outcome.manifest = manifest
+    outcome.notices.extend(notices_for(manifest))
     outcome.gates.extend(
         [
             Gate("schema", "pass"),
@@ -282,6 +286,22 @@ def load_manifest(
         )
     )
     return outcome
+
+
+#: FR-012 of feature 014: a choice the author made explicitly, told what it costs.
+NEIGHBOURING_WINDOWS_NOTICE = (
+    "preprocessing.split.type is {kind}: neighbouring windows of one recording can fall into "
+    "different parts and make the test score look better than the model is; recording, group or "
+    "blocked avoids this"
+)
+
+
+def notices_for(manifest: Manifest) -> list[str]:
+    """What a valid manifest should hear about without being refused."""
+    kind = manifest.preprocessing.split.type
+    if manifest.preprocessing.window_size is not None and kind in ("random", "stratify"):
+        return [NEIGHBOURING_WINDOWS_NOTICE.format(kind=kind)]
+    return []
 
 
 __all__ = [

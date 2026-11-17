@@ -164,7 +164,7 @@ def test_a_number_output_takes_test_order_and_float_expectations(workspace, tmp_
     runs, cache = workspace
     write_number_dataset(tmp_path / "data")
     text = (
-        "apiVersion: caravan/v0.2\n"
+        "apiVersion: caravan/v0.3\n"
         "model: {name: picket-number, version: 0.2.0, template: mlp, params: {hidden: [16]}}\n"
         "input_features:\n"
         "  - {name: can_id, type: category}\n"
