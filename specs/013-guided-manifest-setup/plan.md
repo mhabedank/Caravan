@@ -1,7 +1,7 @@
 # Implementation Plan: A Guided Way to Write the Manifest
 
 **Branch**: `013-guided-manifest-setup` (work happens on `claude/optimistic-sagan-tve9tc`) |
-**Date**: 2026-11-16 | **Spec**: [spec.md](./spec.md)
+**Date**: 2026-11-16, amended 2026-11-17 (full-screen interface in scope) | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/013-guided-manifest-setup/spec.md`
 
@@ -20,12 +20,20 @@ proposals or the dialogue, so the scripted and the interactive paths write the s
 serialise with comments through the YAML module that already exists, validate the exact bytes with
 `load_manifest`, and move the file into place only when it is valid (R9).
 
+**Amendment 2026-11-17**: the full-screen interface is built now (spec, Session 2026-11-17; US4,
+FR-025, FR-027–FR-035). One question engine in `caravan/init/session.py` drives two front ends: the
+line dialogue (`caravan/init/line.py`, core) and a Textual application (`caravan/tui/`, the
+`authoring` extra, constitution v4.4.0). The engine adds what the mock-up showed: the window table
+from the data stage's own planner (R12), memory floors from the same functions `build` uses (R13),
+a drawing of the layers, and a parameter form generated from the template's model (R14).
+
 ## Technical Context
 
 **Language/Version**: Python, supporting 3.13, 3.14 and 3.15 like the core (`requires-python`).
 
 **Primary Dependencies**: `pydantic` and `ruamel.yaml`, both already direct dependencies. No
-dependency is added (FR-024, Principle XII). `ruamel.yaml`'s round-trip mode, for comments, is used
+runtime dependency is added to the default installation (FR-024, Principle XII). The full-screen
+interface adds `textual` in the new extra `authoring`, the third of four extra slots (v4.4.0). `ruamel.yaml`'s round-trip mode, for comments, is used
 only inside `caravan/manifest/_yaml.py`.
 
 **Storage**: files — the data the author points at (read only) and the one manifest written.
@@ -69,7 +77,7 @@ constitution v4.3.0.
 | IX. Manifest contract | Writes the current schema version; never rewrites an existing file, and replaces one only on the author's explicit confirmation (amendment v4.3.0). | Pass |
 | X. Built for real models | No template or type is added. | N/A |
 | XI. No Claude in model learning | Not touched. | N/A |
-| XII. Small core | `init` admitted by v4.3.0 within its bounds: one new manifest, validated before success, default installation, offline, no runtime dependency, usable without a terminal, never editing. YAML stays behind `_yaml.py`; the profiler imports only the standard library and `fingerprint`. | Pass |
+| XII. Small core (v4.4.0) | The full-screen interface is the `authoring` extra, the slot v4.4.0 names for it; the core never imports `caravan.tui` or `textual` (layering test). `init` admitted by v4.3.0 within its bounds: one new manifest, validated before success, default installation, offline, no runtime dependency, usable without a terminal, never editing. YAML stays behind `_yaml.py`; the profiler imports only the standard library and `fingerprint`. | Pass |
 | Resources & cost | New tests run in the existing core matrix; no new CI job. | Pass |
 | Workflow | One pull request for the feature ([mhabedank/Caravan#26](https://github.com/mhabedank/Caravan/pull/26)); pushes in validated batches. | Pass |
 
@@ -107,8 +115,16 @@ src/caravan/
 │   ├── __init__.py
 │   ├── profile.py            # column profiling with csv, the R4 rules, R5 output proposal
 │   ├── answers.py            # the answer set, per-answer validation, proposals (R7, R8)
-│   ├── session.py            # question order, back, summary, given-by-option, modes (R6, R10)
+│   ├── windows.py            # the window table and strip, from the data stage's planner (R12)
+│   ├── memory.py             # layer records before building → fit.floors / verdicts (R13)
+│   ├── drawing.py            # the layers as text, from template and parameters
+│   ├── form.py               # a parameter form from the template's pydantic model (R14)
+│   ├── session.py            # question order, back, review, given-by-option, modes (R6, R10)
+│   ├── line.py               # the line dialogue front end (standard input and error)
 │   └── write.py              # answer set → commented mapping; temp file, validate, os.replace (R9)
+├── tui/                      # NEW, the `authoring` extra only: Textual front end over the session
+│   ├── __init__.py
+│   └── app.py
 ├── manifest/_yaml.py         # + dump_commented(): round-trip serialisation with comments
 ├── data/fingerprint.py       # + data_files(): the public listing split out of _files_in
 └── templates/
@@ -127,9 +143,14 @@ tests/
 │   └── test_init_byte_identical.py    # NEW: piped dialogue == --no-input (FR-020)
 ├── unit/
 │   ├── test_init_profile.py           # NEW: R4 rules on the fixtures and on edge cases
+│   ├── test_init_windows.py           # NEW: the table equals the planner's counts; the proposal rule
+│   ├── test_init_memory.py            # NEW: floors per template; exceeds marks
+│   ├── test_init_form.py              # NEW: forms for every template; add/remove rows; errors at fields
 │   ├── test_init_write.py             # NEW: no defaults written, comments, relative dataset path
 │   └── test_template_starters.py      # NEW: every registered starter validates and fits its window
-└── layering/                          # unchanged; must still pass
+├── tui/test_init_tui.py               # NEW, skipped without textual: pilot keystrokes == --no-input
+├── train/test_init_memory_matches_build.py  # NEW: the estimate equals build's floors
+└── layering/                          # + caravan.tui is not imported by the core
 
 docs/
 ├── ref/cli.md                # + caravan init (test_docs_reference requires every verb)

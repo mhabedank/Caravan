@@ -22,7 +22,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from caravan.templates.registry import TemplateParameterSpec
+from caravan.targets.fit import dense_record
+from caravan.templates.registry import TemplateParameterSpec, TemplateStarter
 
 Width = Annotated[int, Field(gt=0)]
 
@@ -50,6 +51,23 @@ class AutoencoderParameters(BaseModel):
             self.decoder = list(reversed(self.encoder))
 
 
+def layers(params: BaseModel, steps: int, channels: int) -> tuple[list[object], int]:
+    """Encoder, code, decoder and reconstruction as ``builders/autoencoder.py`` makes them."""
+    assert isinstance(params, AutoencoderParameters)
+    records: list[object] = []
+    width = steps * channels
+    for position, units in enumerate(params.encoder, start=1):
+        records.append(dense_record(f"encoder_{position}", width, units))
+        width = units
+    records.append(dense_record("code", width, params.code))
+    width = params.code
+    for position, units in enumerate(params.decoder_widths(), start=1):
+        records.append(dense_record(f"decoder_{position}", width, units))
+        width = units
+    records.append(dense_record("reconstruction", width, steps * channels))
+    return records, steps * channels
+
+
 SPEC = TemplateParameterSpec(
     identifier="autoencoder",
     parameters=AutoencoderParameters,
@@ -58,4 +76,12 @@ SPEC = TemplateParameterSpec(
         "Anomaly detection from normal data: reconstructs a window and scores how unusual it is"
     ),
     output_types=("anomaly",),
+    layers=layers,
+    # examples/anomaly-autoencoder.yaml's parameters (feature 013, research R7).
+    starter=TemplateStarter(
+        params={"encoder": [32, 16], "code": 4},
+        window=5,
+        rank=0,
+        note="learns normal data only; how badly it rebuilds a window is the anomaly score",
+    ),
 )

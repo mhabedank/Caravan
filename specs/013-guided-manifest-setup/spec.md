@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-16
 
-**Status**: Draft
+**Status**: Draft (amended 2026-11-17: full-screen interface in scope)
 
 **Input**: User description: "die yaml selber zu schreiben ist nervig und umständlich. ich denke es
 sollte ein CLI oder TUI tool geben, dass einen durch die konfiguration führt" — *Writing the YAML
@@ -46,6 +46,33 @@ one faster.
   interface later, as an optional extra.
 - Q: Create new manifests only, or also edit existing ones? → A: Create only now; editing is a
   separate, later feature.
+
+### Session 2026-11-17 (after the mock-up, its UX review and the joint review)
+
+- Q: When does the full-screen interface come? → A: Now, in this feature, as the optional extra
+  `authoring` (constitution v4.4.0), built with Textual. The line dialogue and `--no-input` stay,
+  ask the same questions and write the same file; the full-screen interface is a second front end
+  over one question engine in the core.
+- Q: Build now, or after an honest memory model (review P2)? → A: Now. The memory panel shows the
+  lower bounds Caravan already computes, labelled as lower bounds estimated before building; the
+  better model improves the panel later without changing the questions.
+- Q: In which order are the questions asked? → A: Data first, then the boards, then the
+  quantization, so every later choice can show what it costs on the chosen boards: data → boards →
+  quantization → output → output type → inputs → window → template → parameters → budget → name →
+  file → review.
+- Q: How are choices made? → A: From lists — one choice with a marker, several with checkboxes —
+  never by typing a value Caravan could offer. Typing is left for numbers and names.
+- Q: How are a template's parameters entered? → A: In a form built from the template's parameter
+  model: one field per value, a row per layer or block that can be added and removed, presets to
+  start from. No author types brackets or braces.
+- Q: How does the author see the network? → A: A drawing of the layers with their sizes, from the
+  template and the parameters, updated as the parameters change.
+- Q: What does the window question show? → A: A recommendation from the data: for each candidate
+  size, the windows per class in the test part and the windows lost to mixed labels, the proposal
+  and its reason, and a strip of the data cut at the proposed size.
+- Q: Is a board proposed? → A: No (review A10): the board is a hardware decision; the author picks.
+- Q: Which quantizations are offered? → A: `int8` (proposed) and `none`, labelled "float32, for
+  comparison" (review §3.5). `float16` is not offered.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -136,6 +163,33 @@ validates.
    the usage error code and names the missing answer and how to give it.
 3. **Given** the same answers twice, **When** the setup runs twice, **Then** both files are
    byte-identical.
+
+---
+
+### User Story 4 - The same setup in a full-screen interface (Priority: P2)
+
+With the `authoring` extra installed, `caravan init` opens a full-screen interface: the questions
+on the left with their answers so far, the choices as lists and forms, and on the right what the
+current choice means — the data's columns, the window table and strip, the network drawing, the
+memory per board, and the manifest as it will be written.
+
+**Why this priority**: The owner found typing values tedious; lists, checkboxes and forms are what
+they asked for, and the side panel is what makes a choice understandable.
+
+**Independent Test**: With the extra installed, drive the interface with keystrokes in a test
+(Textual's pilot): accept every proposal on the synthetic data with `label` as the output and the
+s32k144 board. The written file is byte-identical to the one `--no-input` writes with the same
+answers, and it validates.
+
+**Acceptance Scenarios**:
+
+1. **Given** the extra and a terminal, **When** the author runs `caravan init`, **Then** the
+   full-screen interface opens; with `--plain`, the line dialogue does.
+2. **Given** a list question, **When** the author presses Enter, **Then** the proposal is taken.
+3. **Given** the parameter form, **When** the author adds a layer, **Then** the drawing and the
+   memory panel change before the author goes on.
+4. **Given** the extra is not installed, **When** the author runs `caravan init` in a terminal,
+   **Then** the line dialogue runs, and one line says how to install the full-screen interface.
 
 ---
 
@@ -230,9 +284,35 @@ validates.
 - **FR-024**: The setup MUST NOT add a runtime dependency to the default installation beyond the
   budget of Principle XII, and any dependency it adds MUST be isolated behind one module.
 - **FR-025**: The setup MUST ask its questions line by line in the terminal (a dialogue), with
-  no new runtime dependency. A full-screen interface with lists and keyboard navigation is a later
-  step; if it comes, it MUST arrive as an optional extra (Principle XII) and MUST ask the same
-  questions and write the same file as the dialogue.
+  no new runtime dependency. A full-screen interface with lists and keyboard navigation MUST be
+  offered as the optional extra `authoring` (Principle XII, v4.4.0); it MUST ask the same questions
+  and write the same file as the dialogue. When the extra is installed and both standard input and
+  standard output are terminals, `init` starts the full-screen interface; `--plain` keeps the
+  dialogue.
+
+**The guided choices (from the mock-up, 2026-11-16/17)**
+
+- **FR-027**: The questions MUST come in the order data → boards → quantization → output → output
+  type → inputs → window → template → parameters → budget → name → file → review.
+- **FR-028**: Every question whose answer is one of a known set MUST be answered by choosing from
+  a list (several answers: checkboxes). The author MUST NOT type a value the setup could offer.
+- **FR-029**: The quantization question MUST offer `int8` (proposed) and `none` (float32, for
+  comparison), and nothing else.
+- **FR-030**: Once the boards are chosen, every question that changes the model's size MUST show,
+  per chosen board, the model's flash and RAM lower bounds against the board's figures, labelled as
+  lower bounds estimated before building, with a mark where a bound already exceeds a board.
+- **FR-031**: The window question MUST show, for each candidate size, the windows per class the
+  test part would hold and the windows lost because their labels differ, MUST propose a size with
+  its reason, and MUST show the data cut at the proposed size. The counts MUST come from the same
+  windowing and split the data stage uses (feature 014).
+- **FR-032**: The template question MUST show, for each offered template, a drawing of its layers;
+  the parameter question MUST show the drawing for the current values, updated as they change.
+- **FR-033**: The parameter question MUST be a form built from the template's parameter model: a
+  field per value, rows per layer or block that can be added and removed, and presets to start
+  from. A value the model refuses MUST be named at its field before the author can go on.
+- **FR-034**: No board MUST be proposed (review A10).
+- **FR-035**: Going back MUST keep every later answer; an answer that no longer fits the earlier
+  ones is marked to be checked again rather than erased.
 
 **Scope**
 
@@ -279,9 +359,10 @@ validates.
   are a later step; the setup recognises them and says so.
 - **One model per run**: one session writes one manifest (Principle I).
 - **Preprocessing, trainer and export options** beyond what the schema requires are left at their
-  defaults and not asked for. The window size and the split are asked for only where the chosen
-  template has no default for them. An author who wants to change a default edits the file, and the
-  header comment says where the reference is.
+  defaults and not asked for. The window size is asked, with a recommendation from the data
+  (FR-031); the split is left to the default feature 014 derives from the recordings, and the
+  review screen says which it will be. An author who wants to change a default edits the file, and
+  the header comment says where the reference is.
 - **Proposals are proposals**: the type proposed for a column is a heuristic and is labelled as such.
   A CAN identifier that looks like a number but is a code is exactly the case the author is asked
   to confirm (feature 008).
@@ -292,5 +373,9 @@ validates.
   need to produce manifests for earlier versions.
 - **Dependency on governance**: the new verb `init` requires an amendment of Principle XII before
   the feature is released (FR-002).
-- **Later steps on the roadmap**: a full-screen interface as an optional extra (FR-025) and editing
-  an existing manifest (FR-026).
+- **Later steps on the roadmap**: editing an existing manifest (FR-026), a board of one's own
+  (review §3.7), and the honest memory model (review P2), which will replace the lower bounds in
+  the memory panel.
+- **Memory figures are lower bounds**: before a model is built, the setup computes the same weight
+  and working-memory floors `build` checks, from the template's parameters and the input's shape.
+  They are labelled as lower bounds; a pass is not a claim that the model fits (Principle IV).

@@ -114,6 +114,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     subcommands.add_parser("templates", help="list the registered template identifiers")
     subcommands.add_parser("boards", help="list the known board identifiers")
+
+    from caravan.cli import init as init_command
+
+    init_command.add_parser(subcommands)
     return parser
 
 
@@ -129,6 +133,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # stay as light as the package itself.
     from caravan.cli import build as build_command
     from caravan.cli import export as export_command
+    from caravan.cli import init as init_command
     from caravan.cli import listing
     from caravan.cli import quantize as quantize_command
     from caravan.cli import render as render_command
@@ -144,6 +149,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "export": export_command.run,
         "templates": listing.run_templates,
         "boards": listing.run_boards,
+        "init": init_command.run,
     }
     try:
         return handlers[args.command](args)

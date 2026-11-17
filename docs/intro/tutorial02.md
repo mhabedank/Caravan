@@ -42,6 +42,12 @@ curl -L -o data/readings.csv https://mhabedank.github.io/Caravan/_static/data/re
 One row per time step, oldest first, one header row. An empty cell is a missing reading. Your own
 file takes the same shape: Caravan reads it, records its digest, and asks nothing more of it.
 
+:::{tip}
+You can also let {cmd}`caravan init` write the manifest: it reads the columns of your table,
+proposes a type for each with the reason, and asks for the rest. Below it is written by hand, so you
+see every line.
+:::
+
 ## The manifest
 
 ```bash

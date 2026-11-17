@@ -1,7 +1,35 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 4.2.0 → 4.3.0
+Version change: 4.3.0 → 4.4.0
+Bump rationale: MINOR. Principle XII's extras budget is re-grouped, not enlarged: one of its four
+slots is named for authoring, and benchmarking and publication share one. No principle is removed
+or redefined and no gate is loosened. Source: the owner, 2026-11-17 ("TUI jetzt bauen", Textual,
+an "authoring" slot), after the joint review of 2026-11-16 (§3.2) ruled out using the unbuilt
+benchmarking slot quietly.
+
+Why: `caravan init` gets its full-screen interface now, as the optional extra v4.3.0 already
+allowed. But that bullet said "inside the extras budget below", and the budget named its four
+slots by pipeline stage — training, verification, benchmarking, publication — none of which an
+authoring aid is. Two of the four are spent (`train`, `verify`); benchmarking and publication have
+no stage yet. Rather than raise the count, the slots are re-grouped.
+
+Modified principles:
+- XII. Small Core, Few Dependencies: the dependency-budget bullet names the slots as training,
+  verification, authoring, and benchmarking-or-publication; the `init` bullet names the authoring
+  extra as where its richer interface lives.
+
+Added sections: none. Removed sections: none.
+
+Unchanged on purpose: six direct runtime dependencies, four extras, the layering rule, `init`'s
+bounds (the full-screen interface asks the same questions and writes the same file as the line
+dialogue, and the default installation keeps working without it).
+
+Follow-up (not done by this amendment):
+- pyproject.toml gains the `authoring` extra (feature 013).
+- When benchmarking or publication is built and needs an extra, the shared slot is decided then.
+
+Previous report: 4.2.0 → 4.3.0
 Bump rationale: MINOR. Principle XII is materially expanded: it now names the admitted verbs and
 admits one more, `init`, with bounds. No principle is removed or redefined, no gate is loosened,
 and no dependency or extra slot is spent. Source: the owner, 2026-11-16, in the clarification of
@@ -808,15 +836,16 @@ builds models must make that ban structural, not a matter of how each user happe
   - it asks only for what a stage reads (Principles I and VI) and offers only registered templates
     and boards (Principle VII);
   - it runs in the default installation, offline, on every supported Python version, and adds no
-    runtime dependency to it; a richer interface MAY come only as an optional extra, inside the
-    extras budget below;
+    runtime dependency to it; a richer interface MAY come only as an optional extra — the
+    authoring extra of the budget below — and MUST ask the same questions and write the same file;
   - it MUST be usable without a terminal, with every answer given up front, so that it is tested
     like any other verb;
   - it never edits an existing manifest. Editing one while keeping the author's comments and
     layout is a different capability and would need its own amendment.
 - Dependency budget: the default installation MUST have at most six direct runtime dependencies,
-  and the project MUST have at most four optional extras, grouped by stage (training,
-  verification, benchmarking, publication).
+  and the project MUST have at most four optional extras, one per purpose: training,
+  verification, authoring (the full-screen interface of `init`), and one shared by benchmarking and
+  publication.
 - Layering: manifest validation, the board database, footprint analysis, the requirement record,
   run reports and the interface contract MUST NOT import a training framework. Training and
   quantization live behind an optional extra. A test MUST assert that importing the core does not
@@ -1052,4 +1081,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 4.3.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-11-16
+**Version**: 4.4.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-11-17

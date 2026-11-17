@@ -5,8 +5,8 @@
 ```text
 caravan init [<manifest>] [--dataset <path>] [--output <column>] [--output-type <type>]
              [--input <column>=<type>]... [--template <id>] [--params <yaml-flow-mapping>]
-             [--window <records>] [--board <id>]... [--budget <value>] [--name <model-name>]
-             [--overwrite] [--no-input]
+             [--window <records>] [--board <id>]... [--quantization int8|none] [--budget <value>]
+             [--name <model-name>] [--overwrite] [--no-input] [--plain]
 ```
 
 Writes one new manifest. Never edits an existing one (constitution v4.3.0, Principle XII).
@@ -24,10 +24,12 @@ Writes one new manifest. Never edits an existing one (constitution v4.3.0, Princ
 | `--params` | the template's parameters as a YAML flow mapping | e.g. `'{hidden: [32, 16]}'` |
 | `--window` | records per window | only for a template that consumes a window |
 | `--board` | a registered board | repeatable, order kept |
+| `--quantization` | `export.quantization` | `int8` (proposed) or `none`; written only when `none` |
 | `--budget` | the int8 budget of the output | key chosen by output type: `accuracy_drop_max`, `mae_increase_max` or `auc_drop_max` |
 | `--name` | `model.name` | |
 | `--overwrite` | confirms replacing an existing `<manifest>` | skips no check |
 | `--no-input` | ask nothing; take options, then proposals | a missing answer with no proposal is a usage error |
+| `--plain` | the line dialogue even when the `authoring` extra is installed | the full-screen interface starts only with the extra, and with both standard input and output terminals |
 
 No option skips or silences a check (`tests/contract/test_no_skip_option.py` walks this verb too).
 

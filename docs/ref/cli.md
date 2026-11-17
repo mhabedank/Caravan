@@ -17,6 +17,7 @@ No option skips, forces or silences a check. The only thing an option can bypass
 
 | You want to | Run |
 |---|---|
+| Write a first manifest from your data by answering questions | {cmd}`caravan init` |
 | Check a manifest for mistakes, without reading the data | {cmd}`caravan validate` |
 | See the manifest with every default filled in | {cmd}`caravan render` |
 | Find out whether a model fits your boards before training | {cmd}`caravan build` |
@@ -69,6 +70,53 @@ differently.
   output goes to `framework.log` in the run directory.
 
 ## Commands
+
+:::{cli} caravan init
+Writes a first manifest from your data by asking what only you know.
+
+**When you want it.** At the start of a model, instead of copying an example. It reads the
+columns of your data, proposes a type for each with the reason, and asks for the rest: the boards,
+how the weights are stored, the column to predict, the window, the network and its size, and the
+int8 budget. Every question shows its proposal; Enter takes it.
+
+- **What it shows:** beside each question, what the choice means — the columns, the window table
+  (test windows per class and windows lost, from the same windowing and split the data stage
+  uses) with the data cut into windows, a drawing of the network, and the model's flash and RAM
+  lower bounds on each chosen board.
+- **What it writes:** one new manifest, short and commented, that it has checked as
+  `caravan validate` does. Nothing is written until you choose to, and nothing when you stop.
+- **How it looks:** with the `authoring` extra installed and a terminal, a full-screen
+  interface with lists, checkboxes and a form for the network's parameters; otherwise, or with
+  `--plain`, the same questions line by line. An empty line takes the proposal, `<` goes back.
+
+**Arguments.** `<manifest>`: the file to write (optional; proposed from the model's name).
+
+**Options.** Each answers one question, which is then not asked.
+
+- `--dataset <path>`: a directory of `.csv`, `.tsv` or `.txt` files with a header row, or one file.
+- `--board <id>`: a board the model must fit; repeat for several. None is proposed.
+- `--quantization <int8|none>`: `int8` (proposed) or `none`, float32 for comparison.
+- `--output <column>`, `--output-type <type>`: the column to predict and its kind.
+- `--normal-label <value>`: for an `anomaly` output whose normal value is not `normal`.
+- `--input <column>=<type>`: change one input's type, or `<column>=-` to leave it out; repeat.
+- `--window <rows>`: rows per window.
+- `--template <id>`, `--params <mapping>`: the network and its parameters as a YAML flow
+  mapping, such as `'{hidden: [32, 16]}'`.
+- `--budget <value>`: the output's int8 budget.
+- `--name <model-name>`: `model.name`.
+- `--overwrite`: confirms replacing an existing `<manifest>`; checks nothing less.
+- `--no-input`: ask nothing; take the options, then the proposals. A question with neither is a
+  usage error naming its option.
+- `--plain`: the line dialogue, even with the `authoring` extra.
+
+**Reads.** The data (a sample of 50,000 rows for the proposals; the output column in full for the
+window table), the template registry and the board descriptions.
+
+**Writes.** The manifest, and nothing else: no run directory, cache or report.
+
+**Exit codes.** `0` written and valid; `1` with `--no-input`, the answers make a manifest
+`validate` refuses (nothing written); `2` usage, unreadable data, or stopped; `3` a defect.
+:::
 
 :::{cli} caravan validate
 Checks one manifest without reading the data.

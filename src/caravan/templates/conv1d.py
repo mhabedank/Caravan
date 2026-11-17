@@ -21,8 +21,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from caravan.templates.registry import TemplateParameterSpec
-from caravan.templates.sequence import smallest_window, walk
+from caravan.targets.fit import LayerRecord
+from caravan.templates.registry import TemplateParameterSpec, TemplateStarter
+from caravan.templates.sequence import length_after_conv, length_after_pool, smallest_window, walk
 
 #: What a head does to the convolved sequence. Named for the operation rather than for the layer
 #: type a framework calls it, so the schema survives a change of builder.
@@ -105,10 +106,66 @@ def window_fit(params: BaseModel, window: int) -> tuple[str, tuple[str, ...]] | 
     return problem, tuple(alternatives)
 
 
+def layers(params: BaseModel, steps: int, channels: int) -> tuple[list[object], int]:
+    """Convolutions, pooling and the head's pooling as ``builders/conv1d.py`` makes them."""
+    assert isinstance(params, Conv1dParameters)
+    records: list[object] = []
+    length, depth = steps, channels
+    for position, block in enumerate(params.blocks, start=1):
+        after = length_after_conv(
+            length, kernel=block.kernel, stride=block.stride, padding=block.padding
+        )
+        if not after:
+            return records, length * depth
+        records.append(
+            LayerRecord(
+                kind="conv",
+                name=f"conv_{position}",
+                kernel_elements=block.kernel * depth * block.filters,
+                bias_elements=block.filters,
+                input_elements=length * depth,
+                output_elements=int(after) * block.filters,
+            )
+        )
+        length, depth = int(after), block.filters
+        if block.pool:
+            pooled = length_after_pool(length, block.pool)
+            if not pooled:
+                return records, length * depth
+            records.append(
+                LayerRecord(
+                    kind="pooling",
+                    name=f"pool_{position}",
+                    input_elements=length * depth,
+                    output_elements=int(pooled) * depth,
+                )
+            )
+            length = int(pooled)
+    if params.head == "average":
+        records.append(
+            LayerRecord(
+                kind="pooling",
+                name="pool_head",
+                input_elements=length * depth,
+                output_elements=depth,
+            )
+        )
+        return records, depth
+    return records, length * depth
+
+
 SPEC = TemplateParameterSpec(
     identifier="conv1d",
     parameters=Conv1dParameters,
     consumes_window=True,
     summary="Convolutional decider over a window of samples; blocks of filters and a pooling head",
     window_fit=window_fit,
+    layers=layers,
+    # Built so window_fit passes at 64 (feature 013, research R7).
+    starter=TemplateStarter(
+        params={"blocks": [{"filters": 16, "kernel": 5, "pool": 2}, {"filters": 32, "kernel": 3}]},
+        window=64,
+        rank=1,
+        note="filters slide along time: finds a shape wherever it falls in the window",
+    ),
 )

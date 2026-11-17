@@ -86,3 +86,67 @@ def dump_mapping(data: dict[str, Any]) -> str:
     stream = io.StringIO()
     yaml.dump(data, stream)
     return stream.getvalue()
+
+
+def read_flow_mapping(text: str) -> dict[str, Any]:
+    """A mapping from one line of YAML flow syntax, for ``caravan init --params`` (feature 013).
+
+    Raises ``ValueError`` with the parser's problem when the text is not a mapping.
+    """
+    try:
+        data = _reader().load(text)
+    except YAMLError as exc:
+        problem = getattr(exc, "problem", None) or "not valid YAML"
+        raise ValueError(f"not a YAML flow mapping: {problem}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("not a YAML flow mapping such as '{hidden: [32, 16]}'")
+    return data
+
+
+def flow(value: Any) -> Any:
+    """``value`` marked to be written on one line: ``{name: b0, type: number}``, ``[32, 16]``."""
+    from ruamel.yaml.comments import CommentedMap, CommentedSeq
+
+    if isinstance(value, dict):
+        out: Any = CommentedMap(value)
+    elif isinstance(value, list | tuple):
+        out = CommentedSeq(value)
+    else:
+        return value
+    out.fa.set_flow_style()
+    return out
+
+
+def dump_commented(
+    sections: list[tuple[str, Any, list[str]]], header: list[str] | None = None
+) -> str:
+    """A document of top-level sections, each with comment lines above it (feature 013, R9).
+
+    ``sections`` are ``(key, value, comment lines)`` in the order to write; values may contain
+    ``flow(...)`` parts. Sections after the first are preceded by one blank line; the header
+    comment opens the document. Deterministic: the same input gives the same text.
+    """
+    from ruamel.yaml.comments import CommentedMap
+    from ruamel.yaml.error import CommentMark
+    from ruamel.yaml.tokens import CommentToken
+
+    def block(lines: list[str]) -> list[CommentToken]:
+        text = "".join(f"# {line}\n" if line else "\n" for line in lines)
+        return [CommentToken(text, CommentMark(0), None)]
+
+    document = CommentedMap()
+    for key, value, _ in sections:
+        document[key] = value
+    for position, (key, _, comments) in enumerate(sections):
+        if position == 0:
+            lines = [*(header or []), *comments]
+            if lines:
+                document.ca.comment = [None, block(lines)]
+            continue
+        document.ca.items.setdefault(key, [None, None, None, None])[1] = block(["", *comments])
+    yaml = YAML()
+    yaml.width = 100
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    stream = io.StringIO()
+    yaml.dump(document, stream)
+    return stream.getvalue()
