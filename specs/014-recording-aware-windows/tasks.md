@@ -262,9 +262,43 @@ row shared across parts.
 - [X] T033 Add a valid fixture manifest `tests/fixtures/manifests/valid/recordings-conv1d.yaml` on
   `recordings/` (window 64, stride 16, derived split) and run quickstart step 7 end to end on the
   `train` extra; record the console block and the contract in "Status at close" below.
-- [ ] T034 Run `pytest -q` and `pytest tests/layering -q` on Python 3.13 and 3.15 in a default
+- [X] T034 Run `pytest -q` and `pytest tests/layering -q` on Python 3.13 and 3.15 in a default
   installation, and the full suite with the `train` extra on 3.13; record the results and the
   measured SC-001–SC-005 figures below.
+
+
+## Status at close (2026-11-17)
+
+**Tests**
+
+| Run | Result |
+|-----|--------|
+| `pytest -q`, Python 3.13, default installation | 806 passed, 10 skipped |
+| `pytest -q`, Python 3.15, default installation | 806 passed, 10 skipped |
+| `pytest tests/layering -q`, 3.13 and 3.15 | 28 passed each |
+| `pytest tests/train`, Python 3.13 with the `train` extra | 243 passed |
+| CI on the pull request (lint, core, train) | green |
+
+The train suite first failed twice in CI: a hand-written resolved manifest lacked the new resolved
+fields, and the number-output test checked one made-up input whose prediction moved with the new
+blocked split. The first now states the fields; the second reads the recorded windows back and
+checks the mean miss against the labels' spread.
+
+**Measured outcomes** (fixtures under `tests/fixtures/datasets/`)
+
+| Criterion | Target | Measured |
+|-----------|--------|----------|
+| SC-001 | ≥ 90% of possible windows of a continuous number (`soc`, window 32, `last`) | 62 of 62 (100%) |
+| SC-002 | ≥ 1 burst-class window per burst (`bursts`, window 64, `{any: dos}`) | 20 of 20 bursts |
+| SC-003 | 0 windows across two files (`recordings`, window 64) | 0 of 27 |
+| SC-004 | ≤ 1 in 10 test windows beside a training window (review example) | random: 13 of 15; derived (blocked): 0 of 8 |
+| SC-005 | ≥ 3.5× the windows at a quarter-window step, 0 shared rows | 47 → 177 (3.77×); split by recording, 0 shared rows |
+| SC-006 | every affected manifest edited and valid | 53 manifests moved to `caravan/v0.3`; all validate |
+| SC-007 | drops and assignment readable from the report | `windows_dropped` and `split_plan` in `data/schema.json`, one console line |
+
+The end-to-end export of `tests/fixtures/manifests/valid/recordings-conv1d.yaml` (T033) derived a
+split by recording, passed the accuracy gate and wrote contract version 4; its figures are the
+example in `contracts/reports.md`.
 
 ---
 
