@@ -112,9 +112,7 @@ def _also_plain(annotation: typing.Any) -> bool:
     """A union that may also be a plain value, not only a model: ``"last" | {any: dos}``."""
     if typing.get_origin(annotation) not in (typing.Union, types.UnionType):
         return False
-    return any(
-        arg is not type(None) and not _models(arg) for arg in typing.get_args(annotation)
-    )
+    return any(arg is not type(None) and not _models(arg) for arg in typing.get_args(annotation))
 
 
 def field_paths(model: type[BaseModel], prefix: str = "") -> set[str]:

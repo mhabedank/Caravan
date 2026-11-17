@@ -28,7 +28,8 @@ def test_the_report_names_the_window_the_recordings_the_drops_and_the_split() ->
     assert set(report["windows_dropped"]) == {"mixed", "tied", "mixed_split", "purged"}
     plan = report["split_plan"]
     assert plan["type"] == "recording" and plan["derived"] is True
-    assert sorted(sum(plan["assignment"].values(), [])) == [f"f{i}.csv" for i in range(6)]
+    assigned = [name for names in plan["assignment"].values() for name in names]
+    assert sorted(assigned) == [f"f{i}.csv" for i in range(6)]
     assert abs(sum(plan["shares"].values()) - 1) < 1e-3
 
 
