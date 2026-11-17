@@ -315,7 +315,7 @@ columns listed; change one value by hand and it still validates.
 - [X] T026 Run `pytest -q` and `pytest tests/layering -q` in a default installation on Python 3.13
   and 3.15; run quickstart.md steps 1–7 by hand and record the results, including the measured
   profiling time on a million rows, in a "Status at close" section at the end of this file.
-- [ ] T027 Mark the spec's checklist and the PR description up to date: what is in, what is
+- [X] T027 Mark the spec's checklist and the PR description up to date: what is in, what is
   deliberately not (image inputs, editing, a board of one's own, the honest memory model), and the measured SC-001/SC-005
   figures.
 
@@ -365,6 +365,7 @@ do not fit are offered as unavailable.
 | `tests/unit tests/contract tests/integration tests/layering tests/tui`, Python 3.15 | 902 passed, 11 skipped |
 | `tests/tui` with the `authoring` extra (Textual 8.2.8) | 4 passed |
 | `tests/train/test_init_memory_matches_build.py` with the `train` extra | 5 passed |
+| CI on the pull request (lint, core 3.13–3.15, verify, train, authoring) | green |
 
 **Measured**: profiling 1,000,000 rows takes 0.08 s from a 50,000-row sample (SC-005, target
 5 s). Accepting every proposal on the synthetic data with one board takes 13 answers in the dialogue,
