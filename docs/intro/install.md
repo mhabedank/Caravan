@@ -46,3 +46,10 @@ caravan-ml 0.1.0rc5
 
 That is Caravan installed, with the training and verification parts. Go on to
 [part 1 of the tutorial](tutorial01.md).
+
+## The full-screen setup, optionally
+
+{cmd}`caravan init` asks its questions line by line in any installation. With the `authoring`
+extra it opens a full-screen interface instead, with lists, checkboxes and a form for the network.
+Add `authoring` to the extras in the brackets of the install line (`[train,verify,authoring]`).
+

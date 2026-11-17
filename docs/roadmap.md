@@ -38,6 +38,11 @@ YAML like the zoo's.
 | The documentation site; test windows in the export (`export.test_windows`); the first exported model on a microcontroller, with its part of the tutorial and a firmware build before every release | v0.1 | **in progress** | the owner's goal for rc3, 2026-10-26 |
 | The site rebuilt around a reader's first steps: a landing page, a four-part tutorial, topic guides that explain the choices, a reference that says what each setting is for, and a browser audit of every page | v0.1 | **in progress** | the owner, 2026-10-27 |
 | The documentation organised like Django's: a contents page, the four documentation types, every field, command, rule and board an entry that running text links to, and a glossary | v0.1 | **in progress** | the owner, 2026-10-29 |
+| Windows that know their recordings: windows inside each file, a split by recording or block by default, overlapping windows, a label rule per window; manifest `caravan/v0.3` | v0.1 | **delivered** in 0.1.0rc5 | the joint review of 2026-11-16 |
+| `caravan init`: a first manifest from the data by answering questions, line by line in the default installation and full screen with the `authoring` extra; the window table, a drawing of the network and memory per board beside the questions | v0.1 | **in progress** | the owner, 2026-11-16 and 2026-11-17 |
+| Editing an existing manifest with `caravan init`, keeping its comments and layout | v0.1 | planned | the owner, 2026-11-16; needs its own amendment |
+| A board of one's own, described next to the manifest | v0.1 | planned | the joint review of 2026-11-16 |
+| Usable RAM, the largest contiguous block and an arena estimate per board, in place of whole-chip figures | v0.1 | planned | the joint review of 2026-11-16; replaces the lower bounds `init` shows |
 
 **The goal for rc3, 2026-10-26.** In the owner's words: complete documentation, "eine kleine
 Landingpage, dann Dokumentation der Schnittstelle, also wie funktioniert die CLI, wie funktioniert

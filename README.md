@@ -108,6 +108,7 @@ condition that closes the window.
 ## Use
 
 ```bash
+caravan init                       # write a first manifest by answering questions
 caravan validate manifest.yaml     # is this manifest sound?
 caravan render   manifest.yaml     # what will the pipeline actually use?
 caravan build    manifest.yaml     # what model does it describe, and does it fit the boards?
