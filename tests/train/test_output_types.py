@@ -7,6 +7,7 @@ same question, and ``payload_mean`` is a number each window's records agree on.
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -162,14 +163,25 @@ def test_the_exported_number_is_float32_in_the_columns_unit_and_clipped(number_r
         model_path=str(number_run / "model" / "model.tflite")
     ).get_signature_runner()
     window = contract["window_size"]
-    ordinary = {
-        "can_id": np.full((1, window), 291, np.int32),
-        "dlc": np.full((1, window), 8.0, np.float32),
-        **{name: np.full((1, window), 60.0, np.float32) for name in ("b0", "b1", "b2")},
-    }
-    value = float(runner(**ordinary)["payload_mean"][0, 0])
-    assert 20.0 < value < 120.0  # in the column's unit, near the mean it was trained on
-    extreme = {**ordinary, **{name: np.full((1, window), -1e4, np.float32) for name in ("b0",)}}
+    # The recorded windows, read back: a prediction in the column's unit lands within the labels'
+    # spread of the truth; one left in standard units (about 0) would miss by about 110.
+    # A made-up input says less: which part the blocked split trains on decides what it predicts.
+    rows = list(csv.DictReader((number_run.parents[1] / "data" / "records.csv").open()))
+    misses, labels = [], []
+    for start in range(0, len(rows) - window + 1, window):
+        records = rows[start : start + window]
+        inputs = {
+            "can_id": np.array([[int(r["can_id"]) for r in records]], np.int32),
+            **{
+                name: np.array([[float(r[name]) for r in records]], np.float32)
+                for name in ("dlc", "b0", "b1", "b2")
+            },
+        }
+        truth = float(records[-1]["payload_mean"])
+        labels.append(truth)
+        misses.append(abs(float(runner(**inputs)["payload_mean"][0, 0]) - truth))
+    assert np.mean(misses) < np.std(labels) < np.mean(labels)
+    extreme = {**inputs, **{name: np.full((1, window), -1e4, np.float32) for name in ("b0",)}}
     clipped = float(runner(**extreme)["payload_mean"][0, 0])
     assert 0.0 <= clipped <= 255.0
 

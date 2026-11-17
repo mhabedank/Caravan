@@ -185,7 +185,14 @@ def test_a_reused_data_stage_reads_no_records(tmp_path) -> None:
         "output_features": [
             {"name": "label", "type": "category", "preprocessing": {"vocab": DERIVED}}
         ],
-        "preprocessing": {"window_size": 64, "split": STRATIFY},
+        # As the pipeline resolves it: the stride, label rule and recording column stated.
+        "preprocessing": {
+            "window_size": 64,
+            "window_stride": 64,
+            "window_label": "all_equal",
+            "recording_column": None,
+            "split": STRATIFY,
+        },
         "random_seed": 42,
     }
     cache = tmp_path / "cache"

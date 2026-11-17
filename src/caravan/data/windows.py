@@ -904,9 +904,13 @@ def split_for(
         )
     probabilities = [float(value) for value in spec["probabilities"]]  # type: ignore[attr-defined]
     fractions = dict(zip(SPLIT_NAMES, probabilities, strict=True))
-    derived = kind == "derived"
-    if derived:
+    if kind == "derived":
         kind = derive_split_type(plan)
+        derived = True
+    else:
+        # A later stage reads the run's resolved manifest, where the data stage already wrote the
+        # type it decided and marked it derived; the report says so in every stage alike.
+        derived = spec.get("derived") is True  # type: ignore[union-attr]
     if kind == "recording":
         keys = [plan.recordings[index].name for index in plan.recording_of]
         return _group_split(
