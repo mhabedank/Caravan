@@ -215,7 +215,8 @@ is untouched — this is a proposal shown in a dialogue, not a value resolved wh
 
 | Answer | Proposal | Shown as |
 |---|---|---|
-| boards | the registered board with the least RAM | "the strictest: a model that fits it fits the others too" (when that holds for flash as well; otherwise no proposal) |
+| boards | none (amended 2026-11-17, review A10): the author picks; at least one is required | the board's RAM and flash, with their sources |
+| quantization | `int8` | `none` is offered as "float32, for comparison"; `float16` is not offered (review §3.5) |
 | `accuracy_drop_max` | 0.02 | "the value `examples/picket-mlp.yaml` uses — not a recommendation for your model" |
 | `auc_drop_max` | 0.05 | same, from `examples/anomaly-autoencoder.yaml` |
 | `mae_increase_max` | none | in the column's unit; nothing to copy from an example |
@@ -280,3 +281,65 @@ budget).
 
 **Alternatives considered**: *write the invalid file and exit 1* — leaves the author with a broken
 file, which is what they came to `init` to avoid.
+
+---
+
+## R11. The full-screen interface: Textual, behind the `authoring` extra
+
+**Decision**: The full-screen interface is a Textual application in `caravan/tui/`, installed by the
+extra `authoring = ["textual>=…"]` (constitution v4.4.0). It drives the same `Session` as the line
+dialogue: it asks the session for the current question, shows its choices as a list (one answer:
+radio-style; several: checkboxes) or a form, and hands the chosen answer back. The side panel shows
+what the question's `explain` returns — columns, window table and strip, drawing, memory — so the
+interface holds no knowledge the line dialogue lacks. `caravan init` starts it when Textual imports
+and both standard input and output are terminals, unless `--plain`.
+
+**Rationale**: Textual has lists, selection lists, inputs, scrolling panes and a test pilot that
+presses keys without a terminal, so US4's byte-identity test runs in CI. It is pure Python and runs
+on 3.13–3.15. One engine, two front ends, keeps FR-025's "same questions, same file" true by
+construction.
+
+**Alternatives considered**: *prompt_toolkit* — fine for single prompts; side-by-side panes and
+forms are much more work (owner's choice, 2026-11-17). *curses* — no Windows, no test pilot.
+
+## R12. The window recommendation
+
+**Decision**: Candidates are 4, 8, 16, 32, 64 and 128 rows, those that fit the data and the
+template's `window_fit`. For each, the data stage's own planner (`plan_windows` with the recordings
+and the label rule of feature 014, and the derived split) gives the windows per class in the test
+part and the windows lost to mixed labels. The proposal is the largest candidate that loses at most
+5 % of its windows and keeps at least 5 test windows of every class; when none does, the candidate
+that loses the fewest. The reason names the measure ("label stays the same for at least 32 rows in
+your data, so up to 32 rows almost nothing is lost"). The strip shows about 70 rows around the
+first change of label, cut into windows, each with the label it learns (`✗` for a lost window).
+
+**Rationale**: the review (§3.3) asked for test counts, not all-split counts, because the test part
+decides how finely the int8 gate can measure; using the planner itself means the table cannot
+disagree with what `build` later does. Without a sample period the proposal is a data-availability
+guess and says so.
+
+## R13. Memory before building
+
+**Decision**: From the inputs, the window, the template and its parameters, `caravan/init/memory.py`
+produces the `LayerRecord`s the built model would have — the frontend's channels (1 per number or
+binary column, the embedding cap per category column), then the template's layers as its builder
+makes them — and passes them to `targets.fit.floors` and `verdicts`, the functions `build` uses. The
+output layer's width is the number of classes the data shows. The panel prints, per board, flash and
+RAM floors against the board's figure with a bar, `✗` where a floor exceeds it, and the line
+"lower bounds, estimated before building; build checks them again".
+
+**Rationale**: the same floors as `build` (Principle IV: one labelled number, not two methods); no
+framework needed. A test builds every starter with the training extra and checks the estimate equals
+`build`'s floors (train suite).
+
+## R14. The parameter form
+
+**Decision**: The form is generated from the template's pydantic model: an `int`/`float` field is a
+number input with its bounds; a `Literal` is a choice; a `bool` a checkbox; an optional value has an
+"unset" choice; a `list[int]` is one row per entry; a `list[<model>]` is one row per block with a
+field per value. Rows are added (copy of the last) and removed (never below the minimum length).
+Presets are the template's starter and two scaled variants (half and double the widths/filters).
+Every change revalidates the whole model and shows the first error at its field. The line dialogue
+asks the same fields one by one, with `+`/`-` to add or remove a row.
+
+**Rationale**: FR-033; works for third-party templates without code in `init` (Principle VII).

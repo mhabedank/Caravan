@@ -10,7 +10,8 @@ success criteria (SC-002, SC-006, FR-020) are only provable by tests. Each story
 first and fail before its implementation.
 
 **Organization**: by user story — US1 (P1) a valid manifest from the data, US2 (P2) a short,
-readable file, US3 (P3) the same without questions.
+readable file, US3 (P3) the same without questions, US4 (P2) the full-screen interface. Amended
+2026-11-17: the mock-up's choices (FR-027–FR-035) are Phase 6, the full-screen interface Phase 7.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -112,8 +113,9 @@ manifest that `caravan validate` accepts.
   input (CF-11); templates offered are only those with `output_type in spec.output_types`, ordered by
   `starter.rank` then identifier, and the proposal is the first; a `--params` mapping the template
   rejects is refused with the template's message; the window proposal is the starter's, raised to
-  the smallest window `window_fit` accepts; boards are registered identifiers without repeats and the
-  proposal is the board with the least RAM when it also has the least flash (`s32k144` today); the
+  the smallest window `window_fit` accepts; boards are registered identifiers without repeats,
+  there is no board proposal (FR-034) and at least one board is required; the quantization proposal
+  is `int8` and only `int8` and `none` are offered (FR-029); the
   budget key follows `BUDGET_KEYS` with proposals 0.02 (`accuracy_drop_max`), 0.05 (`auc_drop_max`)
   and none for `mae_increase_max`; the name proposal is `<dataset directory>-<template>` normalised
   to the model name form; `version` is `0.1.0` and `representative_samples` 100.
@@ -148,7 +150,8 @@ manifest that `caravan validate` accepts.
   refusal message in the words `caravan validate` would use. Templates and boards come only from
   `default_registry()` of each registry (FR-010). Makes T010 pass.
 - [ ] T014 [US1] Implement `src/caravan/init/session.py` for the dialogue mode: the question order
-  of data-model.md ("Asked" column), each question printed to standard error with its proposal and,
+  of FR-027 (data → boards → quantization → output → output type → inputs → window → template →
+  parameters → budget → name → file → review), each question printed to standard error with its proposal and,
   for columns, one line per column with its proposed type and reason; an empty line accepts; `<` pops
   the history; the inputs question takes one line of edits like `dlc=number, b2=-` or empty to accept
   all; the boards question lists every board with its RAM and flash as `caravan boards` prints them;
@@ -249,7 +252,53 @@ columns listed; change one value by hand and it still validates.
 
 ---
 
-## Phase 6: Polish & Cross-Cutting
+## Phase 6: The mock-up's choices (FR-027–FR-035)
+
+- [ ] T028 [P] Write `tests/unit/test_init_windows.py` and implement `src/caravan/init/windows.py`
+  (research R12): candidates 4–128 that fit; per candidate the test-part windows per class and the
+  windows lost, taken from `plan_windows`/`split_for` (feature 014) so they equal the data stage's;
+  the proposal rule and its reason; a strip of about 70 rows around the first label change.
+- [ ] T029 [P] Write `tests/unit/test_init_memory.py` and implement `src/caravan/init/memory.py`
+  (research R13): layer records for mlp, conv1d, conv2d and autoencoder from inputs, window and
+  parameters; floors and verdicts through `targets.fit`; a panel of text lines per board with bars,
+  `✗` where a floor exceeds, and the lower-bound label. Add
+  `tests/train/test_init_memory_matches_build.py`: for every starter, the estimate equals `build`'s
+  floors.
+- [ ] T030 [P] Implement `src/caravan/init/drawing.py`: the layers of each template as text boxes
+  with their sizes, from the parameters (FR-032); a test checks every starter draws and a change of
+  a width shows in the drawing.
+- [ ] T031 [P] Write `tests/unit/test_init_form.py` and implement `src/caravan/init/form.py`
+  (research R14): a form from any template's parameter model; rows added and removed within the
+  model's bounds; presets (starter, half, double); a refused value named at its field.
+- [ ] T032 Wire T028–T031 into the session: every question carries `choices` (value, label,
+  detail, marked proposal), `multiple` for checkboxes, and `explain()` returning the side-panel
+  sections (columns, window table and strip, drawing, memory, the manifest so far); going back keeps
+  later answers and marks those that no longer fit (FR-035). The line dialogue prints the same
+  choices numbered, the explain sections after them, and asks the form field by field.
+
+---
+
+## Phase 7: User Story 4 — The full-screen interface (P2)
+
+- [ ] T033 Add the extra `authoring = ["textual>=…"]` to `pyproject.toml` with the comment
+  Principle XII asks for (purpose, weight, Python window); the layering test asserts the core never
+  imports `caravan.tui` or `textual`.
+- [ ] T034 Implement `src/caravan/tui/app.py`: a Textual app over the session — header with the step,
+  left the answers so far and the question with its choices (`OptionList` for one, `SelectionList`
+  for several, inputs for numbers and names, the parameter form), right the explain sections in a
+  scrolling pane, a footer of keys (↑↓ move, Enter choose, Esc back, q quit); nothing written before
+  the review is confirmed.
+- [ ] T035 In `src/caravan/cli/init.py`, start the app when `caravan.tui` imports and both standard
+  input and output are terminals, unless `--plain` or `--no-input`; otherwise the line dialogue, with
+  one line naming the extra when it is missing in a terminal.
+- [ ] T036 Write `tests/tui/test_init_tui.py` (skipped without textual): drive the app with the pilot
+  to accept every proposal on the synthetic data with `label` and s32k144; the file equals
+  `--no-input`'s byte for byte; adding a layer in the form changes the memory panel; Esc goes back
+  and keeps the answer. Add a CI step that installs the `authoring` extra and runs `tests/tui`.
+
+---
+
+## Phase 8: Polish & Cross-Cutting
 
 - [ ] T023 [P] Add `caravan init` to `docs/ref/cli.md`: a row in "By task" ("Write a first manifest
   from your data, by answering questions"), an entry under "Commands" declared like the others with
@@ -260,14 +309,14 @@ columns listed; change one value by hand and it still validates.
   first written: the reader may instead run `caravan init` and compare its file with the one the
   tutorial builds; keep every `# step:` block of the tutorial unchanged so its CI run is unaffected.
 - [ ] T025 [P] Update `docs/roadmap.md` per its own rules (append, never rewrite `planned`): a row
-  for `caravan init` (feature 013, constitution v4.3.0), and two rows for the owner's later steps of
-  2026-11-16 — a full-screen interface as an optional extra, and editing an existing manifest (needs
-  its own amendment).
+  for `caravan init` with its full-screen interface (feature 013, constitution v4.3.0 and v4.4.0),
+  and rows for the later steps — editing an existing manifest (needs its own amendment), a board of
+  one's own, the honest memory model (review P2).
 - [ ] T026 Run `pytest -q` and `pytest tests/layering -q` in a default installation on Python 3.13
   and 3.15; run quickstart.md steps 1–7 by hand and record the results, including the measured
   profiling time on a million rows, in a "Status at close" section at the end of this file.
 - [ ] T027 Mark the spec's checklist and the PR description up to date: what is in, what is
-  deliberately not (image inputs, editing, the full-screen extra), and the measured SC-001/SC-005
+  deliberately not (image inputs, editing, a board of one's own, the honest memory model), and the measured SC-001/SC-005
   figures.
 
 ---
