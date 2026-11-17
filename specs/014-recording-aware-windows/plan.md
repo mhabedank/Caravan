@@ -64,10 +64,10 @@ the change note, glossary entries for recording and window.
 | X. Real models | Justified by documented application classes (battery state of charge, CAN intrusion) that the current code cannot serve. | Pass |
 | XI. No Claude in learning | Untouched. | N/A |
 | XII. Small core | Standard library only in the core; no new dependency; no new verb. | Pass |
-| Workflow | One pull request per feature is the rule; this session can push only to its assigned branch, so 013 and 014 share [mhabedank/Caravan#26](https://github.com/mhabedank/Caravan/pull/26) until the owner allows a branch of its own. | Deviation, recorded |
+| Workflow (Resources & Cost Discipline) | The rule: "one pull request per feature, opened when its implementation is built and the local validation … has passed. Spec, plan, tasks and analysis are committed and pushed to the feature branch without a pull request"; specs "ride with the feature they belong to, or several are merged in one pull request". [mhabedank/Caravan#26](https://github.com/mhabedank/Caravan/pull/26) was opened as a draft at the spec stage of 013. Resolution (owner's delegation, 2026-11-17): #26 stays a draft and becomes the pull request of 014's implementation; 013's spec, plan, tasks and the joint review ride with it. It holds documentation only until then, so it starts no CI job, which is what the rule protects. It is marked ready for review only once 014 is built and validated locally. | Deviation, recorded below |
 
-**Post-design re-check**: unchanged. The only recorded deviation is the shared pull request, which is
-a constraint of this session, not of the design.
+**Post-design re-check**: unchanged. The only recorded deviation is the timing of the pull request,
+which is a matter of process, not of the design.
 
 ## Project Structure
 
@@ -126,4 +126,4 @@ with the reader only reporting boundaries. No module moves.
 
 | Deviation | Why needed | Simpler alternative rejected because |
 |---|---|---|
-| 013 and 014 share one pull request | the session may push only to its assigned branch | a second branch needs the owner's explicit permission; the owner can split it at any time |
+| #26 opened before the implementation was built | this session's tooling opens a draft pull request on the first push; the session may push only to its assigned branch | closing #26 and reopening later would leave the specs without a pull request while the tooling requires one; a draft with documentation only costs no CI minutes. #26 becomes 014's implementation PR (013's documents ride with it, which the rule allows) and leaves draft only after local validation |

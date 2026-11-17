@@ -32,13 +32,13 @@ preprocessing:
 
 | Rule | When |
 |---|---|
-| CF-20 | `window_stride` < 1 or > `window_size`, or set without `window_size` |
+| CF-20 | `window_stride`, `window_label` or `recording_column` set without `window_size`; `window_stride` < 1 or > `window_size` |
 | CF-21 | `window_stride` < `window_size` with `random` or `stratify` |
-| CF-22 | `window_label` not applicable to the output type (`mean` only for `number`; `majority`, `{any}` not for `number`); `window_label` or `recording_column` without a window |
+| CF-22 | `window_label` not applicable to the output type (`mean` only for `number`; `majority`, `{any}` not for `number`) |
 | CF-23 | `recording_column` equals an input, the output or `split.column`; `group` without `split.column` |
 | CF-13 | (unchanged) `stratify` names another column or a `number` output |
 | DS-18 | `recording`/`group` with fewer groups than parts (3) |
-| DS-19 | no assignment of groups gives every part every class |
+| DS-19 | no assignment gives every part every class (`recording`/`group` after retries; `blocked` when a class's stretches yield fewer blocks than parts) |
 | DS-20 | `{any: v}` and `v` never occurs in the output column; `recording_column` missing from a file |
 
 Notice (not a finding, exit code unchanged): `random` or `stratify` with a window — "neighbouring

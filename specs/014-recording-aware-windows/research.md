@@ -151,12 +151,12 @@ rather than dependent on the split type.
 
 | Rule | Checked by | Refuses |
 |---|---|---|
-| CF-20 | validate | `window_stride` outside 1 … `window_size`, or set without a window |
+| CF-20 | validate | `window_stride`, `window_label` or `recording_column` set without a window; `window_stride` outside 1 … `window_size` |
 | CF-21 | validate | `window_stride < window_size` with `random` or `stratify` |
-| CF-22 | validate | a `window_label` that does not apply to the output type; any of the three new fields without a window |
+| CF-22 | validate | a `window_label` that does not apply to the output type |
 | CF-23 | validate | `recording_column` that is an input, the output or the split column; `group` without `split.column` |
 | DS-18 | data | fewer groups than parts for `recording`/`group` |
-| DS-19 | data | no group assignment gives every part every class (after the retries of R4) |
+| DS-19 | data | no assignment gives every part every class: for `recording`/`group` after the retries of R4; for `blocked` when a class's stretches yield fewer blocks than parts |
 | DS-20 | data | `{any: v}` where the output column never contains `v`; the recording column missing from a file |
 
 A random or stratified split with a window is accepted with a notice (FR-012), printed by `validate`

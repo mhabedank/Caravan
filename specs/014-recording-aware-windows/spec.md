@@ -143,7 +143,8 @@ default; a fixture with 20-row bursts every 200 rows keeps windows of the burst 
 4. **Given** the rule "majority", **When** a window's labels are tied, **Then** the window is dropped
    and counted as tied.
 5. **Given** the rule "this value anywhere" with a named value, **When** a window contains that value
-   in any row, **Then** the window takes that value; otherwise it is treated as by the default rule.
+   in any row, **Then** the window takes that value; otherwise it is treated as by *all equal* (a
+   window whose label changes is dropped).
 6. **Given** a named value the output column never contains, **When** the run reads the data,
    **Then** it refuses and lists the values the column does contain.
 7. **Given** any rule, **When** the export is written, **Then** the interface contract states the
@@ -232,8 +233,9 @@ four times as many windows as with step 64, and no row is shared between windows
 
 - **FR-009**: A split *by recording* MUST place every recording's windows in exactly one part; a
   split *by column* MUST place all rows sharing the column's value in one part.
-- **FR-010**: A *blocked* split MUST place contiguous stretches of windows in the parts and MUST
-  leave out windows that touch or overlap a window of another part, counting them.
+- **FR-010**: A *blocked* split MUST form its blocks from contiguous stretches of windows within one
+  recording and MUST assign whole blocks to the parts; a class whose windows cannot reach every part
+  MUST be refused with per-class counts, as for FR-013.
 - **FR-011**: For a manifest with a window and no stated split, the split MUST be *by recording* when
   the data has at least as many recordings as parts, and *blocked* otherwise.
 - **FR-012**: A random or stratified split over windows MUST remain available when named, and
@@ -250,8 +252,8 @@ four times as many windows as with step 64, and no row is shared between windows
 - **FR-016**: A manifest MAY state a training step between 1 and the window size; without one, the
   step MUST equal the window (no overlap).
 - **FR-017**: A step smaller than the window MUST be refused with a random or stratified split.
-- **FR-018**: No window in one part MAY share a row with a window in another part; windows that would
-  MUST be left out and counted.
+- **FR-018**: Under every split type, no window in one part MAY share a row with, or directly adjoin,
+  a window of another part in the same recording; windows that would MUST be left out and counted.
 
 **Contract and compatibility**
 
@@ -276,6 +278,10 @@ four times as many windows as with step 64, and no row is shared between windows
   dropped.
 - **Group**: the unit a split assigns to a part — a recording, a value of a named column, or a block.
 - **Part**: training, validation or test.
+
+The training step is written `window_stride` in the manifest, beside `window_size`, and
+`training_stride` in the exported interface contract, where it must not be mistaken for the step a
+device reads with (plan, research R2).
 
 ## Success Criteria *(mandatory)*
 

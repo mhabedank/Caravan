@@ -62,10 +62,10 @@ core matrix (no framework); the end-to-end export needs the `train` extra.
   `src/caravan/manifest/errors.py` with the meanings of research R7, and a `Notice` type (not a
   finding; does not change the exit code) for the neighbouring-windows notice.
 - [ ] T008 Implement CF-20–CF-23 as cross-field validators in
-  `src/caravan/manifest/schema/__init__.py`: CF-20 "`window_stride` outside 1 … `window_size`, or set
-  without a window"; CF-21 "`window_stride` < `window_size` with `random` or `stratify`"; CF-22
-  "`window_label` not applicable to the output type (`mean` only for `number`; `majority` and `{any}`
-  not for `number`), or `window_label`/`recording_column` without a window"; CF-23
+  `src/caravan/manifest/schema/__init__.py`: CF-20 "`window_stride`, `window_label` or
+  `recording_column` set without a window; `window_stride` outside 1 … `window_size`"; CF-21
+  "`window_stride` < `window_size` with `random` or `stratify`"; CF-22 "`window_label` not applicable
+  to the output type (`mean` only for `number`; `majority` and `{any}` not for `number`)"; CF-23
   "`recording_column` equals an input, the output or `split.column`; `group` without `split.column`".
   Add one invalid fixture per rule under `tests/fixtures/manifests/invalid/` with its
   `.expected.json`, following the existing `<rule>-<case>.yaml` pattern.
@@ -145,8 +145,9 @@ refusals that name counts.
   actually used after retries; no row index belongs to windows of two parts.
 - [ ] T018 [P] [US2] Write `tests/contract/test_split_refusals.py`: two files with
   `split: {type: recording}` → DS-18 naming "2 recordings", "3 parts" and `blocked`; a class present in
-  only one group → DS-19 with per-class window counts per group; the fixed split by column still works
-  and its windows respect recordings (FR-015).
+  only one group → DS-19 with per-class window counts per group; under `blocked`, a class whose only
+  stretch yields fewer than three blocks → DS-19 naming the class and its windows; the fixed split by
+  column still works and its windows respect recordings (FR-015).
 
 ### Implementation for US2
 
@@ -159,10 +160,16 @@ refusals that name counts.
   `max(1, round(windows_in_stretch / 10))` windows formed within each stretch of one label of each
   recording, assigned per class by the same deficit walk; then the purge — walking each recording in
   row order, drop a window whose rows touch or overlap the previous kept window of a different part,
-  counting it as `purged`. Apply the purge after every split type.
+  counting it as `purged`. Apply the purge after every split type. Refuse with DS-19 when a class's
+  stretches yield fewer blocks than parts (FR-010).
 - [ ] T021 [US2] Resolve `derived` in `split_for` (`src/caravan/data/windows.py:335`): `recording`
-  with ≥ 3 recordings, else `blocked`; set `derived: true`; read the `group` column through the reader
-  (`RecordSet.groups`, like `parts`).
+  with ≥ 3 recordings, else `blocked`; set `derived: true`. Carry the `group` column end to end, the
+  way the fixed split's column travels today: `StageContext` gains `group_column` and
+  `recording_column` (`src/caravan/stages/base.py:59`, passed to `read_records` at `base.py:76`);
+  `src/caravan/cli/pipeline.py:312` sets them from the manifest (today it sets `split_column` only for
+  `fixed`); `read_records` returns `RecordSet.groups` (the column's text per row, like `parts`); and
+  `src/caravan/stages/data.py:157`, `src/caravan/stages/train.py:167` and
+  `src/caravan/data/test_part.py:54` pass `records.groups` to `split_for`.
 - [ ] T022 [US2] Record the effective split in `data/schema.json` and in the run's resolved manifest
   (`split.type` effective, `derived`, `seed`, `assignment`, `shares`), and print the console `split:`
   line of [contracts/reports.md](./contracts/reports.md), in `src/caravan/stages/data.py` and
@@ -219,13 +226,20 @@ row shared across parts.
 
 - [ ] T028 [US4] In `src/caravan/data/windows.py`, cut windows at `r_start + k * stride` within each
   recording (research R6); make the label-run lookup per recording so a quarter-window stride on a
-  million rows plans in under 2 seconds (plan, Performance Goals), and add that timing to
-  `tests/unit/test_window_stride.py`.
+  million rows plans in about 2 seconds (plan, Performance Goals). In
+  `tests/unit/test_window_stride.py`, assert linear growth instead of a wall-clock target that slow CI
+  machines would miss: planning 4× the rows takes at most 6× the time, and a million rows finishes
+  within 10 seconds; print the measured times.
 - [ ] T029 [US4] Rename the contract's `"stride"` to `"training_stride"` carrying `window_stride`,
   add `"training_stride_note"`, and raise `CONTRACT_VERSION` to 4 in
-  `src/caravan/export/interface.py` ([contracts/reports.md](./contracts/reports.md)); update every
-  reader of `"stride"` in `src/caravan/runtime/`, `examples/esp32/`, `examples/lora32/` and the tests;
-  extend `tests/contract/test_interface_v4.py`.
+  `src/caravan/export/interface.py` ([contracts/reports.md](./contracts/reports.md)). Update the
+  readers of `"stride"`, which today are tests only: `tests/unit/test_interface_emit.py:115` and
+  `tests/train/test_image_pipeline.py:114` (rename), and `tests/train/test_interface_contract_alone.py:58,77`,
+  which steps through rows by the contract's stride. Rewrite that test to prove FR-019 instead: it
+  reads the rows with a step of its own (half the window) **and** with `training_stride`, and asserts
+  that the windows both steps produce get identical answers and that the extra windows of the shorter
+  step run through the model without error. Extend
+  `tests/contract/test_interface_v4.py`.
 
 **Checkpoint**: T027 green; quickstart step 5 passes.
 
