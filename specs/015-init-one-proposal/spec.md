@@ -80,19 +80,25 @@ ambiguous, the author's intent.
 ### Relation to feature 013
 
 This feature changes how `init` asks, not what it writes. It **replaces** in feature 013: FR-025
-(the full-screen interface starts by default; `--plain`), FR-027 (the fixed question order) and
-User Story 4, scenario 1. It **sharpens** FR-021 (a missing answer names the option *with an
-example value*) and the contract's meaning of `--no-input` (FR-017 below). Every other requirement
-of feature 013 stays in force — in particular what the written file must be (FR-003, FR-004,
-FR-016 to FR-020), what may be asked (FR-007, FR-010, FR-015), and the guided choices behind each
-question (FR-028 to FR-035), which are now reached through "adjust".
+(the full-screen interface, the `authoring` extra, `--plain`), FR-027 (the fixed question order)
+and User Story 4 (the full-screen interface) as a whole. It **sharpens** FR-021 (a missing answer
+names the option *with an example value*) and the contract's meaning of `--no-input` (FR-017
+below). Every other requirement of feature 013 stays in force — in particular what the written
+file must be (FR-003, FR-004, FR-016 to FR-020), what may be asked (FR-007, FR-010, FR-015), and
+the guided choices behind each question (FR-028 to FR-035), which are now reached through "adjust"
+in the line mode, where the window table, the drawing of the network, the parameter form and the
+memory per board are already shown as text.
 
 ## Clarifications
 
-### Session 2026-11-24
+### Session 2026-11-26
 
-*(Open: whether the full-screen interface stays; whether the proposal shows the memory per board.
-Answered here once the owner decides.)*
+- Q: Does the full-screen interface stay, now that it no longer starts by default? → A: No. It is
+  removed together with the `authoring` extra. The line mode is the only interface; `--tui` is not
+  added and `--plain` goes.
+- Q: Does the proposal show the model's memory cost per board? → A: Yes: one line per chosen board
+  with the flash and RAM lower bounds against the board's figures, labelled as estimated before
+  building, and marked where a bound already exceeds the board.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -134,8 +140,11 @@ answers given as options: the file is byte-identical.
    changed one and were not answered are proposed again; items that were answered are kept and
    marked to be checked again.
 7. **Given** the board question, **When** the boards are listed, **Then** each shows its memory and
-   flash as in feature 013; what the proposal itself shows about the model's memory per board is
-   FR-006.
+   flash and, since the rest of the proposal is known by then, the model's lower bounds against
+   them.
+8. **Given** chosen boards, **When** the proposal is shown, **Then** it has one line per board with
+   the model's flash and RAM lower bounds against the board's figures, labelled as estimated before
+   building, and a mark where a bound already exceeds the board.
 
 ---
 
@@ -234,30 +243,33 @@ and `init` says it left the guide alone.
 
 ---
 
-### User Story 5 - The full-screen interface only on request (Priority: P3)
+### User Story 5 - One interface: the full-screen interface goes (Priority: P3)
 
-`caravan init` starts the line mode, also when the `authoring` extra is installed. `--tui` starts the
-full-screen interface, which opens on the same proposal and offers the same decision. Whether the
-interface stays at all is FR-019.
+`caravan init` has one interface, the line mode. The full-screen interface of feature 013 and the
+`authoring` extra that carried it are removed. What made it worth having — the window table, the
+drawing of the network, the parameter form, the memory per board — is reached under "adjust" in
+the line mode, as text.
 
-**Why this priority**: Starting a full-screen interface uninvited is the opposite of what the
-research recommends, so the default changes in any case. Whether the interface is worth keeping is
-a separate decision.
+**Why this priority**: With one proposal and a few questions, a second front end has little left to
+do, and every question asked twice is a question that can drift apart (Principle XII requires both
+to ask the same). Removing it frees an extra and its continuous-integration job. It comes last
+because nothing else depends on it.
 
-**Independent Test**: With the extra installed and a terminal, `caravan init` starts the line mode.
-`caravan init --tui` starts the full-screen interface; driven with keystrokes to accept the
-proposal, it writes the file the line mode writes with the same answers.
+**Independent Test**: Install Caravan: no `authoring` extra is offered. Run `caravan init --tui` and
+`caravan init --plain`: both are usage errors. Run `caravan init` in a terminal, choose "adjust",
+then the window: the window table is shown, as in feature 013.
 
 **Acceptance Scenarios**:
 
-1. **Given** the extra and a terminal, **When** the author runs `caravan init`, **Then** the line mode
-   starts.
-2. **Given** the extra and a terminal, **When** the author runs `caravan init --tui`, **Then** the
-   full-screen interface starts on the proposal, and writes the same file for the same answers.
-3. **Given** no extra, **When** the author runs `caravan init --tui`, **Then** `init` exits with the
-   code for something that installs separately and names the install command.
-4. **Given** `--tui` together with `--yes`, `--json` or `--no-input`, or without a terminal, **When**
-   `init` runs, **Then** it exits with the usage code and says why.
+1. **Given** a terminal, **When** the author runs `caravan init`, **Then** the line mode starts,
+   whatever else is installed.
+2. **Given** `--tui` or `--plain`, **When** `init` runs, **Then** it exits with the usage code, as for
+   any unknown option, and the change note says what replaced them.
+3. **Given** the distribution's metadata, **When** its extras are listed, **Then** `authoring` is not
+   among them, and the default installation is unchanged.
+4. **Given** "adjust", **When** the author picks the window, the template's parameters or the
+   boards, **Then** the line mode shows the window table, the drawing and the parameter form, and
+   the memory per board, as feature 013 requires (FR-030 to FR-033 there).
 
 ---
 
@@ -316,9 +328,11 @@ proposal, it writes the file the line mode writes with the same answers.
 - **FR-004**: No board MUST be proposed (feature 013, FR-034; review A10).
 - **FR-005**: The proposal MUST be compact: one line per item, input columns grouped by proposed
   type, uncertain columns named one by one, the certainty said in words.
-- **FR-006**: [NEEDS CLARIFICATION: does the proposal show the model's memory cost per board — one
-  line per chosen board with the flash and RAM lower bounds, only a mark where a bound already
-  exceeds a board, or nothing until "adjust"?]
+- **FR-006**: Once boards are chosen or given, the proposal MUST show one line per board with the
+  model's flash and RAM lower bounds against the board's figures — computed as `build`'s fit check
+  computes them, labelled as estimated before building — and MUST mark a board a bound already
+  exceeds. Such a board is a finding, reported before the decision; it does not block writing,
+  because the fit check of `build` remains the gate (Principle V).
 
 **Asking**
 
@@ -354,14 +368,15 @@ proposal, it writes the file the line mode writes with the same answers.
 
 **Interfaces**
 
-- **FR-018**: The line mode MUST be the default in every case, also with the `authoring` extra
-  installed. `--plain` is removed.
-- **FR-019**: [NEEDS CLARIFICATION: does the full-screen interface stay — kept behind `--tui` and
-  opening on the proposal, removed together with the `authoring` extra, or kept unchanged behind
-  `--tui` until its use is measured?] Whatever is decided, it MUST NOT start without `--tui`.
-- **FR-020**: `--tui` without the extra MUST exit with the code for something that installs
-  separately and name the install command; `--tui` without a terminal, or with `--yes`, `--json` or
-  `--no-input`, MUST be a usage error.
+- **FR-018**: The line mode MUST be the only interface of `init`. `--plain` is removed, and no
+  `--tui` is added; both are unknown options.
+- **FR-019**: The full-screen interface and the `authoring` extra MUST be removed: the extra and its
+  dependency, the interface's code, its tests and its continuous-integration job.
+- **FR-020**: The guided choices of feature 013 that the full-screen interface showed — the window
+  table and strip, the drawing of the network, the parameter form with presets, the memory per
+  board — MUST remain available in the line mode under "adjust". After the change, no
+  documentation, install instruction or message MUST mention the full-screen interface or the
+  `authoring` extra, except the change note.
 
 **The JSON result**
 
@@ -371,14 +386,14 @@ proposal, it writes the file the line mode writes with the same answers.
   written), as given on the command line or relative to the current directory, or none; every item
   with its manifest field, its value, its source (given as an option, answered, or proposed), and,
   for a proposal, its certainty and reason; for every item, the option that sets it with an example;
-  the findings — validation findings in the form `validate --json` uses, and `init`'s own notes
-  (sampled data, proposals taken while uncertain, an `AGENTS.md` left unchanged); and the next
-  command.
+  the memory lower bounds per board with their label (FR-006); the findings — validation findings
+  in the form `validate --json` uses, and `init`'s own notes (sampled data, proposals taken while
+  uncertain, a board a bound exceeds, an `AGENTS.md` left unchanged); and the next command.
 - **FR-023**: The document MUST have the same shape whether the run wrote, refused or only showed the
   proposal; a part that does not apply is present and empty. The shape MUST be documented as part of
   the `init` contract.
 - **FR-024**: The exit codes MUST be the same with and without `--json`: those of feature 013
-  (FR-006), and the code for something that installs separately for `--tui` without its extra.
+  (FR-006).
 
 **The `AGENTS.md`**
 
@@ -400,14 +415,14 @@ proposal, it writes the file the line mode writes with the same answers.
 
 **Kept and bounded**
 
-- **FR-030**: Everything feature 013 guarantees about the written manifest MUST still hold, in every
-  mode — line mode, `--yes`, and the full-screen interface where it exists: validation before
-  success, no overwrite without confirmation, nothing written on abort, byte-identical files for the
-  same answers and data, only registered templates and boards, nothing asked that no stage reads.
+- **FR-030**: Everything feature 013 guarantees about the written manifest MUST still hold, in the
+  line mode and with `--yes`: validation before success, no overwrite without confirmation, nothing
+  written on abort, byte-identical files for the same answers and data, only registered templates
+  and boards, nothing asked that no stage reads.
 - **FR-031**: Every item of the proposal MUST be settable by an option (feature 013 has one for each;
   `--agents-md` is added). No option skips or silences a check.
-- **FR-032**: Principle XII MUST be amended to admit the `AGENTS.md` before the feature is released
-  (see Constitution).
+- **FR-032**: Principle XII MUST be amended before the feature is released, to admit the `AGENTS.md`
+  and to take the full-screen interface out of the extras budget (see Constitution).
 - **FR-033**: Out of scope: an MCP server, an `llms.txt`, fleet and monetisation topics, one error
   format across all verbs, publishing a JSON schema of the manifest, editing an existing manifest,
   and type detection by a learned model.
@@ -429,35 +444,40 @@ proposal, it writes the file the line mode writes with the same answers.
 
 The principles this feature touches, and how it complies (Development Workflow & Quality Gates).
 
-- **XII. Small Core, Few Dependencies** — *must the constitution be amended?* **Yes, for the
-  `AGENTS.md`, and for nothing else.**
-  - Principle XII fixes the set of **verbs**, not their options. `--yes`, `--json`, `--tui` and
-    `--agents-md` add no verb and need no amendment. The research's question about `--json` and
-    `--yes` for *all* verbs belongs to the separate feature on one error format; it needs no
-    amendment either for the same reason.
+- **XII. Small Core, Few Dependencies** — *must the constitution be amended?* **Yes: one MINOR
+  amendment, for two things — the `AGENTS.md`, and the removed full-screen interface.**
+  - Principle XII fixes the set of **verbs**, not their options. `--yes`, `--json` and `--agents-md`
+    add no verb and need no amendment. The research's question about `--json` and `--yes` for *all*
+    verbs belongs to the separate feature on one error format; it needs no amendment either, for the
+    same reason.
   - The bounds of `init` say it "writes one new manifest and nothing else". An `AGENTS.md` is
-    something else, so a MINOR amendment must admit it: one optional `AGENTS.md` beside the
-    manifest, written only after the manifest validates, never over an existing file, with its
-    content bounded as in FR-027 and FR-028.
+    something else, so the amendment must admit it: one optional `AGENTS.md` beside the manifest,
+    written only after the manifest validates, never over an existing file, with its content
+    bounded as in FR-027 and FR-028.
   - "Never over an existing file without the author's explicit confirmation": `--yes` is not that
     confirmation (FR-013); `--overwrite` remains it.
-  - The full-screen interface "MUST ask the same questions and write the same file": kept behind
-    `--tui` and opening on the same proposal, it does. Removed, the `authoring` slot is unused — no
-    violation (the benchmarking-or-publication slot is unused today), but the slot's description in
-    XII should then be updated.
-  - No runtime dependency is added; `init` stays offline and in the default installation.
+  - The extras budget names a slot "authoring (the full-screen interface of `init`)", added by
+    v4.4.0 for exactly that interface. With the interface removed, the amendment takes that slot
+    back out of the list. The default is to return to the slots before v4.4.0 — training,
+    verification, benchmarking, publication — so that a richer interface would need its own
+    amendment again; the count of four extras is unchanged. The sentence that a richer interface
+    of `init` may come only as an optional extra asking the same questions stays as a bound.
+  - No runtime dependency is added, and one optional dependency (that of the `authoring` extra)
+    goes; `init` stays offline and in the default installation.
 - **I. Declarative Manifest** — `init` still writes an ordinary manifest; the guide does not restate
   it (FR-028).
-- **IV. Measured, Emulated or Estimated** — memory figures stay labelled as lower bounds estimated
-  before building. Certainty is the same honesty applied to proposals: nothing is shown as known
-  that is guessed (FR-002, FR-003).
-- **V. Budgets Are Gates** — `--yes` skips no check (FR-013); the guide says a budget is the
+- **IV. Measured, Emulated or Estimated** — the memory line per board carries its label, lower
+  bounds estimated before building, wherever it appears, the JSON document included (FR-006,
+  FR-022). Certainty is the same honesty applied to proposals: nothing is shown as known that is
+  guessed (FR-002, FR-003).
+- **V. Budgets Are Gates** — `--yes` skips no check (FR-013); a board a bound exceeds is reported,
+  not gated, because the fit check of `build` is the gate (FR-006); the guide says a budget is the
   author's (FR-027).
 - **VI. The Data Is the Author's** — nothing is asked that no stage reads; the guide claims no check
   of rights (FR-028).
 - **VII. Targets and Templates Are Data** — every choice still comes from the registries.
-- **IX. Manifest Contract** — the changed command line (`--no-input`, `--plain`) is allowed before
-  1.0.0 and gets a change note (FR-017).
+- **IX. Manifest Contract** — the changed command line (`--no-input`, `--plain`) and the removed
+  extra are allowed before 1.0.0 and get a change note (FR-017).
 - **XI. No Claude in Model Learning** — the guide describes no workflow in which an agent produces
   data, labels or selection signals (FR-028); proposals come from rules, not from a language model.
 
@@ -482,7 +502,11 @@ The principles this feature touches, and how it complies (Development Workflow &
   lines of 80 characters.
 - **SC-008**: An author new to Caravan gets from a data directory to a valid manifest in under 2
   minutes without opening the documentation (feature 013: under 5).
-- **SC-009**: The same answers and data produce byte-identical manifests — and guides — in every mode.
+- **SC-009**: The same answers and data produce byte-identical manifests — and guides — in the line
+  mode and with `--yes`.
+- **SC-010**: After the change, the distribution declares one optional extra fewer, and a search of
+  the documentation and the command's messages finds the full-screen interface only in the change
+  note.
 
 ## Assumptions
 
@@ -497,7 +521,10 @@ The principles this feature touches, and how it complies (Development Workflow &
 - **The baseline of FR-003** is the four tabular fixture datasets measured on 2026-11-24; a dataset
   shipped later joins the check, and a rule that then disagrees loses its certainty.
 - **Output stays English**, like the rest of Caravan.
-- **Before 1.0.0**, the command line may change without compatibility (Principle IX); scripts that
-  use `--no-input` to accept proposals switch to `--yes`, as the change note says.
+- **Before 1.0.0**, the command line and the extras may change without compatibility (Principle
+  IX); scripts that use `--no-input` to accept proposals switch to `--yes`, and an installation that
+  asks for the `authoring` extra gets the default installation, as the change note says.
 - **No new dependency**: the feature reuses the question engine, the profile and the memory estimate
-  of feature 013.
+  of feature 013, and removes the `authoring` extra's dependency.
+- **Feature 013's documents stay as written**: its spec, plan and tasks record what was built then;
+  this spec states what it replaces (Context), and the roadmap gains the change.

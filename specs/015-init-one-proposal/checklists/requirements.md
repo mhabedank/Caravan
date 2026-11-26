@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -41,3 +41,9 @@
 - Iteration 1 fixed one internal contradiction: FR-002 defined "certain" as "the data leaves one
   answer", which a four-valued text output (category or anomaly) never satisfies, while FR-003
   measured certainty against the shipped data. FR-002 now defers to FR-003's operational test.
+- Iteration 2 (2026-11-26): both markers answered by the owner and recorded under Clarifications.
+  FR-019: the full-screen interface is removed with the `authoring` extra (no `--tui`); User Story 5,
+  FR-018 to FR-020, FR-024, FR-030, FR-032 and the Constitution section follow, and SC-010 measures
+  it. FR-006: one line per chosen board with the lower bounds and a mark where one is exceeded; User
+  Story 1 (scenarios 7 and 8), FR-022 and the Principle IV and V notes follow. No marker remains;
+  every item passes.
