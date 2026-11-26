@@ -34,7 +34,8 @@
 - Iteration 1 (2026-11-24): two markers remain, both owner decisions the request itself left open —
   FR-006 (memory per board in the proposal) and FR-019 (whether the full-screen interface stays).
   The third open point of the request, whether the constitution must be amended, is answered in the
-  spec's Constitution section (yes, for the `AGENTS.md` only), not left as a marker.
+  spec's Constitution section (yes, for the `AGENTS.md`; after iteration 2 also for the extras
+  slot of the removed full-screen interface), not left as a marker.
 - Content quality: the spec names the command line, its options, standard output and standard error,
   and the JSON document. For a command-line tool these are the user-facing interface, not
   implementation; no language, library or module is named outside the quoted request.
