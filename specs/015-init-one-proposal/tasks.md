@@ -393,11 +393,11 @@ window table, the drawing, the parameter form and the memory panel appear (spec 
   question; `--yes`, `--json`, `--agents-md`; the line mode the only interface), after T038.
 - [X] T043 Run quickstart.md §1–§8 and record the outcome of each section, including the SC-008 check
   with a reader new to Caravan, in the Notes below.
-- [ ] T044 Local validation before the pull request (constitution, Resources & Cost Discipline):
+- [X] T044 Local validation before the pull request (constitution, Resources & Cost Discipline):
   `uv run ruff check .`, `uv run ruff format --check .`, and the whole suite on Python 3.13, 3.14 and
   3.15 in the default installation, plus the `verify` and `train` jobs' commands from
   `.github/workflows/ci.yml` where their window allows.
-- [ ] T045 Mark the tasks done here, set the spec's status, push in one validated batch, and open the
+- [X] T045 Mark the tasks done here, set the spec's status, push in one validated batch, and open the
   feature's one pull request as a draft with spec, plan and tasks on the branch.
 
 ---
@@ -481,3 +481,14 @@ one pull request opens when T044 has passed (T045).
 - §8 The suite: see T044.
 - SC-008 (a reader new to Caravan, under 2 minutes, without the docs) needs a person and is left to
   the owner's review of the pull request; nothing in this session can stand in for it.
+
+## Local validation (T044, 2026-11-27)
+
+| Environment (from `.github/workflows/ci.yml`) | Result |
+|---|---|
+| `ruff check` / `ruff format --check` on `src tests docs/_ext` | clean |
+| core matrix, Python 3.13 / 3.14 / 3.15 | 1007 passed, 10 skipped, each |
+| `verify` extra, 3.13 / 3.14 | 935 passed, 4 skipped, each |
+| clean wheel on 3.14 (wheel contains `caravan/init/agents.md`) | 1007 passed, 10 skipped |
+| `train` + `verify` extras on 3.13, the whole suite | 1290 passed, 15 skipped |
+| documentation: `sphinx-build -W -b html docs` | built, no warning |
