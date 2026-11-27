@@ -226,7 +226,7 @@ writes (spec US2).
 
 ### Tests for User Story 2 (write first, they fail)
 
-- [ ] T021 [P] [US2] Write `tests/contract/test_init_no_person.py` with `_terminal` returning `False`
+- [X] T021 [P] [US2] Write `tests/contract/test_init_no_person.py` with `_terminal` returning `False`
   and a standard input that fails the test if read: without `--yes`, exit 2, nothing written, the
   proposal and `nothing written: no one to ask, and --yes was not given` on standard error, and the
   accepting command naming `--board esp32 --yes`; `--yes --board s32k144` writes, exits 0, and lists
@@ -236,7 +236,7 @@ writes (spec US2).
   `--no-input` and `--yes` with `_terminal` returning `True` never read; `--yes` with `--params
   '{hidden: [4096, 4096]}'` prints the `exceeds-board` note and still writes (FR-006); every shipped
   tabular dataset ends within 5 seconds (SC-004).
-- [ ] T022 [P] [US2] Write `tests/contract/test_init_examples.py` (FR-015, SC-005): for every item that
+- [X] T022 [P] [US2] Write `tests/contract/test_init_examples.py` (FR-015, SC-005): for every item that
   can be missing — data (with and without a candidate in `cwd`), boards, output (`no-output.csv`),
   normal value (`ok-fault.csv` with `--output state --output-type anomaly`), budget (`soc` with
   `--output soc`) — run `--yes` without it, take the option and value from the message, add exactly
@@ -244,10 +244,10 @@ writes (spec US2).
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Create `src/caravan/init/result.py` with `accepting_command(argv, examples)`: the
+- [X] T023 [US2] Create `src/caravan/init/result.py` with `accepting_command(argv, examples)`: the
   command as given, plus each open item's example, plus `--yes`, quoted with `shlex.join`
   (contracts/cli-init.md, "Without a person").
-- [ ] T024 [US2] In `src/caravan/cli/init.py` add `-y`/`--yes` ("accept every proposal not given as
+- [X] T024 [US2] In `src/caravan/cli/init.py` add `-y`/`--yes` ("accept every proposal not given as
   an option; ask nothing") and give `--no-input` its new meaning ("ask nothing; without `--yes`, write
   nothing"); `_person()` is false whenever `--yes` or `--no-input` is given (T030 adds `--json`).
   Without a person:
@@ -256,14 +256,14 @@ writes (spec US2).
   → the proposal lines, the missing lines and `accepting_command()`, exit 2, nothing written. A window
   with path `none`, image inputs or no usable input → exit 1. `--yes` never implies `--overwrite`.
   Depends on T014, T023.
-- [ ] T025 [US2] In `tests/contract/test_init_contract.py` replace `--no-input` by `--yes` wherever a
+- [X] T025 [US2] In `tests/contract/test_init_contract.py` replace `--no-input` by `--yes` wherever a
   test meant "accept the proposals", add `test_no_input_alone_writes_nothing`, and keep the remaining
   feature-013 cases (template refusal, input edits, window too short, quantization `none`, params as
   a flow mapping, unreadable data, only `int8` and `none`, exit 1 reserved for a refused manifest).
-- [ ] T026 [US2] In `tests/integration/test_init_combinations.py` switch the scripted side to `--yes`
+- [X] T026 [US2] In `tests/integration/test_init_combinations.py` switch the scripted side to `--yes`
   and assert the line mode (from T020) and `--yes` write byte-identical files for `synthetic`,
   `anomaly` and `recordings` (SC-009).
-- [ ] T027 [P] [US2] In `docs/ref/cli.md` document `-y`/`--yes` and the new meaning of `--no-input`
+- [X] T027 [P] [US2] In `docs/ref/cli.md` document `-y`/`--yes` and the new meaning of `--no-input`
   (`tests/contract/test_docs_reference.py` requires every option).
 
 **Checkpoint**: US1 and US2 both work; `init` never blocks without a terminal.
@@ -280,7 +280,7 @@ returns a `written` document and a valid manifest (spec US3, SC-006).
 
 ### Tests for User Story 3 (write first, they fail)
 
-- [ ] T028 [P] [US3] Write `tests/contract/test_init_json.py`: for each outcome — `written`, `invalid`
+- [X] T028 [P] [US3] Write `tests/contract/test_init_json.py`: for each outcome — `written`, `invalid`
   (every offered choice validates, so produce it by monkeypatching `Session.document` to append an
   unknown top-level field, which validation refuses),
   `unusable`, `proposed`, `incomplete`, `refused` — standard output parses as exactly one JSON object
@@ -295,17 +295,17 @@ returns a `written` document and a valid manifest (spec US3, SC-006).
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] In `src/caravan/init/result.py` build the document from a `Proposal`, the outcome
+- [X] T029 [US3] In `src/caravan/init/result.py` build the document from a `Proposal`, the outcome
   (`written` 0, `invalid` and `unusable` 1, `proposed`, `incomplete` and `refused` 2), the validation
   findings (`Finding.as_dict()`), the notes (kinds `sampled`, `uncertain-taken`, `exceeds-board`,
   `agents-md-kept`, `missing`, each with `key`, `column`, `message`, `example`) and `next`
   (`caravan build <file>` after writing; the accepting command with `--json` for `proposed` and
   `incomplete`; otherwise `null`). Serialise with `json.dumps(..., indent=2, ensure_ascii=False)` and a
   trailing newline, like `validate --json`. Depends on T015, T023.
-- [ ] T030 [US3] In `src/caravan/cli/init.py` add `--json` and route every outcome reached after
+- [X] T030 [US3] In `src/caravan/cli/init.py` add `--json` and route every outcome reached after
   argument parsing through `result.py`: the document on standard output and nothing for people on
   standard error (a defect still prints its trace). Depends on T024, T029.
-- [ ] T031 [P] [US3] In `docs/ref/cli.md` document `--json` and the outcomes with their exit codes.
+- [X] T031 [P] [US3] In `docs/ref/cli.md` document `--json` and the outcomes with their exit codes.
 
 **Checkpoint**: US3 works on its own on top of US2's non-interactive path.
 

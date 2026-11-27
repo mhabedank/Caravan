@@ -88,6 +88,8 @@ A finding of `init`'s own, beside the validation findings (which keep `Finding.a
 | `exceeds-board` | a lower bound exceeds a chosen board, or the board states no figure |
 | `agents-md-kept` | an `AGENTS.md` already exists and was left unchanged |
 | `missing` | an open item without an answer; names the option and example |
+| `refused` | an option value `init` would not offer, unreadable data, an existing file without `--overwrite`: the reason, for outcome `refused` |
+| `unusable` | the data cannot be set up (image inputs, no usable column, no template or window that fits): the reason, for outcome `unusable` |
 
 ## Result document
 

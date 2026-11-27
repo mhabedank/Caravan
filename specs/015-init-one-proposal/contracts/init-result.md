@@ -48,7 +48,8 @@ BoardMemory = {
 Finding = {"path": str, "problem": str, "found"?: any, "accepted"?: [any], "belongs_at"?: str,
            "rule"?: str}            // Finding.as_dict(), unchanged
 
-Note = {"kind": "sampled" | "uncertain-taken" | "exceeds-board" | "agents-md-kept" | "missing",
+Note = {"kind": "sampled" | "uncertain-taken" | "exceeds-board" | "agents-md-kept" | "missing"
+                | "refused" | "unusable",
         "key": str | null, "column": str | null, "message": str, "example": str | null}
 ```
 

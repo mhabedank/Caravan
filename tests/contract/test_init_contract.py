@@ -20,8 +20,8 @@ def init(tmp_path, monkeypatch, *args: str, stdin: str = "") -> int:
     return main(["init", *args])
 
 
-def test_no_input_writes_a_valid_manifest_and_prints_its_path(tmp_path, monkeypatch, capsys):
-    code = init(tmp_path, monkeypatch, "--no-input", "--dataset", SYNTHETIC, "--board", "s32k144")
+def test_yes_writes_a_valid_manifest_and_prints_its_path(tmp_path, monkeypatch, capsys):
+    code = init(tmp_path, monkeypatch, "--yes", "--dataset", SYNTHETIC, "--board", "s32k144")
     out, err = capsys.readouterr()
     assert code == EXIT_OK
     assert out == "synthetic-mlp.yaml\n"
@@ -33,18 +33,18 @@ def test_no_input_writes_a_valid_manifest_and_prints_its_path(tmp_path, monkeypa
 
 
 def test_a_board_is_never_proposed(tmp_path, monkeypatch, capsys):
-    assert init(tmp_path, monkeypatch, "--no-input", "--dataset", SYNTHETIC) == EXIT_USAGE
+    assert init(tmp_path, monkeypatch, "--yes", "--dataset", SYNTHETIC) == EXIT_USAGE
     assert "--board" in capsys.readouterr().err
     assert not list(tmp_path.iterdir())
 
 
 def test_without_data_the_missing_option_is_named(tmp_path, monkeypatch, capsys):
-    assert init(tmp_path, monkeypatch, "--no-input", "--board", "esp32") == EXIT_USAGE
+    assert init(tmp_path, monkeypatch, "--yes", "--board", "esp32") == EXIT_USAGE
     assert "--dataset" in capsys.readouterr().err
 
 
 def test_a_number_output_has_no_budget_proposal(tmp_path, monkeypatch, capsys):
-    args = ["--no-input", "--dataset", str(DATA / "soc"), "--board", "esp32", "--output", "soc"]
+    args = ["--yes", "--dataset", str(DATA / "soc"), "--board", "esp32", "--output", "soc"]
     assert init(tmp_path, monkeypatch, *args) == EXIT_USAGE
     assert "--budget" in capsys.readouterr().err
     assert init(tmp_path, monkeypatch, *args, "--budget", "0.01") == EXIT_OK
@@ -54,23 +54,23 @@ def test_a_number_output_has_no_budget_proposal(tmp_path, monkeypatch, capsys):
 
 def test_an_existing_file_needs_overwrite(tmp_path, monkeypatch, capsys):
     (tmp_path / "m.yaml").write_text("keep\n")
-    args = ["m.yaml", "--no-input", "--dataset", SYNTHETIC, "--board", "esp32"]
+    args = ["m.yaml", "--yes", "--dataset", SYNTHETIC, "--board", "esp32"]
     assert init(tmp_path, monkeypatch, *args) == EXIT_USAGE
-    assert "end it with !" in capsys.readouterr().err
+    assert "--overwrite" in capsys.readouterr().err
     assert (tmp_path / "m.yaml").read_text() == "keep\n"
     assert init(tmp_path, monkeypatch, *args, "--overwrite") == EXIT_OK
     assert "apiVersion" in (tmp_path / "m.yaml").read_text()
 
 
 def test_a_template_that_does_not_answer_the_output_is_refused(tmp_path, monkeypatch, capsys):
-    args = ["--no-input", "--dataset", SYNTHETIC, "--board", "esp32", "--template", "autoencoder"]
+    args = ["--yes", "--dataset", SYNTHETIC, "--board", "esp32", "--template", "autoencoder"]
     assert init(tmp_path, monkeypatch, *args) == EXIT_USAGE
     assert "does not answer a category output" in capsys.readouterr().err
     assert not list(tmp_path.iterdir())
 
 
 def test_inputs_are_changed_one_by_one(tmp_path, monkeypatch):
-    args = ["--no-input", "--dataset", SYNTHETIC, "--board", "esp32"]
+    args = ["--yes", "--dataset", SYNTHETIC, "--board", "esp32"]
     edits = ["--input", "dlc=number", "--input", "b2=-"]
     assert init(tmp_path, monkeypatch, *args, *edits) == EXIT_OK
     text = (tmp_path / "synthetic-mlp.yaml").read_text()
@@ -80,33 +80,42 @@ def test_inputs_are_changed_one_by_one(tmp_path, monkeypatch):
 
 
 def test_a_window_too_short_for_the_parameters_is_refused(tmp_path, monkeypatch, capsys):
-    args = ["--no-input", "--dataset", SYNTHETIC, "--board", "esp32", "--template", "conv1d"]
+    args = ["--yes", "--dataset", SYNTHETIC, "--board", "esp32", "--template", "conv1d"]
     assert init(tmp_path, monkeypatch, *args, "--window", "4") == EXIT_USAGE
     assert "conv1d template needs more window" in capsys.readouterr().err
 
 
 def test_quantization_none_is_written_and_needs_no_calibration(tmp_path, monkeypatch):
-    args = ["--no-input", "--dataset", SYNTHETIC, "--board", "esp32", "--quantization", "none"]
+    args = ["--yes", "--dataset", SYNTHETIC, "--board", "esp32", "--quantization", "none"]
     assert init(tmp_path, monkeypatch, *args) == EXIT_OK
     text = (tmp_path / "synthetic-mlp.yaml").read_text()
     assert "quantization: none" in text and "representative_samples" not in text
 
 
 def test_params_are_given_as_a_flow_mapping(tmp_path, monkeypatch):
-    args = ["--no-input", "--dataset", SYNTHETIC, "--board", "esp32", "--params", "{hidden: [8]}"]
+    args = ["--yes", "--dataset", SYNTHETIC, "--board", "esp32", "--params", "{hidden: [8]}"]
     assert init(tmp_path, monkeypatch, *args) == EXIT_OK
     assert "hidden: [8]" in (tmp_path / "synthetic-mlp.yaml").read_text()
 
 
+def test_no_input_alone_writes_nothing_and_names_yes(tmp_path, monkeypatch, capsys):
+    # Feature 015, FR-017: --no-input only means "never ask"; accepting is --yes.
+    args = ["--no-input", "--dataset", SYNTHETIC, "--board", "esp32"]
+    assert init(tmp_path, monkeypatch, *args) == EXIT_USAGE
+    err = capsys.readouterr().err
+    assert "--yes was not given" in err and "--yes" in err.splitlines()[-1]
+    assert not list(tmp_path.iterdir())
+
+
 def test_unreadable_data_is_a_usage_error(tmp_path, monkeypatch, capsys):
     bad = str(DATA / "init" / "headers-differ")
-    assert init(tmp_path, monkeypatch, "--no-input", "--dataset", bad) == EXIT_USAGE
+    assert init(tmp_path, monkeypatch, "--yes", "--dataset", bad) == EXIT_USAGE
     assert "different headers" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("value", ["float16", "int4"])
 def test_only_int8_and_none_are_offered(tmp_path, monkeypatch, capsys, value):
-    args = ["--no-input", "--dataset", SYNTHETIC, "--board", "esp32", "--quantization", value]
+    args = ["--yes", "--dataset", SYNTHETIC, "--board", "esp32", "--quantization", value]
     assert init(tmp_path, monkeypatch, *args) == EXIT_USAGE
     assert "int8 or none" in capsys.readouterr().err
 

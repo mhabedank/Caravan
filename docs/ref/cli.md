@@ -17,7 +17,7 @@ No option skips, forces or silences a check. The only thing an option can bypass
 
 | You want to | Run |
 |---|---|
-| Write a first manifest from your data by answering questions | {cmd}`caravan init` |
+| Propose a first manifest from your data, and write it when you accept | {cmd}`caravan init` |
 | Check a manifest for mistakes, without reading the data | {cmd}`caravan validate` |
 | See the manifest with every default filled in | {cmd}`caravan render` |
 | Find out whether a model fits your boards before training | {cmd}`caravan build` |
@@ -72,25 +72,45 @@ differently.
 ## Commands
 
 :::{cli} caravan init
-Writes a first manifest from your data by asking what only you know.
+Proposes a first manifest from your data, asks only what it cannot settle, and writes it when you
+accept.
 
 **When you want it.** At the start of a model, instead of copying an example. It reads the
-columns of your data, proposes a type for each with the reason, and asks for the rest: the boards,
-how the weights are stored, the column to predict, the window, the network and its size, and the
-int8 budget. Every question shows its proposal; Enter takes it.
+columns of your data and proposes every part of the manifest at once: the column to predict and
+its kind, a type for each other column (or "left out"), the window, the template and its size, the
+quantization, the int8 budget, the name and the file. Each line of the proposal says how sure it
+is and why:
 
-- **What it shows:** beside each question, what the choice means — the columns, the window table
-  (test windows per class and windows lost, from the same windowing and split the data stage
-  uses) with the data cut into windows, a drawing of the network, and the model's flash and RAM
-  lower bounds on each chosen board.
+- **certain**: the data settles it, by a rule that agrees with every dataset Caravan ships;
+- **uncertain**: the data allows another answer that is also used, such as two values (binary or
+  a category?) or a few distinct integers (a code or a count?);
+- **convention**: not in the data, a documented starting value such as `int8` or the examples'
+  budget;
+- **open**: nothing to propose. The boards are always open: Caravan does not choose your
+  hardware.
+
+Then it asks only the boards and what is open or uncertain, with all uncertain columns in one
+step, and offers three things: Enter writes, `a` adjusts one item with its full question (the
+window table, a drawing of the network, the parameter form, the memory on your boards), `q` stops.
+On the synthetic data that is four answers: the data, the board, the columns, Enter.
+
+- **What it shows:** the proposal in at most 24 lines, and for each chosen board one line with the
+  model's flash and RAM lower bounds against the board's figures, labelled as estimated before
+  building. A bound that already exceeds a board is marked and noted; it does not stop the
+  writing, because {cmd}`caravan build` checks it again before training.
 - **What it writes:** one new manifest, short and commented, that it has checked as
-  `caravan validate` does. Nothing is written until you choose to, and nothing when you stop.
+  `caravan validate` does. Nothing is written until you accept, and nothing when you stop.
 - **How it looks:** the questions line by line, in any terminal. An empty line takes the
   proposal, `<` goes back.
+- **Without a person:** it asks only when standard input and standard error are terminals. Without
+  one, or with `--no-input` or `--json`, it never reads standard input: with `--yes` it takes the
+  proposals and writes, listing the uncertain ones it took; without `--yes` it writes nothing,
+  shows the proposal and prints the command that would accept it. Every answer it lacks is named
+  with one option and a value that works here, such as `--board esp32`.
 
 **Arguments.** `<manifest>`: the file to write (optional; proposed from the model's name).
 
-**Options.** Each answers one question, which is then not asked.
+**Options.** Each answers one item, which is then not asked.
 
 - `--dataset <path>`: a directory of `.csv`, `.tsv` or `.txt` files with a header row, or one file.
 - `--board <id>`: a board the model must fit; repeat for several. None is proposed.
@@ -103,17 +123,27 @@ int8 budget. Every question shows its proposal; Enter takes it.
   mapping, such as `'{hidden: [32, 16]}'`.
 - `--budget <value>`: the output's int8 budget.
 - `--name <model-name>`: `model.name`.
-- `--overwrite`: confirms replacing an existing `<manifest>`; checks nothing less.
-- `--no-input`: ask nothing; take the options, then the proposals. A question with neither is a
-  usage error naming its option.
+- `--overwrite`: confirms replacing an existing `<manifest>`; checks nothing less. `--yes` does
+  not imply it.
+- `-y`, `--yes`: accept every proposal not given as an option, and ask nothing. It answers no open
+  item and skips no check.
+- `--no-input`: ask nothing, even in a terminal; without `--yes`, write nothing.
+- `--json`: the result as one JSON document on standard output — the paths written, every item
+  with its value, source, certainty and reason, the option and an example that set it, the memory
+  per board, the findings and notes, and the command to run next — and nothing else there. It
+  asks nothing.
 
 **Reads.** The data (a sample of 50,000 rows for the proposals; the output column in full for the
 window table), the template registry and the board descriptions.
 
 **Writes.** The manifest, and nothing else: no run directory, cache or report.
 
-**Exit codes.** `0` written and valid; `1` with `--no-input`, the answers make a manifest
-`validate` refuses (nothing written); `2` usage, unreadable data, or stopped; `3` a defect.
+**Exit codes.** `0` written and valid; `1` the answers make a manifest `validate` refuses, or the
+data cannot be set up (image inputs, no usable column, no template or window that fits) — nothing
+written; `2` not accepted (no person and no `--yes`), an answer missing, an option value it would
+not offer, an existing file without `--overwrite`, unreadable data, or stopped; `3` a defect. With
+`--json` the document's `outcome` says which: `written`, `invalid`, `unusable`, `proposed`,
+`incomplete` or `refused`.
 :::
 
 :::{cli} caravan validate

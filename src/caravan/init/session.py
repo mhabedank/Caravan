@@ -204,6 +204,11 @@ class Aborted(Exception):
     """The author stopped the session; nothing is written."""
 
 
+class Unusable(ValueError):
+    """The data cannot be set up by ``init`` at all (image inputs, no usable column): a rule
+    says no, not the command line (exit 1, outcome ``unusable``)."""
+
+
 @dataclass
 class Written:
     path: Path
@@ -239,12 +244,14 @@ class Session:
         self._labels: tuple[list[str], list[tuple[str, int]]] | None = None
         self._windows: dict[tuple[str, str, tuple[int, ...]], windows.WindowTable] = {}
         self.position = 0
+        self._unusable = False
         for key, value in (given or {}).items():
             if value is None:
                 continue
             problem = self.accept(key, value)
             if problem:
-                raise ValueError(f"{OPTIONS.get(key, key)}: {problem}")
+                kind = Unusable if self._unusable else ValueError
+                raise kind(f"{OPTIONS.get(key, key)}: {problem}")
             self.given.add(key)
 
     # --- the order -----------------------------------------------------------------------------
@@ -503,6 +510,8 @@ class Session:
         """The items without an answer or a proposal whose prerequisites are all there: the ones
         a message names (feature 015, research R5)."""
         missing = [k for k in self.keys() if k not in ("review",) and self.value(k) is None]
+        if "dataset" in missing:  # nothing else can be proposed before the data
+            return [k for k in ("dataset", "boards") if k in missing]
         return [k for k in missing if not any(d in missing for d in DEPENDS.get(k, ()))]
 
     def candidates(self) -> list[str]:
@@ -536,7 +545,7 @@ class Session:
         data = self.data
         if key == "dataset":
             found = self.candidates()
-            return f"--dataset {shlex.quote(found[0]) if found else '<directory of CSV files>'}"
+            return f"--dataset {shlex.quote(found[0] if found else '<directory of CSV files>')}"
         if key == "boards":
             chosen = self.value("boards") or [self.boards.identifiers[0]]
             return " ".join(f"--board {board}" for board in chosen)
@@ -808,9 +817,11 @@ class Session:
             except ProfileError as error:
                 return str(error)
             if not any(c.proposal for c in self.data.columns) and len(self.data.columns) < 2:
+                self._unusable = True
                 return "the data has no column a model could read"
             images = [c.name for c in self.data.columns if c.image_like]
             if images and len(self.data.columns) <= 2:
+                self._unusable = True
                 return (
                     f"the column {images[0]} names image files: init does not set up image "
                     "inputs yet; see docs/ref/manifest/input-features.md"
@@ -922,7 +933,10 @@ class Session:
             if not path.parent.is_dir():
                 return f"no directory {path.parent}"
             if path.exists() and not (self.overwrite or str(value).endswith("!")):
-                return f"{text} exists; choose another name, or end it with ! to replace it"
+                return (
+                    f"{text} exists; choose another name, or confirm replacing it "
+                    "(--overwrite, or end the name with !)"
+                )
             return None
         if key == "review":
             return None
