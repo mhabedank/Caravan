@@ -61,6 +61,7 @@ ORDER = (
     "budget",
     "name",
     "file",
+    "agents_md",
     "review",
 )
 
@@ -78,6 +79,7 @@ TITLES = {
     "budget": "How much may int8 cost?",
     "name": "What is the model called?",
     "file": "Where is the manifest written?",
+    "agents_md": "Write an AGENTS.md beside the manifest?",
     "review": "Write the manifest?",
 }
 
@@ -95,6 +97,7 @@ FIELDS = {
     "budget": "output_features[0].<budget>",
     "name": "model.name",
     "file": "",
+    "agents_md": "",
     "review": "",
 }
 
@@ -113,6 +116,7 @@ OPTIONS = {
     "budget": "--budget",
     "name": "--name",
     "file": "<manifest>",
+    "agents_md": "--agents-md",
 }
 
 #: What each item needs answered before it can be proposed: a missing item whose prerequisite is
@@ -238,6 +242,8 @@ class Session:
         #: Items, and input columns, a person answered (feature 015: the ``answered`` source).
         self.answered: set[str] = set()
         self.answered_columns: set[str] = set()
+        #: What became of the guide in the last write: ``written``, ``kept`` or ``None``.
+        self.guide: str | None = None
         #: Answers that no longer fit an earlier one: kept, marked to check again (FR-035).
         self.stale: set[str] = set()
         self.data: DataProfile | None = None
@@ -380,6 +386,8 @@ class Session:
         if key == "file":
             name = self.value("name") or "model"
             return f"{name}.yaml", "the model's name, in the current directory"
+        if key == "agents_md":
+            return False, "written only when asked: --agents-md"
         if key == "review":
             return "write", ""
         return None, ""
@@ -447,6 +455,8 @@ class Session:
             return CONVENTION, "the data's directory and template"
         if key == "file":
             return CONVENTION, "the model's name, in the current directory"
+        if key == "agents_md":
+            return CONVENTION, "written only when asked: --agents-md"
         return CONVENTION, ""
 
     def uncertain_columns(self) -> list[str]:
@@ -558,6 +568,8 @@ class Session:
             return f"--input {shlex.quote(f'{column}={other or chr(45)}')}"
         if key == "file":
             return shlex.quote(str(self.value("file") or "model.yaml"))
+        if key == "agents_md":
+            return "--agents-md"
         value = self.value(key)
         if value is None:
             enabled = [c.value for c in self.choices(key) if not c.disabled]
@@ -611,6 +623,13 @@ class Session:
             return out
         if key == "quantization":
             return [Choice(value, label, detail) for value, label, detail in QUANTIZATIONS]
+        if key == "agents_md":
+            return [
+                Choice(False, "no", "only the manifest"),
+                Choice(
+                    True, "yes", "a guide for coding agents beside it; never over an existing one"
+                ),
+            ]
         if key == "output" and data is not None:
             out = []
             for column in data.columns:
@@ -693,6 +712,8 @@ class Session:
             return ", ".join(used)
         if key == "boards":
             return ", ".join(value)
+        if key == "agents_md":
+            return "yes" if value else "no"
         if key == "params":
             return " · ".join(f"{k} {v}" for k, v in value.items())
         return str(value)
@@ -761,6 +782,11 @@ class Session:
             return "Lower case letters, digits and -, at least 3 characters."
         if key == "file":
             return "The manifest is a new file; an existing one is never changed without asking."
+        if key == "agents_md":
+            return (
+                "A short guide for coding agents: the commands, the exit codes, and what is "
+                "yours to decide. An existing AGENTS.md is never changed."
+            )
         return "Nothing is written until you choose to write."
 
     # --- answering ------------------------------------------------------------------------------
@@ -938,6 +964,8 @@ class Session:
                     "(--overwrite, or end the name with !)"
                 )
             return None
+        if key == "agents_md":
+            return None if isinstance(value, bool) else "yes or no"
         if key == "review":
             return None
         return f"unknown question {key}"
@@ -1233,7 +1261,22 @@ class Session:
             outcome = load_manifest(Path(temporary))
             if outcome.findings:
                 return target, outcome.findings
-            os.replace(temporary, target)
+            # Feature 015, research R8: the guide is placed first, exclusively, then the manifest
+            # is moved into place; if that fails, the guide just created goes too.
+            self.guide = None
+            placed = None
+            if self.value("agents_md"):
+                from caravan.init import guide
+
+                placed = guide.place(target.parent, guide.render(target.name))
+                self.guide = "written" if placed is not None else "kept"
+            try:
+                os.replace(temporary, target)
+            except BaseException:
+                if placed is not None:
+                    placed.unlink(missing_ok=True)
+                self.guide = None
+                raise
             return target, []
         except DocumentError:
             raise

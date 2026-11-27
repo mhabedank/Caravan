@@ -323,7 +323,7 @@ an existing one, all or nothing with the manifest.
 
 ### Tests for User Story 4 (write first, they fail)
 
-- [ ] T032 [P] [US4] Write `tests/contract/test_init_agents_md.py`: `--yes --agents-md` writes
+- [X] T032 [P] [US4] Write `tests/contract/test_init_agents_md.py`: `--yes --agents-md` writes
   `AGENTS.md` beside the manifest, also when the manifest goes to a subdirectory, with exactly the text
   of contracts/agents-md.md and the manifest's file name; an existing `AGENTS.md` is unchanged with and
   without `--overwrite`, the manifest is written, and `kept AGENTS.md: it exists, and init never
@@ -335,20 +335,20 @@ an existing one, all or nothing with the manifest.
 
 ### Implementation for User Story 4
 
-- [ ] T033 [P] [US4] Create `src/caravan/init/guide.py` with the guide's text as one constant, exactly
+- [X] T033 [P] [US4] Create `src/caravan/init/guide.py` with the guide's text as one constant, exactly
   contracts/agents-md.md, and `render(manifest_name) -> str` — the only variable is the manifest's file
   name: no date, no version, no other value (FR-028, FR-029).
-- [ ] T034 [US4] In `src/caravan/init/guide.py` add the all-or-nothing write of research R8 and call it
+- [X] T034 [US4] In `src/caravan/init/guide.py` add the all-or-nothing write of research R8 and call it
   from `Session.write()` in `src/caravan/init/session.py`: both files prepared as temporary files in
   the manifest's directory; the manifest validated; the guide linked into place exclusively; the
   manifest moved into place; on failure the guide just created is removed. An existing `AGENTS.md` is
   never opened for writing. Depends on T033.
-- [ ] T035 [US4] Add the `agents_md` item (`convention`, "not written", option `--agents-md`) to
+- [X] T035 [US4] Add the `agents_md` item (`convention`, "not written", option `--agents-md`) to
   `src/caravan/init/session.py` and `src/caravan/init/proposal.py`, the `--agents-md` option and the
   final lines `wrote AGENTS.md` / `kept AGENTS.md: it exists, and init never changes it` to
   `src/caravan/cli/init.py`, and the `agents-md-kept` note to `src/caravan/init/result.py`. Depends on
   T034.
-- [ ] T036 [P] [US4] In `docs/ref/cli.md` document `--agents-md` and add the guide to **Writes**.
+- [X] T036 [P] [US4] In `docs/ref/cli.md` document `--agents-md` and add the guide to **Writes**.
 
 **Checkpoint**: US4 works with `--yes` and in the line mode.
 

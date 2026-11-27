@@ -123,6 +123,11 @@ On the synthetic data that is four answers: the data, the board, the columns, En
   mapping, such as `'{hidden: [32, 16]}'`.
 - `--budget <value>`: the output's int8 budget.
 - `--name <model-name>`: `model.name`.
+- `--agents-md`: also write an `AGENTS.md` beside the manifest, a short guide for coding agents
+  working in your project: the commands that check and build this model, the exit codes, and what
+  is yours to decide (the data, the labels, the template and its size, the budgets). It names the
+  manifest's file and repeats none of its values. An existing `AGENTS.md` is never changed, not
+  even with `--overwrite`.
 - `--overwrite`: confirms replacing an existing `<manifest>`; checks nothing less. `--yes` does
   not imply it.
 - `-y`, `--yes`: accept every proposal not given as an option, and ask nothing. It answers no open
@@ -136,7 +141,8 @@ On the synthetic data that is four answers: the data, the board, the columns, En
 **Reads.** The data (a sample of 50,000 rows for the proposals; the output column in full for the
 window table), the template registry and the board descriptions.
 
-**Writes.** The manifest, and nothing else: no run directory, cache or report.
+**Writes.** The manifest and, with `--agents-md`, an `AGENTS.md` beside it — both or neither —
+and nothing else: no run directory, cache or report.
 
 **Exit codes.** `0` written and valid; `1` the answers make a manifest `validate` refuses, or the
 data cannot be set up (image inputs, no usable column, no template or window that fits) — nothing

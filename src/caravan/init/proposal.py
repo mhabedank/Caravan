@@ -311,7 +311,7 @@ def _tail(item: Item) -> str:
 def _value(item: Item, proposal: Proposal) -> str:
     value = item.value
     if item.key == "agents_md":
-        return "written" if value else "not written"
+        return "to be written" if value else "not written"
     if value is None or value == []:
         return "—"
     if item.key == "window":

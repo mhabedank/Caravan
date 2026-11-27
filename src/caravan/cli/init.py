@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 from typing import Any
 
 from caravan.cli.main import EXIT_INTERNAL, EXIT_OK, EXIT_USAGE
@@ -68,6 +69,11 @@ def add_parser(subcommands: Any) -> None:
     sub.add_argument("--budget", metavar="<value>", type=float, help="the output's int8 budget")
     sub.add_argument("--name", metavar="<model-name>", help="model.name")
     sub.add_argument(
+        "--agents-md",
+        action="store_true",
+        help="also write AGENTS.md beside the manifest, never over an existing one",
+    )
+    sub.add_argument(
         "--overwrite", action="store_true", help="confirms replacing an existing <manifest>"
     )
     sub.add_argument(
@@ -99,6 +105,7 @@ def _given(args: argparse.Namespace) -> dict[str, Any]:
         "budget": args.budget,
         "name": args.name,
         "file": args.manifest,
+        "agents_md": True if args.agents_md else None,
     }
     if args.params is not None:
         given["params"] = read_flow_mapping(args.params)
@@ -198,7 +205,7 @@ def run(args: argparse.Namespace) -> int:
             session.given_columns.update(edits)
         # The template and its parameters before the window, so a given window is checked
         # against the given template rather than the proposed one.
-        for key in ("template", "params", "window", "budget", "name", "file"):
+        for key in ("template", "params", "window", "budget", "name", "file", "agents_md"):
             if given.get(key) is not None:
                 problem = session.accept(key, given[key])
                 if problem:
@@ -352,6 +359,14 @@ def _write(session: Any, out: Run, *, dialogue: bool) -> int | str:
         out.written.append(shown)
         out.next = f"caravan build {shown}"
         out.say(f"wrote {shown} — valid")
+        if session.guide == "written":
+            guide = str(Path(shown).parent / "AGENTS.md")
+            out.written.append(guide)
+            out.say(f"wrote {guide}")
+        elif session.guide == "kept":
+            message = "kept AGENTS.md: it exists, and init never changes it"
+            out.say(message)
+            out.note("agents-md-kept", message, key="agents_md")
         out.say(f"next: {out.next}")
         if not out.json:
             print(shown)
