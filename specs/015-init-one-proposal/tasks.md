@@ -362,7 +362,7 @@ an existing one, all or nothing with the manifest.
 **Independent Test**: `--plain` and `--tui` are usage errors; no `authoring` extra; under "adjust" the
 window table, the drawing, the parameter form and the memory panel appear (spec US5).
 
-- [ ] T037 [P] [US5] Write `tests/contract/test_init_one_interface.py`: `--plain` and `--tui` exit 2;
+- [X] T037 [P] [US5] Write `tests/contract/test_init_one_interface.py`: `--plain` and `--tui` exit 2;
   under "adjust" in the line mode (person helper of T016) the template shows the drawing, the
   parameters show the presets and the per-value form, and the quantization shows the memory panel
   (FR-020); and the SC-010 search — the case-insensitive regular expressions `` `?authoring`?
@@ -370,7 +370,7 @@ window table, the drawing, the parameter form and the memory panel appear (spec 
   `docs/`, `README.md`, `pyproject.toml` and `.github/` — finds only `docs/releases/0.1.0.md`. Before
   T038, check the test against today's `docs/roadmap.md` ("full screen with the `authoring` extra") to
   see it catches the backticked and the spaced spelling.
-- [ ] T038 [US5] Reword the feature-013 row of `docs/roadmap.md` so it no longer names the removed
+- [X] T038 [US5] Reword the feature-013 row of `docs/roadmap.md` so it no longer names the removed
   interface ("`caravan init`: a first manifest from the data, with the window table, a drawing of the
   network and memory per board"), and fix anything else T037's search finds.
 
@@ -380,16 +380,16 @@ window table, the drawing, the parameter form and the memory panel appear (spec 
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T039 [P] Rewrite the prose of the `caravan init` entry in `docs/ref/cli.md` to
+- [X] T039 [P] Rewrite the prose of the `caravan init` entry in `docs/ref/cli.md` to
   contracts/cli-init.md: one proposal with a certainty per line, the boards and the uncertain items
   asked, accept / adjust / stop, the memory line per board, behaviour without a person, outcomes and
   exit codes.
-- [ ] T040 [P] Update the `caravan init` tip in `docs/intro/tutorial02.md` (one proposal, only the
+- [X] T040 [P] Update the `caravan init` tip in `docs/intro/tutorial02.md` (one proposal, only the
   boards and what it is unsure of are asked) and the command list line in `README.md` (`caravan init
   # propose a first manifest from your data`).
-- [ ] T041 [P] Add the change note of contracts/cli-init.md to the "Change notes" section of
+- [X] T041 [P] Add the change note of contracts/cli-init.md to the "Change notes" section of
   `docs/releases/0.1.0.md`.
-- [ ] T042 [P] Add a row for feature 015 to `docs/roadmap.md` (one proposal instead of question by
+- [X] T042 [P] Add a row for feature 015 to `docs/roadmap.md` (one proposal instead of question by
   question; `--yes`, `--json`, `--agents-md`; the line mode the only interface), after T038.
 - [ ] T043 Run quickstart.md §1–§8 and record the outcome of each section, including the SC-008 check
   with a reader new to Caravan, in the Notes below.
