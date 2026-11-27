@@ -36,8 +36,8 @@ Single project: `src/caravan/`, `tests/` at the repository root. Code paths foll
   forbids; (2) "the authoring extra of the budget below" becomes "an optional extra within the budget
   below", still asking the same questions and writing the same file; (3) the extras budget names
   training, verification, benchmarking and publication — four, as before v4.4.0. The Sync Impact
-  Report names feature 015 and the owner's answers of 2026-11-26 as the source. **Blocks the merge of
-  Phase 6 (US4); nothing that writes a guide is merged before it.**
+  Report names feature 015 and the owner's answers of 2026-11-26 as the source. **Precedes every
+  task of Phase 6 (US4).** Done 2026-11-27: constitution v4.5.0.
 - [ ] T002 [P] Add fixtures for the rules research R1 adds or changes to
   `tests/fixtures/datasets/init/`, each a small hand-written or arithmetic CSV, and record what each is
   for in `tests/fixtures/datasets/init/README.md`:
@@ -80,8 +80,10 @@ proposal object both the line mode and `--yes` read.
   the intended answer per shipped tabular dataset — `synthetic` from `examples/picket-mlp.yaml`,
   `anomaly` from `examples/anomaly-autoencoder.yaml`, `recordings` from
   `tests/fixtures/manifests/valid/recordings-conv1d.yaml`, `frames` from `examples/frames-conv2d.yaml`,
-  `soc` (output `soc`, every column `number`) and `bursts` (output `label`) from their `make.py`
-  docstrings. Assert: every proposal whose certainty is `certain` equals the intended answer; the seven
+  `soc` (output `soc`, every column `number`) from its `make.py` docstring, and `bursts` (output
+  `label`; `can_id` category, `dlc` and `b0` number — the CAN shape of `synthetic`) from its
+  `make.py` docstring. The edge-case tables under `tests/fixtures/datasets/init/` have no intended
+  manifest and are not part of this table (spec FR-003). Assert: every proposal whose certainty is `certain` equals the intended answer; the seven
   differences of the spec's Context (`dlc`, output type of `condition`, `c`, output type of
   `label` in recordings, output column of `soc`, `current`, `temp`) are `uncertain` or `open`; a
   window is `certain` only when its size meets the table's criteria (`windows.MAX_LOST`,
@@ -101,8 +103,9 @@ proposal object both the line mode and `--yes` read.
   word on every item line (`certain`, `uncertain`, `convention`, `open`); input columns are grouped by
   type, up to four uncertain columns named one per line and beyond four grouped; with board `s32k144`
   one memory line per board follows the boards line, and the label line reads "lower bounds,
-  estimated before building; build checks again"; with `--params '{hidden: [4096, 4096]}'` the board
-  is marked `✗` and an `exceeds-board` note exists (FR-006).
+  estimated before building; build checks again"; with the parameters `{hidden: [4096, 4096]}` the board
+  is marked `✗` and an `exceeds-board` note is in `Proposal.notes` (FR-006); the session for this
+  case is built with `given={"params": {"hidden": [4096, 4096]}, …}`, not through the CLI.
 
 ### Implementation
 
@@ -144,7 +147,8 @@ proposal object both the line mode and `--yes` read.
   `column`, `field`, `value`, `source` one of `given`, `answered`, `proposed`, `certainty` "none for
   `given` and `answered`", `reason`, `alternatives`, `option`, `example`, `stale`), `Proposal`
   (`dataset`, `items` "in the order of feature 013's `ORDER`, inputs in column order", `memory`,
-  `to_ask`, `ready`), `build(session) -> Proposal` and `lines(proposal, width=80) -> list[str]` in the
+  `to_ask`, `ready`, `notes` — "`init`'s own notes so far", kinds `sampled` and `exceeds-board` at
+  this stage), `build(session) -> Proposal` and `lines(proposal, width=80) -> list[str]` in the
   layout of contracts/cli-init.md ("The proposal, as shown"): `  <label, 10>  <value, 26>  <certainty>:
   <reason>` cut with `…`, grouping and the memory lines from T013, the label once. Depends on T013,
   T014. Makes T008–T010 pass.
@@ -169,7 +173,8 @@ accept) write a manifest that validates (spec US1).
   reader. Tests: four answers on `synthetic` (`<data>`, the number of `s32k144`, Enter, Enter) write a
   valid `synthetic-mlp.yaml` (SC-001); the proposal is on standard error before the board question;
   the columns step lists exactly `can_id` and `dlc`; every board in the board question shows the
-  model's lower bounds; the second proposal has the memory line and its label; `a`, then the window,
+  model's lower bounds and the list ends with the label line; the second proposal has the memory
+  line and its label; `a`, then the window,
   shows the window table and strip, and after choosing 8 the window line reads `8 rows` with
   `answered`; `q` and end of input write nothing and exit 2; `<` in the asking step goes back one
   question; with data directories in `cwd` and no `--dataset`, they are offered as numbered choices;
@@ -179,8 +184,9 @@ accept) write a manifest that validates (spec US1).
 ### Implementation for User Story 1
 
 - [ ] T017 [US1] In `src/caravan/init/session.py` make the board choices show, per registered board,
-  its RAM and flash and the model's lower bounds against them once the estimate can be made
-  (US1 scenario 7); let the dataset question offer `candidates()`; turn the `review` question into the
+  its RAM and flash and the model's lower bounds against them once the estimate can be made, and the
+  label line "lower bounds, estimated before building; build checks again" below the list (US1
+  scenario 7, Principle IV); let the dataset question offer `candidates()`; turn the `review` question into the
   decision (choices: write — only when `ready` —, adjust, stop) while keeping its key so later
   answers are still marked stale through `ORDER`.
 - [ ] T018 [US1] Rewrite the top-level `run()` of `src/caravan/init/line.py` as research R2's flow:
@@ -192,15 +198,18 @@ accept) write a manifest that validates (spec US1).
   `ASK` functions and the session's `explain()` panels; back to the proposal. Recompute `to_ask()`
   after every answer. Keep `<`, end of input and interrupt as today.
 - [ ] T019 [US1] In `src/caravan/cli/init.py` add `_person()` — standard input and standard error are
-  terminals (research R3) — and run `line.run()` only when it is true. The path without a person stays
-  as in feature 013 until T024. A validation finding after writing still sends the person back to the
-  item that owns it (feature 013, research R10).
+  terminals (research R3) — and run `line.run()` when it is true. Until T024 replaces it, the path
+  without a person and without `--no-input` also runs `line.run()` on piped standard input, as
+  feature 013 did, so the suite stays green between the two stories; `--no-input` keeps feature 013's
+  meaning until T024. A validation finding after writing still sends the person back to the item that
+  owns it (feature 013, research R10).
 - [ ] T020 [US1] Move the three line-dialogue tests of `tests/contract/test_init_contract.py`
   (`test_the_dialogue_accepts_every_proposal_with_enter`, `test_going_back_keeps_the_answers`,
   `test_end_of_input_writes_nothing`) into `tests/contract/test_init_line.py`, rewritten for the new
   flow with the person helper; update the dialogue side of
   `test_the_dialogue_and_no_input_write_the_same_bytes` in
-  `tests/integration/test_init_combinations.py` to the new flow's answers.
+  `tests/integration/test_init_combinations.py` to the new flow's answers, driven with `_person`
+  returning `True` so it keeps working after T024.
 
 **Checkpoint**: US1 works on its own; T016 passes; the default-install suite is green.
 
@@ -240,7 +249,8 @@ writes (spec US2).
   (contracts/cli-init.md, "Without a person").
 - [ ] T024 [US2] In `src/caravan/cli/init.py` add `-y`/`--yes` ("accept every proposal not given as
   an option; ask nothing") and give `--no-input` its new meaning ("ask nothing; without `--yes`, write
-  nothing"); `_person()` is false whenever `--yes`, `--no-input` or `--json` is given. Without a person:
+  nothing"); `_person()` is false whenever `--yes` or `--no-input` is given (T030 adds `--json`).
+  Without a person:
   with `--yes`, take every proposal not given (`session.fill()`), print the uncertain ones taken, write;
   open items → one line each in the contract's format with `session.example()`, exit 2; without `--yes`
   → the proposal lines, the missing lines and `accepting_command()`, exit 2, nothing written. A window
@@ -278,7 +288,8 @@ returns a `written` document and a valid manifest (spec US3, SC-006).
   `memory`, `findings`, `notes`, `next`), all present; the exit code matches the outcome; standard
   error is empty; with `_person` returning `True`, `--json` never reads; findings equal
   `Finding.as_dict()`; every `Item` has `source` in `given`, `answered`, `proposed` and `certainty`
-  `null` unless `proposed`; memory entries carry the label "lower bounds, estimated before building;
+  `null` unless `proposed`; every item has a non-empty `option` and `example` (FR-031); memory
+  entries carry the label "lower bounds, estimated before building;
   caravan build checks them again"; the same command twice prints the same bytes; and the round trip
   of SC-006 — run the `proposed` document's `next` with `shlex.split` and get `written`.
 
@@ -308,7 +319,7 @@ an existing one, all or nothing with the manifest.
 **Independent Test**: `--yes --agents-md` in an empty directory writes both files; with an existing
 `AGENTS.md` it stays unchanged, the manifest is written, and `init` says so (spec US4).
 
-**Precondition**: T001 (constitution v4.5.0) is done before this phase is merged.
+**Precondition**: T001 (constitution v4.5.0) — done.
 
 ### Tests for User Story 4 (write first, they fail)
 
@@ -354,9 +365,11 @@ window table, the drawing, the parameter form and the memory panel appear (spec 
 - [ ] T037 [P] [US5] Write `tests/contract/test_init_one_interface.py`: `--plain` and `--tui` exit 2;
   under "adjust" in the line mode (person helper of T016) the template shows the drawing, the
   parameters show the presets and the per-value form, and the quantization shows the memory panel
-  (FR-020); and the SC-010 search — `authoring extra`, `[authoring`, `authoring =`, `textual`,
-  `full-screen`, case-insensitive — over `src/`, `docs/`, `README.md`, `pyproject.toml` and
-  `.github/` finds only `docs/releases/0.1.0.md`.
+  (FR-020); and the SC-010 search — the case-insensitive regular expressions `` `?authoring`?
+  extra``, `\[authoring`, `authoring =`, `textual`, `full[- ]screen` and `--plain` over `src/`,
+  `docs/`, `README.md`, `pyproject.toml` and `.github/` — finds only `docs/releases/0.1.0.md`. Before
+  T038, check the test against today's `docs/roadmap.md` ("full screen with the `authoring` extra") to
+  see it catches the backticked and the spaced spelling.
 - [ ] T038 [US5] Reword the feature-013 row of `docs/roadmap.md` so it no longer names the removed
   interface ("`caravan init`: a first manifest from the data, with the window table, a drawing of the
   network and memory per board"), and fix anything else T037's search finds.
@@ -393,14 +406,14 @@ window table, the drawing, the parameter form and the memory panel appear (spec 
 
 ### Phase dependencies
 
-- **Phase 1**: T001 can start at once but must be done before Phase 6 merges; T002 before T011.
+- **Phase 1**: T001 (done) precedes Phase 6; T002 before T011.
 - **Phase 2**: T003–T007 first (they remove what later tasks would otherwise have to keep working);
   T008–T010 before T011–T015; T011 → T014 → T015; T012 and T013 in parallel with T011.
 - **Phase 3 (US1)**: after Phase 2.
 - **Phase 4 (US2)**: after Phase 2; T026 needs T020 (US1) for the line side of the byte-identity
   test — the only cross-story link.
 - **Phase 5 (US3)**: after T023 and T024 (US2), which give it the non-interactive path.
-- **Phase 6 (US4)**: after Phase 2 for the code; its merge after T001.
+- **Phase 6 (US4)**: after Phase 2 and T001.
 - **Phase 7 (US5)**: after Phase 2; T037's adjust checks use US1's person helper (T016).
 - **Phase 8**: after the stories it documents.
 

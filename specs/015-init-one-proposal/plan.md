@@ -133,7 +133,10 @@ src/caravan/
 
 tests/
 ├── contract/
-│   ├── test_init_contract.py       # rewritten: person/no person, --yes, --no-input, outcomes, streams
+│   ├── test_init_contract.py       # feature 013's cases, --no-input → --yes where it meant "accept"
+│   ├── test_init_line.py           # NEW: the flow with a person (US1)
+│   ├── test_init_no_person.py      # NEW: no person, --yes, --no-input, notes, timing (US2)
+│   ├── test_init_one_interface.py  # NEW: --plain/--tui refused, adjust panels, the search (US5)
 │   ├── test_init_json.py           # NEW: the document for every outcome; the round trip (SC-006)
 │   ├── test_init_examples.py       # NEW: every missing item's example gets past it (SC-005)
 │   └── test_init_agents_md.py      # NEW: written, kept, byte-identical, nothing left on failure

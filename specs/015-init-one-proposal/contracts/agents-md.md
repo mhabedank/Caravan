@@ -21,7 +21,8 @@ template, boards and budgets. To change the model, edit the manifest, then check
 | Build the model, and check before training that it can fit the boards | `caravan build {manifest} --json` |
 | Then, in order | `caravan train`, `caravan quantize`, `caravan export`, each with `{manifest} --json` |
 
-Every command runs offline and writes its report under `runs/`.
+Every command runs offline. `validate`, `build` and the later stages write a report under
+`runs/`; `render --stdout` writes nothing to disk.
 
 ## Exit codes
 
@@ -53,6 +54,8 @@ Every command: https://mhabedank.github.io/Caravan/ref/cli.html
 ## Checks
 
 - Every command in the table exists, with the options shown (a test runs the parser on each line).
+- `render` is given with `--stdout`, the form a program reads (its resolved manifest); the others
+  with `--json` (spec FR-027).
 - The text contains no value from the manifest besides its name (a test writes two manifests that
   differ in everything but the name and compares the guides).
 - The "What belongs to the author" section is present verbatim (Principles V, VI, XI).

@@ -52,3 +52,9 @@
   budget of a `number` output as open (no shipped value carries over its unit), and FR-003 measures
   the window against the window table's criteria, because the shipped manifests' sizes predate the
   table and fail its criteria where they differ from the proposal. Every item still passes.
+- Analysis (2026-11-27) fixes: FR-007 asks open items as well as uncertain ones; FR-015 and SC-005
+  name the one placeholder exception; FR-002 lists the normal value as open; FR-003 names which
+  datasets count; FR-027 asks for the program-readable form (`render --stdout`); the template's
+  certainty when only one answers is in the Assumptions; FR-020 points to SC-010 instead of repeating
+  it; US1 scenario 7 labels the bounds in the board question (Principle IV). Constitution v4.5.0 now
+  admits the `AGENTS.md` (T001). Every item still passes.

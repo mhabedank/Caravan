@@ -60,6 +60,7 @@ The complete set of items for one manifest, derived after the data is read (FR-0
 | `items` | list of Item | in the order of feature 013's `ORDER`, inputs in column order |
 | `memory` | list of Board memory | one per chosen board (FR-006); empty while no board is chosen |
 | `to_ask` | list of keys | the items a person is asked: open or uncertain, not given, not yet answered; uncertain inputs as one entry |
+| `notes` | list of Note | `init`'s own notes so far (sampled data, a board a bound exceeds, …): the line mode prints them before the decision, `--yes` on standard error, `--json` in the document |
 | `ready` | bool | nothing open, nothing stale, every check passes — the decision may offer "accept" |
 
 Derived, never stored: recomputed after every answer, because an answer can change a later item's
@@ -96,7 +97,7 @@ The JSON object `init --json` prints; the contract is [contracts/init-result.md]
 |---|---|
 | `outcome` | `written`, `invalid`, `unusable`, `proposed`, `incomplete`, `refused` |
 | `written` | list of paths, relative to the current directory; empty unless `written` |
-| `dataset` | path and sample note, or none when the data could not be read |
+| `dataset` | `{path, rows_read, complete}`, or none when the data could not be read |
 | `items` | list of Item |
 | `memory` | list of Board memory |
 | `findings` | list of validation findings |

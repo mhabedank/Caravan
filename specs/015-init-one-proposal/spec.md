@@ -141,7 +141,7 @@ answers given as options: the file is byte-identical.
    marked to be checked again.
 7. **Given** the board question, **When** the boards are listed, **Then** each shows its memory and
    flash and, since the rest of the proposal is known by then, the model's lower bounds against
-   them.
+   them, labelled as estimated before building (Principle IV).
 8. **Given** chosen boards, **When** the proposal is shown, **Then** it has one line per board with
    the model's flash and RAM lower bounds against the board's figures, labelled as estimated before
    building, and a mark where a bound already exceeds the board.
@@ -321,11 +321,13 @@ then the window: the window table is shown, as in feature 013.
   - **convention** — not derived from the data: a documented starting value, such as `int8`, the
     budget the shipped examples use (labelled as not a recommendation), the template's starting
     parameters, a name from the data directory;
-  - **open** — no proposal: the boards always, the output column when no column qualifies, and the
-    budget of a `number` output, which is in the column's own unit, so no shipped value carries
-    over.
+  - **open** — no proposal: the boards always, the output column when no column qualifies, the
+    value that means normal for an anomaly output when no value is `normal`, and the budget of a
+    `number` output, which is in the column's own unit, so no shipped value carries over.
 - **FR-003**: A rule MAY mark its proposal certain only if its proposals agree with the intended
-  manifest on every tabular dataset shipped with Caravan; a rule MAY be stricter than that. Each of
+  manifest on every tabular dataset shipped with Caravan — the datasets under
+  `tests/fixtures/datasets/` that a shipped manifest or the dataset's own description gives an
+  intended answer for; a rule MAY be stricter than that. Each of
   the seven differences measured on 2026-11-24 (Context) MUST come out uncertain or open. For the
   window, agreement means meeting the window table's own criteria (feature 013, FR-031) rather than
   matching the shipped manifests' sizes: those were chosen before the table existed, and where they
@@ -342,8 +344,8 @@ then the window: the window table is shown, as in feature 013.
 **Asking**
 
 - **FR-007**: In a terminal, `init` MUST ask, after the proposal, only for: the data when not given;
-  the boards when not given; and each uncertain item not given, with all uncertain input columns in
-  one step. It MUST NOT ask about a certain item or a convention.
+  the boards when not given; and each other open or uncertain item not given, with all uncertain
+  input columns in one step. It MUST NOT ask about a certain item or a convention.
 - **FR-008**: Each of these questions MUST show its proposal and the answers the data allows, and
   accepting the proposal — for all uncertain columns at once — MUST take one keystroke.
 - **FR-009**: Then `init` MUST show the updated proposal and offer exactly three things: accept (one
@@ -365,7 +367,9 @@ then the window: the window table is shown, as in feature 013.
   and MUST exit with the usage code, naming `--yes` and the command that would accept the proposal.
 - **FR-015**: Every message about a missing or open answer MUST name, for each such answer, exactly
   one option and an example value that is valid here — a column of this data, a registered board, a
-  type this column allows — so that adding the option with that value gets past the message.
+  type this column allows — so that adding the option with that value gets past the message. The one
+  exception is the data when the current directory holds nothing readable: then the message names
+  `--dataset` with a placeholder, because no valid value exists to name.
 - **FR-016**: Under `--yes`, the proposals taken while uncertain MUST be listed in the output, each
   with the option that sets it.
 - **FR-017**: `--no-input` MUST keep its general meaning — never ask — and MUST no longer accept the
@@ -379,9 +383,8 @@ then the window: the window table is shown, as in feature 013.
   dependency, the interface's code, its tests and its continuous-integration job.
 - **FR-020**: The guided choices of feature 013 that the full-screen interface showed — the window
   table and strip, the drawing of the network, the parameter form with presets, the memory per
-  board — MUST remain available in the line mode under "adjust". After the change, no
-  documentation, install instruction or message MUST mention the full-screen interface or the
-  `authoring` extra, except the change note.
+  board — MUST remain available in the line mode under "adjust". Nothing else may still mention the
+  removed interface (SC-010).
 
 **The JSON result**
 
@@ -407,7 +410,7 @@ then the window: the window table is shown, as in feature 013.
 - **FR-026**: `init` MUST NOT overwrite or edit an existing `AGENTS.md`, also not with `--overwrite`;
   it says that it left the file unchanged, and the manifest is still written.
 - **FR-027**: The guide MUST name the manifest's file; give the commands to validate, render and build
-  it, with their `--json` form; say what the exit codes mean; say that the manifest is the one place
+  it, in the form whose output a program can read (`--json` where the command has it); say what the exit codes mean; say that the manifest is the one place
   to change the model and that it is validated after every edit; say that the budgets are gates and
   that loosening one is the author's decision, not a fix (Principle V); say that data and
   credentials stay out of the repository (Principle VI); and point to the manifest reference.
@@ -500,7 +503,8 @@ The principles this feature touches, and how it complies (Development Workflow &
 - **SC-004**: Without a terminal, 100% of runs end without waiting for input, each within 5 seconds
   on the shipped datasets.
 - **SC-005**: For every message about a missing answer, adding the option and the example value it
-  names gets the run past that message — checked for every item that can be missing.
+  names gets the run past that message — checked for every item that can be missing, the
+  placeholder of FR-015 excepted.
 - **SC-006**: A script that reads only the JSON document of a run that wrote nothing can build the
   command that writes the manifest, and that command succeeds.
 - **SC-007**: The proposal for the synthetic dataset, and for a dataset of 200 columns, fits in 24
@@ -520,7 +524,8 @@ The principles this feature touches, and how it complies (Development Workflow &
   is a possible later step, judged against measured data (the research's open question 1).
 - **Template and parameters are conventions.** `init` does not infer an architecture from the data;
   it proposes the first registered template that answers the output, with the template's starting
-  values, shows them, and lets the author change them under "adjust".
+  values, shows them, and lets the author change them under "adjust". Where exactly one registered
+  template answers the output, nothing is left to choose and the template is certain (research R1).
 - **The `AGENTS.md` is opt-in**, as the request says "optional": Principle XII lets `init` write one
   file, and many projects already have an `AGENTS.md`. It is not proposed by default.
 - **The baseline of FR-003** is the four tabular fixture datasets measured on 2026-11-24; a dataset

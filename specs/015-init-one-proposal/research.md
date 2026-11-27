@@ -250,9 +250,11 @@ output (rejected: standard output belongs to the path or the JSON document).
 
 What the interface alone offered is already in the line mode: the window table and strip, the drawing,
 the memory panel and the parameter form are produced by the session's `explain()` and `line.ask_form`
-(FR-020). A search for the extra (`authoring extra`, `[authoring`, `authoring =`), `textual` and
-`full-screen` outside `specs/`, the constitution's history and the change note must come back empty
-(SC-010; the command is in quickstart.md §7). The roadmap's row for feature 013 is reworded rather
+(FR-020). A search for the removed interface — the case-insensitive patterns `` `?authoring`?
+extra``, `\[authoring`, `authoring =`, `textual`, `full[- ]screen` and `--plain` — over `src/`,
+`docs/`, `README.md`, `pyproject.toml` and `.github/` must find only the change note in
+`docs/releases/0.1.0.md` (SC-010; the command is in quickstart.md §7). The patterns allow for the
+backticks and the spelling "full screen" that today's pages use. The roadmap's row for feature 013 is reworded rather
 than annotated, so it does not name the removed interface either. "An authoring aid" — the
 constitution's description of `init`, quoted in `tests/contract/test_cli_contract.py` — stays.
 

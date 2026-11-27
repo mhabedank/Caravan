@@ -94,13 +94,13 @@ Expected: the guide of contracts/agents-md.md naming `synthetic-mlp.yaml`; on th
 ```bash
 uv run --project $OLDPWD caravan init --plain; echo "exit $?"     # 2, unknown option
 uv run --project $OLDPWD caravan init --tui; echo "exit $?"       # 2, unknown option
-cd $OLDPWD && grep -rIil --exclude-dir={specs,.venv,.git,.claude,.specify} \
-  -e "authoring extra" -e "\[authoring" -e "authoring =" -e textual -e full-screen .
+cd $OLDPWD && grep -rIilE -e '`?authoring`? extra' -e '\[authoring' -e 'authoring =' \
+  -e 'textual' -e 'full[- ]screen' -e '--plain' src docs README.md pyproject.toml .github
 ```
 
 Expected: both exit 2; the search finds only `docs/releases/0.1.0.md` (the change note). The
-constitution's history and the specs of feature 013 keep their record and are not searched; "an
-authoring aid", the constitution's name for `init`, is not a match.
+constitution's history, the tests and the specs of feature 013 keep their record and are not
+searched; "an authoring aid", the constitution's name for `init`, is not a match.
 
 ## 8. The suite
 

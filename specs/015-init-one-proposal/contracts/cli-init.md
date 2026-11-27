@@ -38,9 +38,11 @@ confirm an overwrite and does not answer an open item.
    current directory are offered as numbered choices.
 2. **Proposal** — shown once, in the layout below.
 3. **Boards** — asked unless `--board` is given: every registered board with its RAM and flash and the
-   model's lower bounds against them. Several as `1,3`. No board is proposed.
+   model's lower bounds against them, followed by the line "lower bounds, estimated before
+   building; build checks again" (Principle IV: the label goes wherever the number goes). Several
+   as `1,3`. No board is proposed.
 4. **Uncertain and open items** — each one not given, in the order output, output type, normal value,
-   inputs, window, budget. All uncertain inputs are **one** step:
+   inputs, window, budget (the boards are step 3). All uncertain inputs are **one** step:
 
    ```text
    ? These columns could be read more than one way  (input_features)
