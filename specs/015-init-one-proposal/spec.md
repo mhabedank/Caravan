@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-24
 
-**Status**: Draft
+**Status**: Implemented (2026-11-27); in review
 
 **Input**: User description (German, in full):
 

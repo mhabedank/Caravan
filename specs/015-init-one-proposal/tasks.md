@@ -391,7 +391,7 @@ window table, the drawing, the parameter form and the memory panel appear (spec 
   `docs/releases/0.1.0.md`.
 - [X] T042 [P] Add a row for feature 015 to `docs/roadmap.md` (one proposal instead of question by
   question; `--yes`, `--json`, `--agents-md`; the line mode the only interface), after T038.
-- [ ] T043 Run quickstart.md §1–§8 and record the outcome of each section, including the SC-008 check
+- [X] T043 Run quickstart.md §1–§8 and record the outcome of each section, including the SC-008 check
   with a reader new to Caravan, in the Notes below.
 - [ ] T044 Local validation before the pull request (constitution, Resources & Cost Discipline):
   `uv run ruff check .`, `uv run ruff format --check .`, and the whole suite on Python 3.13, 3.14 and
@@ -461,3 +461,23 @@ one pull request opens when T044 has passed (T045).
 - `[P]` tasks touch different files and depend on nothing unfinished.
 - No test is skipped, quarantined or weakened to get green.
 - Feature 013's spec, plan and tasks stay as written; this feature records what it replaces.
+
+## Quickstart record (T043, 2026-11-27)
+
+- §1 One proposal, four answers: run in a real pseudo-terminal (stdin and stderr ttys) on a copy of
+  `synthetic` in the working directory: the data offered as `1) synthetic`, the proposal before the
+  boards, the columns step with `can_id` and `dlc` only, Enter writes; four answers, exit 0. Also
+  covered by `tests/contract/test_init_line.py` with the terminal check replaced.
+- §2 Adjust: `a`, `window`, `8` → the window table and strip, the window line `8 rows  answered`
+  (`test_adjust_one_item_then_write`).
+- §3 No person, no `--yes`: exit 2 in 0.4 s, nothing written, the accepting command printed.
+- §4 `--yes`: the two uncertain columns listed with their `--input` options, written, exit 0; again
+  exit 2 naming `--overwrite`; without `--board`, exit 2 naming `--board esp32` and the list.
+- §5 JSON preview and round trip: `proposed`, `next` adds `--board esp32 --yes` (with `--json`);
+  running it gives `written` (`test_the_next_command_of_a_preview_writes_the_manifest`).
+- §6 `AGENTS.md`: written beside the manifest; an existing one kept unchanged, also with
+  `--overwrite`, and reported as kept.
+- §7 One interface: `--plain` and `--tui` exit 2; the search finds only `docs/releases/0.1.0.md`.
+- §8 The suite: see T044.
+- SC-008 (a reader new to Caravan, under 2 minutes, without the docs) needs a person and is left to
+  the owner's review of the pull request; nothing in this session can stand in for it.
