@@ -1,7 +1,12 @@
-"""What the data says about each column: a proposed type and the reason (feature 013, R3 to R5).
+"""What the data says about each column: a proposed type, why, and how sure (features 013, 015).
 
 Read with the standard library's ``csv``, so it runs without a framework. A bounded sample of
 50,000 rows is enough for every rule below and keeps a million-row dataset under a second (SC-005).
+
+Each rule carries a certainty (feature 015, research R1): ``certain`` where the rule settles the
+answer and agrees with every shipped dataset that has an intended manifest, ``uncertain`` where the
+values allow another answer that is also in use. The test ``tests/unit/test_init_certainty.py``
+holds every rule to that against the shipped data.
 """
 
 from __future__ import annotations
@@ -26,6 +31,13 @@ OUTPUT_NAMES = ("label", "target", "class", "y", "condition", "outcome")
 #: The value of an anomaly column that means normal unless stated (the schema's default).
 NORMAL = "normal"
 
+#: How sure a proposal is (feature 015, spec FR-002; data-model "Certainty").
+CERTAIN = "certain"
+UNCERTAIN = "uncertain"
+CONVENTION = "convention"
+OPEN = "open"
+CERTAINTIES = (CERTAIN, UNCERTAIN, CONVENTION, OPEN)
+
 
 class ProfileError(Exception):
     """The data cannot be set up: a missing path, no header, headers that differ."""
@@ -46,6 +58,12 @@ class ColumnProfile:
     proposal: str | None = None
     reason: str = ""
     image_like: bool = False
+    #: How sure the rule that made the proposal is (feature 015, research R1).
+    certainty: str = CERTAIN
+    #: What else the values allow, ``None`` meaning "leave out".
+    alternatives: tuple[str | None, ...] = ()
+    #: Numeric, and no value below the one before it within any file (feature 015, research R1).
+    never_decreasing: bool = True
 
     @property
     def values(self) -> int:
@@ -133,8 +151,11 @@ def read_header(root: Path, files: Sequence[Path]) -> list[str]:
 
 
 def _propose(column: ColumnProfile) -> None:
-    """Research R4: the first matching rule gives the proposal and the reason shown."""
+    """Research R4 (feature 013) and R1 (feature 015): the first matching rule gives the proposal,
+    the reason shown, its certainty and the alternatives the values allow."""
     name = column.name
+    count = f"{column.values}{'+' if column.distinct_capped else ''}"
+    certainty, alternatives = CERTAIN, ()
     if column.rows_seen == column.empty:
         column.proposal, column.reason = None, "every sampled cell is empty"
     elif column.values == 1 and not column.distinct_capped:
@@ -148,6 +169,8 @@ def _propose(column: ColumnProfile) -> None:
     elif column.values == 2 and not column.distinct_capped:
         first, second = column.distinct
         column.proposal, column.reason = "binary", f"2 distinct values: {first} and {second}"
+        certainty = UNCERTAIN
+        alternatives = ("category", "number", None) if column.numeric else ("category", None)
     elif (
         column.numeric
         and column.integer
@@ -155,20 +178,34 @@ def _propose(column: ColumnProfile) -> None:
     ):
         column.proposal = "category"
         column.reason = "integers in a column named like an identifier: a code, not a magnitude"
+        certainty, alternatives = UNCERTAIN, ("number", None)
+    elif not column.numeric and column.distinct_capped:
+        column.proposal = "category"
+        column.reason = (
+            f"text, {count} distinct values: a category, or an identifier or a time stamp?"
+        )
+        certainty, alternatives = UNCERTAIN, (None,)
     elif not column.numeric:
-        count = f"{column.values}{'+' if column.distinct_capped else ''}"
         column.proposal, column.reason = "category", f"text values, {count} distinct"
+        alternatives = (None,)
     elif column.integer and column.values <= SMALL_CODES and not column.distinct_capped:
         column.proposal, column.reason = "category", f"{column.values} distinct integer values"
+        certainty, alternatives = UNCERTAIN, ("number", None)
+    elif column.never_decreasing and (column.values > SMALL_CODES or column.distinct_capped):
+        column.proposal = None
+        column.reason = "only grows within each file: a time or a counter? usually left out"
+        certainty, alternatives = UNCERTAIN, ("number",)
     else:
-        count = f"{column.values}{'+' if column.distinct_capped else ''}"
         column.proposal, column.reason = "number", f"numeric, {count} distinct values"
+        alternatives = ("category", None) if column.integer else (None,)
     if column.proposal is not None and not NAME_PATTERN.match(name):
         column.proposal = None
         column.reason = (
             f"the name {name!r} cannot name a feature (lower case letters, digits and _, "
             "starting with a letter): rename the column to use it"
         )
+        certainty, alternatives = CERTAIN, ()
+    column.certainty, column.alternatives = certainty, alternatives
 
 
 def profile(path: Path, *, sample_rows: int = SAMPLE_ROWS) -> DataProfile:
@@ -187,6 +224,8 @@ def profile(path: Path, *, sample_rows: int = SAMPLE_ROWS) -> DataProfile:
         if rows >= sample_rows:
             complete = False
             break
+        #: The last number seen in each column, within this file only (research R1).
+        last: list[float | None] = [None for _ in names]
         with table.open("r", encoding="utf-8", newline="") as handle:
             reader = csv.reader(handle, delimiter=TABLE_DELIMITERS.get(table.suffix.lower(), ","))
             next(reader, None)
@@ -207,6 +246,12 @@ def profile(path: Path, *, sample_rows: int = SAMPLE_ROWS) -> DataProfile:
                         numeric, integer = _number(cell)
                         column.numeric = numeric
                         column.integer = column.integer and integer
+                        if numeric and column.never_decreasing:
+                            value = float(cell)
+                            before = last[position]
+                            if before is not None and value < before:
+                                column.never_decreasing = False
+                            last[position] = value
                     if not column.distinct_capped and cell not in seen[position]:
                         if len(column.distinct) >= DISTINCT_CAP:
                             column.distinct_capped = True
@@ -216,6 +261,8 @@ def profile(path: Path, *, sample_rows: int = SAMPLE_ROWS) -> DataProfile:
     for column in columns:
         if column.empty == column.rows_seen:
             column.numeric = column.integer = False
+        if not column.numeric:
+            column.never_decreasing = False
         _propose(column)
     return DataProfile(root, files, tuple(columns), rows, complete)
 
@@ -223,15 +270,41 @@ def profile(path: Path, *, sample_rows: int = SAMPLE_ROWS) -> DataProfile:
 # --- the output (research R5) ------------------------------------------------------------------
 
 
-def proposed_output(data: DataProfile) -> str | None:
+def output_proposal(data: DataProfile) -> tuple[str | None, str, str]:
+    """The output column, how sure, and why (feature 015, research R1).
+
+    A column named like an answer is certain; the fallback — the last column with few values — is
+    uncertain, and says so rather than borrowing the named rule's reason; no column is open.
+    """
     usable = [column for column in data.columns if NAME_PATTERN.match(column.name)]
     for name in OUTPUT_NAMES:
         if any(column.name == name for column in usable):
-            return name
+            return name, CERTAIN, "a column named like an answer"
     for column in reversed(usable):
         if column.proposal in ("category", "binary"):
-            return column.name
-    return None
+            return (
+                column.name,
+                UNCERTAIN,
+                "no column named like an answer: the last column with few values",
+            )
+    return None, OPEN, "no column is named like an answer or has few values: name the output"
+
+
+def proposed_output(data: DataProfile) -> str | None:
+    return output_proposal(data)[0]
+
+
+def output_type_certainty(column: ColumnProfile, offered: tuple[str, ...]) -> tuple[str, str]:
+    """How sure the first offered output type is (research R1): certain when it is the only one,
+    or for text with more than two values; uncertain when two values or few integers leave a
+    choice."""
+    if len(offered) == 1:
+        return CERTAIN, f"the only kind its values allow; {column.summary()}"
+    if not column.numeric and column.values > 2:
+        return CERTAIN, f"text with more than two values; {column.summary()}"
+    if column.values == 2 and not column.distinct_capped:
+        return UNCERTAIN, f"two values: also {', '.join(offered[1:])}; {column.summary()}"
+    return UNCERTAIN, f"few distinct integers: also {', '.join(offered[1:])}; {column.summary()}"
 
 
 def output_types(column: ColumnProfile) -> tuple[str, ...]:

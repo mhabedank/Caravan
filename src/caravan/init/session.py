@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -18,15 +19,21 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from caravan.data.fingerprint import DATA_SUFFIXES
 from caravan.init import drawing, memory, windows
 from caravan.init.form import Form
 from caravan.init.profile import (
+    CERTAIN,
+    CONVENTION,
     NORMAL,
+    OPEN,
+    UNCERTAIN,
     DataProfile,
     ProfileError,
+    output_proposal,
+    output_type_certainty,
     output_types,
     profile,
-    proposed_output,
     read_column,
 )
 from caravan.manifest._yaml import DocumentError, dump_commented, flow
@@ -107,6 +114,23 @@ OPTIONS = {
     "name": "--name",
     "file": "<manifest>",
 }
+
+#: What each item needs answered before it can be proposed: a missing item whose prerequisite is
+#: missing too is not reported on its own (feature 015, research R5).
+DEPENDS = {
+    "output_type": ("output",),
+    "normal_label": ("output", "output_type"),
+    "inputs": ("output",),
+    "window": ("output", "output_type", "template"),
+    "template": ("output_type",),
+    "params": ("template",),
+    "budget": ("output_type",),
+    "name": ("template",),
+    "file": ("name",),
+}
+
+#: How many data candidates the data question offers (feature 015, contracts/cli-init.md).
+CANDIDATES = 9
 
 OUTPUT_MEANING = {
     "category": "one of several classes",
@@ -204,6 +228,11 @@ class Session:
         self.boards = boards or default_boards()
         self.answers: dict[str, Any] = {}
         self.given: set[str] = set()
+        #: Input columns given one by one with ``--input`` (feature 015).
+        self.given_columns: set[str] = set()
+        #: Items, and input columns, a person answered (feature 015: the ``answered`` source).
+        self.answered: set[str] = set()
+        self.answered_columns: set[str] = set()
         #: Answers that no longer fit an earlier one: kept, marked to check again (FR-035).
         self.stale: set[str] = set()
         self.data: DataProfile | None = None
@@ -301,8 +330,8 @@ class Session:
         if key == "quantization":
             return "int8", "accelerated on every registered board"
         if key == "output" and data is not None:
-            name = proposed_output(data)
-            return (name, "a column named like an answer") if name else (None, "")
+            name, _, reason = output_proposal(data)
+            return (name, reason) if name else (None, "")
         if key == "output_type" and data is not None:
             output = self.value("output")
             if output in data.names:
@@ -347,6 +376,207 @@ class Session:
         if key == "review":
             return "write", ""
         return None, ""
+
+    # --- certainty (feature 015, research R1) ---------------------------------------------------
+
+    def certainty(self, key: str, column: str | None = None) -> tuple[str, str]:
+        """How sure the proposal for ``key`` is, and why: ``certain``, ``uncertain``,
+        ``convention`` or ``open`` (spec FR-002). For a given or answered item this is still the
+        proposal's certainty; the proposal object reports the source instead."""
+        data = self.data
+        if key == "inputs" and column is not None and data is not None:
+            found = data.column(column)
+            return found.certainty, found.reason
+        if key == "output":
+            if data is None:
+                return OPEN, "no data yet"
+            _, certainty, reason = output_proposal(data)
+            return certainty, reason
+        if key == "output_type":
+            output = self.value("output")
+            if data is None or output not in data.names:
+                return OPEN, "the output column first"
+            offered = output_types(data.column(output))
+            if not offered:
+                return OPEN, "the output column allows no type"
+            return output_type_certainty(data.column(output), offered)
+        if key == "normal_label":
+            return OPEN, "the data cannot say which value means normal"
+        if key == "inputs":
+            if self.uncertain_columns():
+                return UNCERTAIN, "some columns could be read more than one way"
+            return CERTAIN, "every column as its values show"
+        if key == "window":
+            table = self.window_table()
+            if table is not None:
+                paths = {"criteria": CERTAIN, "fallback": UNCERTAIN, "none": OPEN}
+                return paths[table.path], table.reason
+            spec = self._spec()
+            if spec is not None and spec.starter is not None and spec.starter.window:
+                return CONVENTION, "the template's own starting window"
+            return OPEN, "no window can be measured yet"
+        if key == "template":
+            kind = self.value("output_type")
+            answering = [c for c in self.choices("template") if not c.disabled]
+            if not answering:
+                return OPEN, f"no registered template answers a {kind} output"
+            if len(answering) == 1:
+                return CERTAIN, f"the only template that answers a {kind} output"
+            return CONVENTION, f"the first of {len(answering)} that answer a {kind} output"
+        if key == "params":
+            spec = self._spec()
+            note = spec.starter.note if spec is not None and spec.starter else ""
+            return CONVENTION, note or "the template's starting values"
+        if key == "budget":
+            proposal, reason = self.proposal("budget")
+            if proposal is not None:
+                return CONVENTION, reason
+            return OPEN, "in the output column's own unit: no shipped value carries over"
+        if key == "quantization":
+            return CONVENTION, "accelerated on every registered board"
+        if key == "boards":
+            return OPEN, "Caravan does not choose the hardware"
+        if key == "name":
+            return CONVENTION, "the data's directory and template"
+        if key == "file":
+            return CONVENTION, "the model's name, in the current directory"
+        return CONVENTION, ""
+
+    def uncertain_columns(self) -> list[str]:
+        """Input columns whose proposal is uncertain and that no option gave."""
+        if self.data is None:
+            return []
+        output = self.value("output")
+        return [
+            c.name
+            for c in self.data.columns
+            if c.name != output and c.certainty == UNCERTAIN and c.name not in self.given_columns
+        ]
+
+    def to_ask(self) -> list[str]:
+        """The items a person is asked: open or uncertain, not given, not yet answered; the
+        uncertain inputs as one entry (data-model "Proposal")."""
+        out = []
+        for key in self.keys():
+            if key in ("dataset", "review") or key in self.given or key in self.answered:
+                continue
+            if key == "inputs":
+                if self.uncertain_columns():
+                    out.append(key)
+                continue
+            if self.certainty(key)[0] in (UNCERTAIN, OPEN):
+                out.append(key)
+        return out
+
+    def take(self, key: str, value: Any) -> str | None:
+        """A person's answer to one item: accepted, and remembered as answered."""
+        problem = self.accept(key, value)
+        if problem is None:
+            self.answered.add(key)
+        return problem
+
+    def blockers(self) -> list[str]:
+        """Why the proposal cannot be written yet; empty when it can (data-model ``ready``)."""
+        if self.data is None:
+            return ["dataset: no data yet"]
+        out = []
+        for key in self.keys():
+            if key in ("dataset", "review"):
+                continue
+            if key in self.stale:
+                out.append(f"{key.replace('_', ' ')}: an earlier answer changed; check it again")
+                continue
+            value = self.value(key)
+            if value is None:
+                out.append(f"{key.replace('_', ' ')}: no answer yet")
+                continue
+            problem = self.check(key, value)
+            if problem:
+                out.append(f"{key.replace('_', ' ')}: {problem}")
+        return out
+
+    @property
+    def ready(self) -> bool:
+        return not self.blockers()
+
+    def missing_roots(self) -> list[str]:
+        """The items without an answer or a proposal whose prerequisites are all there: the ones
+        a message names (feature 015, research R5)."""
+        missing = [k for k in self.keys() if k not in ("review",) and self.value(k) is None]
+        return [k for k in missing if not any(d in missing for d in DEPENDS.get(k, ()))]
+
+    def candidates(self) -> list[str]:
+        """Tables and directories of tables directly in the current directory."""
+        out: list[str] = []
+        try:
+            entries = sorted(self.cwd.iterdir())
+        except OSError:
+            return out
+        for path in entries:
+            if len(out) >= CANDIDATES:
+                break
+            if path.name.startswith(".") or path.name == "runs":
+                continue
+            try:
+                if (path.is_file() and path.suffix.lower() in DATA_SUFFIXES) or (
+                    path.is_dir()
+                    and any(
+                        child.is_file() and child.suffix.lower() in DATA_SUFFIXES
+                        for child in path.iterdir()
+                    )
+                ):
+                    out.append(path.name)
+            except OSError:
+                continue
+        return out
+
+    def example(self, key: str, column: str | None = None) -> str:
+        """The option that answers ``key`` with a value valid here (feature 015, research R5)."""
+        option = OPTIONS.get(key, f"--{key.replace('_', '-')}")
+        data = self.data
+        if key == "dataset":
+            found = self.candidates()
+            return f"--dataset {shlex.quote(found[0]) if found else '<directory of CSV files>'}"
+        if key == "boards":
+            chosen = self.value("boards") or [self.boards.identifiers[0]]
+            return " ".join(f"--board {board}" for board in chosen)
+        if key == "inputs" and column is not None and data is not None:
+            now = (self.value("inputs") or {}).get(column)
+            other = next(
+                (a for a in data.column(column).alternatives if a != now),
+                None,
+            )
+            return f"--input {shlex.quote(f'{column}={other or chr(45)}')}"
+        if key == "file":
+            return shlex.quote(str(self.value("file") or "model.yaml"))
+        value = self.value(key)
+        if value is None:
+            enabled = [c.value for c in self.choices(key) if not c.disabled]
+            value = enabled[0] if enabled else None
+        if value is None and key == "budget":
+            value = self._budget_example()
+        if value is None:
+            return f"{option} <{key.replace('_', '-')}>"
+        if key == "params":
+            return f"{option} {shlex.quote(flow_text(value))}"
+        if key == "budget":
+            return f"{option} {float(value):g}"
+        return f"{option} {shlex.quote(str(value))}"
+
+    def _budget_example(self) -> float:
+        """One percent of the output column's sampled range, rounded: a value in its own unit."""
+        data = self.data
+        output = self.value("output")
+        if data is None or output not in data.names:
+            return 0.01
+        numbers = []
+        for text in data.column(output).distinct:
+            try:
+                numbers.append(float(text))
+            except ValueError:
+                continue
+        spread = (max(numbers) - min(numbers)) if numbers else 0.0
+        return float(f"{spread * 0.01:.2g}") if spread > 0 else 0.01
 
     # --- choices --------------------------------------------------------------------------------
 
@@ -966,3 +1196,14 @@ class Session:
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
+
+
+def flow_text(value: Any) -> str:
+    """A value as a YAML flow mapping or sequence, as ``--params`` reads it."""
+    if isinstance(value, Mapping):
+        return "{" + ", ".join(f"{key}: {flow_text(item)}" for key, item in value.items()) + "}"
+    if isinstance(value, list | tuple):
+        return "[" + ", ".join(flow_text(item) for item in value) + "]"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)

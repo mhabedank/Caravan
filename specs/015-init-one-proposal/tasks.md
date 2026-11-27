@@ -76,7 +76,7 @@ proposal object both the line mode and `--yes` read.
 
 ### Tests for certainty and the proposal (write first, they fail)
 
-- [ ] T008 [P] Write `tests/unit/test_init_certainty.py` (FR-003, SC-002). A table in the test states
+- [X] T008 [P] Write `tests/unit/test_init_certainty.py` (FR-003, SC-002). A table in the test states
   the intended answer per shipped tabular dataset — `synthetic` from `examples/picket-mlp.yaml`,
   `anomaly` from `examples/anomaly-autoencoder.yaml`, `recordings` from
   `tests/fixtures/manifests/valid/recordings-conv1d.yaml`, `frames` from `examples/frames-conv2d.yaml`,
@@ -90,14 +90,14 @@ proposal object both the line mode and `--yes` read.
   `windows.MIN_TEST_PER_CLASS`) and `uncertain` when it comes from the fallback (research R1.3,
   checked with each manifest's own template). Write the module docstring so that adding a shipped
   dataset means adding a row.
-- [ ] T009 [P] Extend `tests/unit/test_init_profile.py` with one case per rule of research R1's table:
+- [X] T009 [P] Extend `tests/unit/test_init_profile.py` with one case per rule of research R1's table:
   the certainty and alternatives of empty, constant, bad-name and image columns (`certain`, left out);
   two values (`uncertain`, binary); integers named like an identifier (`uncertain`, category); text
   with at most 256 distinct values (`certain`) and `many-text.csv`'s `station` (`uncertain`); at most
   16 distinct integers (`uncertain`); many distinct numbers (`certain`); `time-column.csv`'s `t`
   (`uncertain`, proposed left out, reason naming a time or a counter); and the fallback output on
   `tests/fixtures/datasets/soc` carrying its own reason, not "a column named like an answer".
-- [ ] T010 [P] Write `tests/unit/test_init_proposal.py` (FR-005, FR-006, SC-007): for
+- [X] T010 [P] Write `tests/unit/test_init_proposal.py` (FR-005, FR-006, SC-007): for
   `tests/fixtures/datasets/synthetic` and for a 200-column table generated in `tmp_path`, the proposal
   lines are at most 24, each at most 80 characters (`len(line)` in characters); the certainty is a
   word on every item line (`certain`, `uncertain`, `convention`, `open`); input columns are grouped by
@@ -109,7 +109,7 @@ proposal object both the line mode and `--yes` read.
 
 ### Implementation
 
-- [ ] T011 In `src/caravan/init/profile.py` add to `ColumnProfile` the fields `certainty` (one of
+- [X] T011 In `src/caravan/init/profile.py` add to `ColumnProfile` the fields `certainty` (one of
   `certain`, `uncertain`, `convention`, `open`), `alternatives` (what else the values allow) and
   `never_decreasing` ("numeric, and no value below the one before it within any file"), tracked while
   sampling. Set certainty in `_propose` per research R1's table, including the two stricter rules
@@ -120,17 +120,17 @@ proposal object both the line mode and `--yes` read.
   like an answer" for `OUTPUT_NAMES`, `uncertain` with "no column named like an answer: the last
   column with few values" for the fallback, `open` when none. Make `output_types` callers able to
   tell whether more than one type is offered. Depends on T002, T009.
-- [ ] T012 [P] In `src/caravan/init/windows.py` give `WindowTable` a field `path` — `criteria` when
+- [X] T012 [P] In `src/caravan/init/windows.py` give `WindowTable` a field `path` — `criteria` when
   a size met the criteria, `fallback` when the fewest-lost size was taken, `none` when no size yields
   windows — and extend `tests/unit/test_init_windows.py` to check it on `synthetic` (criteria),
   `anomaly` with `autoencoder` (fallback) and `recordings` with `conv1d` (fallback).
-- [ ] T013 [P] In `src/caravan/init/memory.py` add a `BoardMemory` record — `board`, `flash_bytes`,
+- [X] T013 [P] In `src/caravan/init/memory.py` add a `BoardMemory` record — `board`, `flash_bytes`,
   `ram_bytes`, `board_flash_bytes` and `board_ram_bytes` ("none when it states none"), a verdict per
   resource ("`below`, `exceeds`, `unknown` … anything but `below` is marked and becomes a note"),
   `peak_layer`, and `label` = `LABEL` — built from an `Estimate`, and a function that renders one line
   per board as in contracts/cli-init.md (`s32k144  flash ≥ 9.8 of 512 KB · RAM ≥ 2.6 of 64 KB  ✓`).
   Keep `panel()` for the adjust path.
-- [ ] T014 In `src/caravan/init/session.py` add (research R1, R5; data-model "Item"):
+- [X] T014 In `src/caravan/init/session.py` add (research R1, R5; data-model "Item"):
   `certainty(key, column=None) -> (certainty, reason)` for every key — output and output type from
   T011; inputs per column; window from `WindowTable.path` (`criteria` → `certain`, `fallback` →
   `uncertain`); template `certain` when exactly one registered template answers the output, else
@@ -143,7 +143,7 @@ proposal object both the line mode and `--yes` read.
   placeholder `<directory of CSV files>` only for data with no candidate; for a `number` budget one
   percent of the sampled range, rounded). A window with path `none` makes the data `unusable` (a rule
   failure, research R1), not a missing answer. Depends on T011, T012.
-- [ ] T015 Create `src/caravan/init/proposal.py` with `Item` (fields of data-model "Item": `key`,
+- [X] T015 Create `src/caravan/init/proposal.py` with `Item` (fields of data-model "Item": `key`,
   `column`, `field`, `value`, `source` one of `given`, `answered`, `proposed`, `certainty` "none for
   `given` and `answered`", `reason`, `alternatives`, `option`, `example`, `stale`), `Proposal`
   (`dataset`, `items` "in the order of feature 013's `ORDER`, inputs in column order", `memory`,

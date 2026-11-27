@@ -62,3 +62,26 @@ def test_the_strip_marks_a_window_whose_labels_differ() -> None:
     lines = windows.strip(labels, 4)
     assert lines[1].endswith("a" * 8 + "b" * 8) or "ab" in lines[1]
     assert "✗" in lines[3]
+
+
+def test_the_table_says_which_rule_made_the_proposal() -> None:
+    # Feature 015, research R1.3: a size that meets the table's criteria is certain, the
+    # fewest-lost fallback is not. Measured with each shipped manifest's own template.
+    from caravan.init.session import Session
+
+    def path(name: str, kind: str, template: str) -> str:
+        session = Session(
+            {
+                "dataset": str(DATA / name),
+                "boards": ["s32k144"],
+                "output_type": kind,
+                "template": template,
+            }
+        )
+        table = session.window_table()
+        assert table is not None
+        return table.path
+
+    assert path("synthetic", "category", "mlp") == "criteria"
+    assert path("anomaly", "anomaly", "autoencoder") == "fallback"
+    assert path("recordings", "category", "conv1d") == "fallback"

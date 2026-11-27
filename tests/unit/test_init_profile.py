@@ -7,7 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from caravan.init.profile import ProfileError, output_types, profile, proposed_output
+from caravan.init.profile import (
+    CERTAIN,
+    UNCERTAIN,
+    ProfileError,
+    output_proposal,
+    output_types,
+    profile,
+    proposed_output,
+)
 
 DATA = Path(__file__).resolve().parents[1] / "fixtures" / "datasets"
 EDGES = DATA / "init"
@@ -98,3 +106,55 @@ def test_a_million_rows_are_profiled_quickly_from_a_sample(tmp_path) -> None:
     print(f"profiling 1,000,000 rows: {elapsed:.2f} s")
     assert elapsed < 5
     assert found.sample_note() == "sampled the first 50,000 rows"
+
+
+# --- certainty and alternatives (feature 015, research R1) ---------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("table", "column", "proposal", "certainty", "alternatives"),
+    [
+        ("empty-column.csv", "empty", None, CERTAIN, ()),
+        ("constant.csv", "mode", None, CERTAIN, ()),
+        ("bad-name.csv", "Speed (km/h)", None, CERTAIN, ()),
+        ("constant.csv", "label", "binary", UNCERTAIN, ("category", None)),
+        ("ids.csv", "sensor_id", "category", UNCERTAIN, ("number", None)),
+        ("ids.csv", "code", "category", UNCERTAIN, ("number", None)),
+        ("small-codes.csv", "gear", "category", UNCERTAIN, ("number", None)),
+        ("many-text.csv", "station", "category", UNCERTAIN, (None,)),
+        ("many-text.csv", "label", "category", CERTAIN, (None,)),
+        ("time-column.csv", "t", None, UNCERTAIN, ("number",)),
+        ("time-column.csv", "x", "number", CERTAIN, (None,)),
+    ],
+)
+def test_each_rule_has_its_certainty_and_alternatives(
+    table, column, proposal, certainty, alternatives
+) -> None:
+    found = profile(EDGES / table).column(column)
+    assert found.proposal == proposal
+    assert found.certainty == certainty, found.reason
+    assert found.alternatives == alternatives
+
+
+def test_a_column_that_only_grows_is_named_a_time_or_a_counter() -> None:
+    found = profile(EDGES / "time-column.csv").column("t")
+    assert found.never_decreasing
+    assert "a time or a counter" in found.reason
+    assert not profile(EDGES / "time-column.csv").column("x").never_decreasing
+
+
+def test_images_are_certain_to_be_left_out() -> None:
+    images = profile(DATA / "images")
+    flagged = [c for c in images.columns if c.image_like]
+    assert flagged and all(c.certainty == CERTAIN and c.proposal is None for c in flagged)
+
+
+def test_the_fallback_output_says_it_is_a_fallback() -> None:
+    name, certainty, reason = output_proposal(profile(DATA / "soc"))
+    assert (name, certainty) == ("temp", UNCERTAIN)
+    assert "no column named like an answer" in reason
+    assert output_proposal(profile(DATA / "synthetic"))[1:] == (
+        CERTAIN,
+        "a column named like an answer",
+    )
+    assert output_proposal(profile(EDGES / "no-output.csv"))[0] is None
