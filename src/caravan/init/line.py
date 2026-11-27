@@ -1,7 +1,10 @@
-"""The line dialogue: the session's questions on standard error, answers from standard input.
+"""The line mode: one proposal, the few questions it needs, one decision (features 013, 015).
 
-Works in any terminal and with no terminal at all (FR-022): no colour, no cursor movement, one
-answer per line. An empty line takes the proposal, ``<`` goes back, a number picks a choice.
+The session's proposal and questions on standard error, answers from standard input: no colour, no
+cursor movement, one answer per line. An empty line takes the proposal, ``<`` goes back, a number
+picks a choice. The flow is research R2 of feature 015: the data, the proposal, the boards and the
+open or uncertain items (the uncertain columns as one step), the proposal again, then write, adjust
+one item, or stop.
 """
 
 from __future__ import annotations
@@ -9,6 +12,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from caravan.init import memory
+from caravan.init import proposal as proposals
 from caravan.init.form import Form, presets, show
 from caravan.init.session import Aborted, Question, Session
 
@@ -33,17 +38,18 @@ def _ask(read: Read, prompt: str) -> str:
     return text
 
 
-def show_question(session: Session, question: Question, write: Write) -> None:
-    step = session.asked().index(question.key) + 1
-    total = len(session.asked())
+def show_question(
+    session: Session, question: Question, write: Write, *, panels: bool = True
+) -> None:
     where = f"  ({question.field})" if question.field else ""
     write("")
-    write(f"[{step}/{total}] ? {question.title}{where}")
+    write(f"? {question.title}{where}")
     write(f"  {question.help}")
-    for section in session.explain(question.key):
-        write(f"  — {section.title}")
-        for line in section.lines:
-            write(f"    {line}")
+    if panels:
+        for section in session.explain(question.key):
+            write(f"  — {section.title}")
+            for line in section.lines:
+                write(f"    {line}")
     if question.key in session.stale:
         write("  ! an earlier answer changed: check this one again")
 
@@ -87,8 +93,12 @@ def ask_one(session: Session, question: Question, read: Read, write: Write) -> A
     return _pick(question, text)
 
 
-def ask_many(session: Session, question: Question, read: Read, write: Write) -> Any:
+def ask_many(
+    session: Session, question: Question, read: Read, write: Write, footer: str = ""
+) -> Any:
     _choices(question, write, question.proposal)
+    if footer:
+        write(f"      {footer}")
     text = _ask(read, "choose one or more, like 1,3 (Enter: as marked) > ")
     if not text:
         if not question.proposal:
@@ -191,20 +201,197 @@ ASK = {
 }
 
 
-def run(session: Session, read: Read, write: Write) -> None:
-    """Ask until the author chooses to write; ``Aborted`` on interrupt or end of input."""
-    while not session.done:
-        question = session.current()
-        show_question(session, question, write)
+# --- the flow of feature 015 ------------------------------------------------------------------
+
+DATA_TITLE = "Where is the data?"
+COLUMNS_TITLE = "These columns could be read more than one way"
+
+
+def ask_dataset(session: Session, read: Read, write: Write) -> None:
+    """The one question before the proposal; data in the current directory is offered."""
+    found = session.candidates()
+    write("")
+    write(f"? {DATA_TITLE}  (dataset)")
+    write(f"  {session.help('dataset')}")
+    for number, name in enumerate(found, start=1):
+        write(f"  {number:>2}) {name}")
+    while True:
         try:
-            value = ASK[question.kind](session, question, read, write)
+            text = _ask(read, "a number, or a path > " if found else "a path > ")
         except Back:
-            if not session.back():
-                write("  this is the first question")
+            write("  this is the first question")
             continue
-        except ValueError as problem:
+        if not text:
+            write("  ✗ the data comes first: type a path")
+            continue
+        value = found[int(text) - 1] if text.isdigit() and 1 <= int(text) <= len(found) else text
+        problem = session.take("dataset", value)
+        if problem:
             write(f"  ✗ {problem}")
             continue
-        problem_text = session.answer(value)
-        if problem_text:
-            write(f"  ✗ {problem_text}")
+        return
+
+
+def ask_boards(session: Session, read: Read, write: Write) -> str | None:
+    question = session.question("boards")
+    show_question(session, question, write, panels=False)
+    footer = memory.SHORT_LABEL if session.board_bounds() else ""
+    return session.take("boards", ask_many(session, question, read, write, footer))
+
+
+def ask_uncertain_columns(session: Session, read: Read, write: Write) -> str | None:
+    """All uncertain input columns in one step (spec FR-007, FR-008)."""
+    assert session.data is not None
+    names = session.uncertain_columns()
+    current: dict[str, Any] = dict(session.value("inputs") or {})
+    write("")
+    write(f"? {COLUMNS_TITLE}  (input_features)")
+    for name in names:
+        column = session.data.column(name)
+        now = current.get(name)
+        others = ", ".join(a or "-" for a in column.alternatives if a != now)
+        write(f"    {name:<14} {now or '-':<9} {column.reason}   or: {others}")
+    text = _ask(read, "Enter to accept as shown, or edits like dlc=number, can_id=- > ")
+    for edit in filter(None, (part.strip() for part in text.split(","))):
+        if "=" not in edit:
+            raise ValueError(f"{edit!r}: write column=type, or column=- to leave it out")
+        name, kind = (part.strip() for part in edit.split("=", 1))
+        if name not in current:
+            raise ValueError(f"no column {name!r} here")
+        current[name] = None if kind in ("-", "") else kind
+    problem = session.take("inputs", current)
+    if problem is None:
+        session.answered_columns.update(names)
+    return problem
+
+
+def ask_item(session: Session, key: str, read: Read, write: Write, *, every: bool = False) -> None:
+    """Ask one item until it is answered; ``every`` shows all columns rather than the uncertain."""
+    while True:
+        try:
+            if key == "dataset":
+                ask_dataset(session, read, write)
+                return
+            if key == "boards":
+                problem = ask_boards(session, read, write)
+            elif key == "inputs" and not every:
+                problem = ask_uncertain_columns(session, read, write)
+            else:
+                question = session.question(key)
+                show_question(session, question, write)
+                problem = session.take(key, ASK[question.kind](session, question, read, write))
+                if problem is None and key == "inputs" and session.data is not None:
+                    session.answered_columns.update(session.data.names)
+        except ValueError as error:
+            problem = str(error)
+        if not problem:
+            return
+        write(f"  ✗ {problem}")
+
+
+def ask_open(session: Session, read: Read, write: Write) -> None:
+    """The boards and every open or uncertain item not given, in order; ``<`` goes back."""
+    history: list[str] = []
+    while True:
+        pending = session.to_ask()
+        if not pending:
+            return
+        key = pending[0]
+        try:
+            ask_item(session, key, read, write)
+        except Back:
+            if not history:
+                write("  this is the first question")
+                continue
+            session.answered.discard(history.pop())
+            continue
+        history.append(key)
+
+
+def show_proposal(session: Session, write: Write) -> proposals.Proposal:
+    made = proposals.build(session)
+    write("")
+    for line in proposals.lines(made):
+        write(line)
+    for note in made.notes:
+        write(f"  note: {note.message}")
+    return made
+
+
+def adjustable(session: Session) -> list[str]:
+    keys = session.keys()
+    shown = [k for k in proposals.SHOWN if k in keys and k not in session.given]
+    return ["dataset", *shown] if "dataset" not in session.given else shown
+
+
+def adjust(session: Session, read: Read, write: Write, key: str | None = None) -> None:
+    """Pick one item and answer it with its full question (spec FR-010)."""
+    if key is None:
+        keys = adjustable(session)
+        write("")
+        write("? Which item?")
+        for number, item in enumerate(keys, start=1):
+            label = "data" if item == "dataset" else proposals.LABELS[item]
+            write(f"  {number:>2}) {label:<10} {session.describe(item)}")
+        while True:
+            try:
+                text = _ask(read, "a number or a name (Enter: back to the proposal) > ")
+            except Back:
+                return
+            if not text:
+                return
+            names = {proposals.LABELS.get(k, k): k for k in keys} | {k: k for k in keys}
+            names["data"] = "dataset"
+            if text.isdigit() and 1 <= int(text) <= len(keys):
+                key = keys[int(text) - 1]
+                break
+            if text in names and names[text] in keys:
+                key = names[text]
+                break
+            write(f"  ✗ choose 1 to {len(keys)}, or an item's name")
+    try:
+        ask_item(session, key, read, write, every=True)
+    except Back:
+        return
+
+
+def decide(session: Session, read: Read, write: Write) -> None:
+    """Show the proposal and offer exactly: write, adjust, stop (spec FR-009, FR-011)."""
+    while True:
+        made = show_proposal(session, write)
+        if made.ready:
+            prompt = f"Enter: write {session.value('file')} · a: adjust · q: stop > "
+        else:
+            write("  not ready to write:")
+            for blocker in session.blockers():
+                write(f"    - {blocker}")
+            prompt = "a: adjust · q: stop > "
+        try:
+            text = _ask(read, prompt).lower()
+        except Back:
+            text = "a"
+        if not text and made.ready:
+            return
+        if text in ("q", "stop"):
+            raise Aborted
+        if text in ("a", "adjust"):
+            adjust(session, read, write)
+            ask_open(session, read, write)
+            continue
+        if text:
+            write("  ✗ Enter to write, a to adjust, q to stop")
+
+
+def run(session: Session, read: Read, write: Write, start: str | None = None) -> None:
+    """Until the person accepts; ``Aborted`` on stop, interrupt or end of input.
+
+    ``start`` names an item to ask first, as after a finding that item owns (feature 013, R10).
+    """
+    if session.data is None:
+        ask_dataset(session, read, write)
+    if start is not None:
+        adjust(session, read, write, start)
+    else:
+        show_proposal(session, write)
+    ask_open(session, read, write)
+    decide(session, read, write)

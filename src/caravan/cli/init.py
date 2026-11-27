@@ -91,6 +91,17 @@ def _inputs(edits: list[str]) -> dict[str, str | None]:
     return out
 
 
+def _terminal() -> bool:
+    """Standard input and standard error are both terminals: the questions reach a person
+    (feature 015, research R3). Standard output may be captured."""
+    return sys.stdin.isatty() and sys.stderr.isatty()
+
+
+def _person(args: argparse.Namespace) -> bool:
+    """Whether ``init`` may ask (spec FR-012)."""
+    return _terminal() and not args.no_input
+
+
 def run(args: argparse.Namespace) -> int:
     from caravan.init.session import Aborted, Session
 
@@ -115,7 +126,7 @@ def run(args: argparse.Namespace) -> int:
             problem = session.accept("inputs", proposal)
             if problem:
                 raise ValueError(f"--input: {problem}")
-            session.given.add("inputs")
+            session.given_columns.update(edits)
         for key in ("window", "template", "params", "budget", "name", "file"):
             if given.get(key) is not None:
                 problem = session.accept(key, given[key])
@@ -142,28 +153,31 @@ def run(args: argparse.Namespace) -> int:
             return EXIT_USAGE
         return _write(session, dialogue=False)
 
+    from caravan.init import line
+
+    def read(prompt: str) -> str:
+        print(prompt, end="", file=sys.stderr, flush=True)
+        text = sys.stdin.readline()
+        if not text:
+            raise EOFError
+        return text.rstrip("\n")
+
+    # Until feature 015's T024, the path without a person also runs the line mode on piped input.
+    start: str | None = None
     try:
         while True:
-            from caravan.init import line
-
-            def read(prompt: str) -> str:
-                print(prompt, end="", file=sys.stderr, flush=True)
-                text = sys.stdin.readline()
-                if not text:
-                    raise EOFError
-                return text.rstrip("\n")
-
-            line.run(session, read, lambda text: print(text, file=sys.stderr))
+            line.run(session, read, lambda text: print(text, file=sys.stderr), start)
             code = _write(session, dialogue=True)
-            if code is not None:
+            if isinstance(code, int):
                 return code
+            start = code
     except Aborted:
         print("caravan init: stopped; nothing was written", file=sys.stderr)
         return EXIT_USAGE
 
 
-def _write(session: Any, *, dialogue: bool) -> int | None:
-    """Write and report. ``None`` when the dialogue goes back to fix a finding (research R10)."""
+def _write(session: Any, *, dialogue: bool) -> int | str:
+    """Write and report; with a person, the item that owns a finding to ask again (013, R10)."""
     target, findings = session.write()
     name = target.name
     if not findings:
@@ -186,5 +200,4 @@ def _write(session: Any, *, dialogue: bool) -> int | None:
         print("caravan init: an offered choice was refused; this is a defect", file=sys.stderr)
         return EXIT_INTERNAL
     session.answers.pop("review", None)
-    session.go(owner)
-    return None
+    return owner

@@ -583,15 +583,23 @@ class Session:
     def choices(self, key: str) -> list[Choice]:
         data = self.data
         if key == "boards":
-            return [
-                Choice(
-                    board.board,
-                    board.board,
+            bounds = self.board_bounds()
+            out = []
+            for board in self.boards:
+                detail = (
                     f"RAM {board.ram_kb:g} KB · flash {board.flash_kb:g} KB · {board.core} "
-                    f"{board.clock_mhz:g} MHz",
+                    f"{board.clock_mhz:g} MHz"
                 )
-                for board in self.boards
-            ]
+                record = bounds.get(board.board)
+                if record is not None:
+                    # Feature 015, US1 scenario 7: the model's floors against each board, labelled
+                    # by the line the front end prints under the list (Principle IV).
+                    detail += (
+                        f" · model ≥ {record.ram_bytes / 1024:.1f} KB RAM, "
+                        f"≥ {record.flash_bytes / 1024:.1f} KB flash {'✓' if record.fits else '✗'}"
+                    )
+                out.append(Choice(board.board, board.board, detail))
+            return out
         if key == "quantization":
             return [Choice(value, label, detail) for value, label, detail in QUANTIZATIONS]
         if key == "output" and data is not None:
@@ -964,6 +972,28 @@ class Session:
         if cache not in self._windows:
             self._windows[cache] = windows.table(labels, files, kind, extra=extra, fits=fits)
         return self._windows[cache]
+
+    def board_bounds(self) -> dict[str, memory.BoardMemory]:
+        """The model's floors against every registered board, once they can be estimated."""
+        spec = self._spec()
+        params = self.value("params")
+        if spec is None or params is None or not self.features():
+            return {}
+        boards = list(self.boards)
+        try:
+            result = memory.estimate(
+                self.features(),
+                self.value("window") if spec.consumes_window else None,
+                spec,
+                params,
+                self.value("output_type") or "category",
+                self.classes(),
+                self.value("quantization") or "int8",
+                boards,
+            )
+        except Exception:  # parameters the template refuses: no figure rather than a wrong one
+            return {}
+        return {record.board: record for record in memory.board_memory(result, boards)}
 
     def estimate(self) -> memory.Estimate | None:
         spec = self._spec()

@@ -98,30 +98,6 @@ def test_params_are_given_as_a_flow_mapping(tmp_path, monkeypatch):
     assert "hidden: [8]" in (tmp_path / "synthetic-mlp.yaml").read_text()
 
 
-def test_the_dialogue_accepts_every_proposal_with_enter(tmp_path, monkeypatch, capsys):
-    answers = "\n".join([SYNTHETIC, "3", *[""] * 12]) + "\n"
-    code = init(tmp_path, monkeypatch, stdin=answers)
-    out, err = capsys.readouterr()
-    assert code == EXIT_OK, err[-2000:]
-    assert out == "synthetic-mlp.yaml\n"
-    assert "what your data allows" in err and "memory on your boards" in err
-
-
-def test_going_back_keeps_the_answers(tmp_path, monkeypatch, capsys):
-    # s32k144, int8, back twice to the boards: Enter keeps s32k144, then every proposal.
-    answers = "\n".join([SYNTHETIC, "2", "", "<", "<", "", *[""] * 12]) + "\n"
-    assert init(tmp_path, monkeypatch, stdin=answers) == EXIT_OK
-    text = (tmp_path / "synthetic-mlp.yaml").read_text()
-    assert "targets: [s32k144]" in text and "quantization" not in text
-
-
-def test_end_of_input_writes_nothing(tmp_path, monkeypatch, capsys):
-    code = init(tmp_path, monkeypatch, stdin=f"{SYNTHETIC}\n3\n")
-    assert code == EXIT_USAGE
-    assert "nothing was written" in capsys.readouterr().err
-    assert not list(tmp_path.iterdir())
-
-
 def test_unreadable_data_is_a_usage_error(tmp_path, monkeypatch, capsys):
     bad = str(DATA / "init" / "headers-differ")
     assert init(tmp_path, monkeypatch, "--no-input", "--dataset", bad) == EXIT_USAGE

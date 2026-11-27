@@ -168,8 +168,8 @@ accept) write a manifest that validates (spec US1).
 
 ### Tests for User Story 1 (write first, they fail)
 
-- [ ] T016 [P] [US1] Write `tests/contract/test_init_line.py`. Its helper runs `main(["init", …])` in
-  `tmp_path` with `caravan.cli.init._person` replaced to return `True` and standard input a counting
+- [X] T016 [P] [US1] Write `tests/contract/test_init_line.py`. Its helper runs `main(["init", …])` in
+  `tmp_path` with `caravan.cli.init._terminal` replaced to return `True` (the check `_person` builds on) and standard input a counting
   reader. Tests: four answers on `synthetic` (`<data>`, the number of `s32k144`, Enter, Enter) write a
   valid `synthetic-mlp.yaml` (SC-001); the proposal is on standard error before the board question;
   the columns step lists exactly `can_id` and `dlc`; every board in the board question shows the
@@ -183,13 +183,13 @@ accept) write a manifest that validates (spec US1).
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] In `src/caravan/init/session.py` make the board choices show, per registered board,
+- [X] T017 [US1] In `src/caravan/init/session.py` make the board choices show, per registered board,
   its RAM and flash and the model's lower bounds against them once the estimate can be made, and the
   label line "lower bounds, estimated before building; build checks again" below the list (US1
   scenario 7, Principle IV); let the dataset question offer `candidates()`; turn the `review` question into the
   decision (choices: write — only when `ready` —, adjust, stop) while keeping its key so later
   answers are still marked stale through `ORDER`.
-- [ ] T018 [US1] Rewrite the top-level `run()` of `src/caravan/init/line.py` as research R2's flow:
+- [X] T018 [US1] Rewrite the top-level `run()` of `src/caravan/init/line.py` as research R2's flow:
   data (when not given) → `proposal.lines()` → boards (when not given) → each entry of
   `session.to_ask()`, the uncertain inputs through a new `ask_uncertain_columns()` that shows only
   those columns with their proposal, reason and alternatives and accepts edits like `dlc=number,
@@ -197,18 +197,18 @@ accept) write a manifest that validates (spec US1).
   stop` → on `a`, the items numbered; the chosen one asked with the existing `show_question` /
   `ASK` functions and the session's `explain()` panels; back to the proposal. Recompute `to_ask()`
   after every answer. Keep `<`, end of input and interrupt as today.
-- [ ] T019 [US1] In `src/caravan/cli/init.py` add `_person()` — standard input and standard error are
+- [X] T019 [US1] In `src/caravan/cli/init.py` add `_person()` — standard input and standard error are
   terminals (research R3) — and run `line.run()` when it is true. Until T024 replaces it, the path
   without a person and without `--no-input` also runs `line.run()` on piped standard input, as
   feature 013 did, so the suite stays green between the two stories; `--no-input` keeps feature 013's
   meaning until T024. A validation finding after writing still sends the person back to the item that
   owns it (feature 013, research R10).
-- [ ] T020 [US1] Move the three line-dialogue tests of `tests/contract/test_init_contract.py`
+- [X] T020 [US1] Move the three line-dialogue tests of `tests/contract/test_init_contract.py`
   (`test_the_dialogue_accepts_every_proposal_with_enter`, `test_going_back_keeps_the_answers`,
   `test_end_of_input_writes_nothing`) into `tests/contract/test_init_line.py`, rewritten for the new
   flow with the person helper; update the dialogue side of
   `test_the_dialogue_and_no_input_write_the_same_bytes` in
-  `tests/integration/test_init_combinations.py` to the new flow's answers, driven with `_person`
+  `tests/integration/test_init_combinations.py` to the new flow's answers, driven with `_terminal`
   returning `True` so it keeps working after T024.
 
 **Checkpoint**: US1 works on its own; T016 passes; the default-install suite is green.
@@ -226,14 +226,14 @@ writes (spec US2).
 
 ### Tests for User Story 2 (write first, they fail)
 
-- [ ] T021 [P] [US2] Write `tests/contract/test_init_no_person.py` with `_person` returning `False`
+- [ ] T021 [P] [US2] Write `tests/contract/test_init_no_person.py` with `_terminal` returning `False`
   and a standard input that fails the test if read: without `--yes`, exit 2, nothing written, the
   proposal and `nothing written: no one to ask, and --yes was not given` on standard error, and the
   accepting command naming `--board esp32 --yes`; `--yes --board s32k144` writes, exits 0, and lists
   `can_id` and `dlc` as uncertain proposals taken, each with `--input <column>=number` (FR-016);
   `--yes` without `--board` exits 2 naming `--board` with an example and the registered boards;
   `--yes` with an existing file and no `--overwrite` exits 2 naming `--overwrite` and leaves the file;
-  `--no-input` and `--yes` with `_person` returning `True` never read; `--yes` with `--params
+  `--no-input` and `--yes` with `_terminal` returning `True` never read; `--yes` with `--params
   '{hidden: [4096, 4096]}'` prints the `exceeds-board` note and still writes (FR-006); every shipped
   tabular dataset ends within 5 seconds (SC-004).
 - [ ] T022 [P] [US2] Write `tests/contract/test_init_examples.py` (FR-015, SC-005): for every item that
@@ -286,7 +286,7 @@ returns a `written` document and a valid manifest (spec US3, SC-006).
   `unusable`, `proposed`, `incomplete`, `refused` — standard output parses as exactly one JSON object
   with the keys of contracts/init-result.md in order (`outcome`, `written`, `dataset`, `items`,
   `memory`, `findings`, `notes`, `next`), all present; the exit code matches the outcome; standard
-  error is empty; with `_person` returning `True`, `--json` never reads; findings equal
+  error is empty; with `_terminal` returning `True`, `--json` never reads; findings equal
   `Finding.as_dict()`; every `Item` has `source` in `given`, `answered`, `proposed` and `certainty`
   `null` unless `proposed`; every item has a non-empty `option` and `example` (FR-031); memory
   entries carry the label "lower bounds, estimated before building;

@@ -84,6 +84,8 @@ def test_the_dialogue_and_no_input_write_the_same_bytes(tmp_path, monkeypatch, n
     monkeypatch.setattr("sys.stdin", io.StringIO(""))
     assert main(["init", "a.yaml", "--no-input", *args]) == EXIT_OK
     assert main(["init", "b.yaml", "--no-input", *args]) == EXIT_OK
+    # The line mode with a person (feature 015): Enter at every question and at the decision.
+    monkeypatch.setattr("caravan.cli.init._terminal", lambda: True)
     monkeypatch.setattr("sys.stdin", io.StringIO("\n" * 20))
     assert main(["init", "c.yaml", *args]) == EXIT_OK
     first = (tmp_path / "a.yaml").read_bytes()
