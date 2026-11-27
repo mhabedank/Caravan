@@ -38,7 +38,7 @@ Single project: `src/caravan/`, `tests/` at the repository root. Code paths foll
   training, verification, benchmarking and publication — four, as before v4.4.0. The Sync Impact
   Report names feature 015 and the owner's answers of 2026-11-26 as the source. **Precedes every
   task of Phase 6 (US4).** Done 2026-11-27: constitution v4.5.0.
-- [ ] T002 [P] Add fixtures for the rules research R1 adds or changes to
+- [X] T002 [P] Add fixtures for the rules research R1 adds or changes to
   `tests/fixtures/datasets/init/`, each a small hand-written or arithmetic CSV, and record what each is
   for in `tests/fixtures/datasets/init/README.md`:
   `time-column.csv` (a column `t` of integers that never decrease, more than 16 distinct, beside a
@@ -57,20 +57,20 @@ proposal object both the line mode and `--yes` read.
 
 ### Removing the full-screen interface (research R9)
 
-- [ ] T003 Delete `src/caravan/tui/` and `tests/tui/`. In `src/caravan/cli/init.py` remove
+- [X] T003 Delete `src/caravan/tui/` and `tests/tui/`. In `src/caravan/cli/init.py` remove
   `INSTALL_HINT`, the `--plain` option and the `run_app` branch, so the line dialogue is the only
   front end. In `tests/contract/test_init_contract.py` drop `"--plain"` from the three tests that pass
   it (they run the line dialogue on piped input, as before). Reword the docstrings of
   `src/caravan/init/__init__.py`, `src/caravan/init/session.py` and `src/caravan/cli/init.py` so none
   names a second front end, Textual or the `authoring` extra.
-- [ ] T004 [P] Remove the `authoring` extra and its comment from `pyproject.toml`; regenerate
+- [X] T004 [P] Remove the `authoring` extra and its comment from `pyproject.toml`; regenerate
   `uv.lock` with `uv lock` and confirm `textual` no longer appears in it.
-- [ ] T005 [P] Remove the `authoring` job from `.github/workflows/ci.yml`.
-- [ ] T006 [P] In `tests/layering/test_declared_dependencies.py` expect the extras `["train",
+- [X] T005 [P] Remove the `authoring` job from `.github/workflows/ci.yml`.
+- [X] T006 [P] In `tests/layering/test_declared_dependencies.py` expect the extras `["train",
   "verify"]` (update the comment that names feature 013); in
   `tests/layering/test_no_framework_imported.py` remove `AUTHORING_ONLY_MODULES` and
   `test_only_the_authoring_modules_import_textual_and_no_core_module_imports_them`.
-- [ ] T007 [P] In `docs/ref/cli.md` remove the `--plain` bullet and the full-screen half of "How it
+- [X] T007 [P] In `docs/ref/cli.md` remove the `--plain` bullet and the full-screen half of "How it
   looks" (one sentence remains: the questions line by line, an empty line takes the proposal, `<`
   goes back); in `docs/intro/install.md` remove the section "The full-screen setup, optionally".
 

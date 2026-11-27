@@ -60,12 +60,6 @@ EXTRA_ONLY_MODULES = frozenset(
     }
 )
 
-#: The modules of the authoring extra (constitution v4.4.0, feature 013): the full-screen interface
-#: of ``caravan init``. They import Textual, not a training framework, so they are not in the set
-#: above; they are left out of the core's import walk for the same reason — a default installation
-#: has no Textual.
-AUTHORING_ONLY_MODULES = frozenset({"caravan.tui.app"})
-
 
 def all_module_names() -> list[str]:
     names = [caravan.__name__]
@@ -83,11 +77,7 @@ TRAINING_FRAMEWORKS = frozenset({"tensorflow", "torch", "jax", "keras", "sklearn
 def core_module_names() -> list[str]:
     # Feature 002: the extra-only modules are excluded here and checked by their own test below.
     # Importing them would load a framework by design, which is what the extra is for.
-    return [
-        name
-        for name in all_module_names()
-        if name not in EXTRA_ONLY_MODULES and name not in AUTHORING_ONLY_MODULES
-    ]
+    return [name for name in all_module_names() if name not in EXTRA_ONLY_MODULES]
 
 
 def module_level_imports(path: Path) -> set[str]:
@@ -137,7 +127,7 @@ def test_importing_the_whole_core_loads_no_framework() -> None:
             "-c",
             CHILD.format(
                 frameworks=set(FRAMEWORKS),
-                extra_only=set(EXTRA_ONLY_MODULES) | set(AUTHORING_ONLY_MODULES),
+                extra_only=set(EXTRA_ONLY_MODULES),
             ),
         ],
         capture_output=True,
@@ -250,30 +240,3 @@ def test_the_export_package_needs_no_extra_at_all() -> None:
         assert name.removesuffix(".__init__") not in EXTRA_ONLY_MODULES
         imported = module_level_imports(path) & set(FRAMEWORKS)
         assert not imported, f"{name} imports {sorted(imported)} at module level and must not"
-
-
-def test_only_the_authoring_modules_import_textual_and_no_core_module_imports_them() -> None:
-    # Feature 013, constitution v4.4.0: `caravan init` runs in the default installation; its
-    # full-screen interface is reached only by a guarded import inside the command.
-    root = Path(caravan.__file__).parent
-    textual: set[str] = set()
-    reaching: dict[str, list[str]] = {}
-    for path in sorted(root.rglob("*.py")):
-        relative = path.relative_to(root).with_suffix("")
-        name = ".".join(["caravan", *[p for p in relative.parts if p != "__init__"]])
-        if "textual" in module_level_imports(path) or "rich" in module_level_imports(path):
-            textual.add(name)
-        if name in AUTHORING_ONLY_MODULES:
-            continue
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        hits = [
-            node.module
-            for node in tree.body
-            if isinstance(node, ast.ImportFrom)
-            and node.module
-            and node.module.startswith("caravan.tui")
-        ]
-        if hits:
-            reaching[name] = hits
-    assert textual == set(AUTHORING_ONLY_MODULES), textual
-    assert not reaching, f"core modules importing the authoring extra at module level: {reaching}"

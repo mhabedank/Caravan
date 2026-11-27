@@ -85,9 +85,8 @@ int8 budget. Every question shows its proposal; Enter takes it.
   lower bounds on each chosen board.
 - **What it writes:** one new manifest, short and commented, that it has checked as
   `caravan validate` does. Nothing is written until you choose to, and nothing when you stop.
-- **How it looks:** with the `authoring` extra installed and a terminal, a full-screen
-  interface with lists, checkboxes and a form for the network's parameters; otherwise, or with
-  `--plain`, the same questions line by line. An empty line takes the proposal, `<` goes back.
+- **How it looks:** the questions line by line, in any terminal. An empty line takes the
+  proposal, `<` goes back.
 
 **Arguments.** `<manifest>`: the file to write (optional; proposed from the model's name).
 
@@ -107,7 +106,6 @@ int8 budget. Every question shows its proposal; Enter takes it.
 - `--overwrite`: confirms replacing an existing `<manifest>`; checks nothing less.
 - `--no-input`: ask nothing; take the options, then the proposals. A question with neither is a
   usage error naming its option.
-- `--plain`: the line dialogue, even with the `authoring` extra.
 
 **Reads.** The data (a sample of 50,000 rows for the proposals; the output column in full for the
 window table), the template registry and the board descriptions.

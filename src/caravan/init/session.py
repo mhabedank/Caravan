@@ -1,9 +1,9 @@
-"""The question engine of ``caravan init``: one session, two front ends (feature 013).
+"""The question engine of ``caravan init`` (features 013 and 015).
 
-A session holds the answers so far and knows, for every question, its choices, its proposal with
-the reason, whether an answer is acceptable, and what to show beside it (``explain``). The line
-dialogue and the full-screen interface only ask it and show what it says, so both ask the same
-questions and write the same file (FR-025). Answers given as options are never asked (FR-021).
+A session holds the answers so far and knows, for every item, its choices, its proposal with the
+reason and the certainty of the rule that made it, whether an answer is acceptable, and what to
+show beside it (``explain``). The line mode and ``--yes`` only ask it and show what it says, so
+both write the same file. Answers given as options are never asked.
 """
 
 from __future__ import annotations

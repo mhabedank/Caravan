@@ -85,6 +85,6 @@ def test_the_dialogue_and_no_input_write_the_same_bytes(tmp_path, monkeypatch, n
     assert main(["init", "a.yaml", "--no-input", *args]) == EXIT_OK
     assert main(["init", "b.yaml", "--no-input", *args]) == EXIT_OK
     monkeypatch.setattr("sys.stdin", io.StringIO("\n" * 20))
-    assert main(["init", "c.yaml", "--plain", *args]) == EXIT_OK
+    assert main(["init", "c.yaml", *args]) == EXIT_OK
     first = (tmp_path / "a.yaml").read_bytes()
     assert first == (tmp_path / "b.yaml").read_bytes() == (tmp_path / "c.yaml").read_bytes()

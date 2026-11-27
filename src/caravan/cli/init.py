@@ -1,8 +1,8 @@
-"""``caravan init``: write a first manifest by answering questions (feature 013).
+"""``caravan init``: a first manifest from one proposal (features 013 and 015).
 
-Thin, like the other verbs: options become given answers, the session asks the rest (in the
-full-screen interface when the ``authoring`` extra is installed and both ends are terminals, else
-line by line), and the outcome becomes an exit code (contracts/cli-init.md).
+Thin, like the other verbs: options become given answers, the session proposes the rest, the line
+mode asks what is open or uncertain, and the outcome becomes an exit code
+(specs/015-init-one-proposal/contracts/cli-init.md).
 """
 
 from __future__ import annotations
@@ -14,11 +14,6 @@ from typing import Any
 from caravan.cli.main import EXIT_INTERNAL, EXIT_OK, EXIT_RULE, EXIT_USAGE
 from caravan.manifest._yaml import read_flow_mapping
 from caravan.manifest.errors import render_finding
-
-INSTALL_HINT = (
-    "the full-screen interface comes with the authoring extra: "
-    'pip install "caravan-ml[authoring] @ <the release wheel>"'
-)
 
 #: Where a finding's path sends the dialogue back to (research R10).
 OWNERS = (
@@ -63,9 +58,6 @@ def add_parser(subcommands: Any) -> None:
         "--overwrite", action="store_true", help="confirms replacing an existing <manifest>"
     )
     sub.add_argument("--no-input", action="store_true", help="ask nothing; options, then proposals")
-    sub.add_argument(
-        "--plain", action="store_true", help="the line dialogue even with the authoring extra"
-    )
 
 
 def _given(args: argparse.Namespace) -> dict[str, Any]:
@@ -97,10 +89,6 @@ def _inputs(edits: list[str]) -> dict[str, str | None]:
         name, kind = (part.strip() for part in edit.split("=", 1))
         out[name] = None if kind in ("-", "") else kind
     return out
-
-
-def _interactive() -> bool:
-    return sys.stdin.isatty() and sys.stdout.isatty()
 
 
 def run(args: argparse.Namespace) -> int:
@@ -154,29 +142,18 @@ def run(args: argparse.Namespace) -> int:
             return EXIT_USAGE
         return _write(session, dialogue=False)
 
-    use_tui = not args.plain and _interactive()
-    if use_tui:
-        try:
-            from caravan.tui.app import run_app
-        except ImportError:
-            print(f"caravan init: {INSTALL_HINT}", file=sys.stderr)
-            use_tui = False
     try:
         while True:
-            if use_tui:
-                if not run_app(session):
-                    raise Aborted
-            else:
-                from caravan.init import line
+            from caravan.init import line
 
-                def read(prompt: str) -> str:
-                    print(prompt, end="", file=sys.stderr, flush=True)
-                    text = sys.stdin.readline()
-                    if not text:
-                        raise EOFError
-                    return text.rstrip("\n")
+            def read(prompt: str) -> str:
+                print(prompt, end="", file=sys.stderr, flush=True)
+                text = sys.stdin.readline()
+                if not text:
+                    raise EOFError
+                return text.rstrip("\n")
 
-                line.run(session, read, lambda text: print(text, file=sys.stderr))
+            line.run(session, read, lambda text: print(text, file=sys.stderr))
             code = _write(session, dialogue=True)
             if code is not None:
                 return code
