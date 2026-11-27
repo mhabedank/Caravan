@@ -1,15 +1,16 @@
-"""The question engine of ``caravan init``: one session, two front ends (feature 013).
+"""The question engine of ``caravan init`` (features 013 and 015).
 
-A session holds the answers so far and knows, for every question, its choices, its proposal with
-the reason, whether an answer is acceptable, and what to show beside it (``explain``). The line
-dialogue and the full-screen interface only ask it and show what it says, so both ask the same
-questions and write the same file (FR-025). Answers given as options are never asked (FR-021).
+A session holds the answers so far and knows, for every item, its choices, its proposal with the
+reason and the certainty of the rule that made it, whether an answer is acceptable, and what to
+show beside it (``explain``). The line mode and ``--yes`` only ask it and show what it says, so
+both write the same file. Answers given as options are never asked.
 """
 
 from __future__ import annotations
 
 import os
 import re
+import shlex
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -18,15 +19,21 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from caravan.data.fingerprint import DATA_SUFFIXES
 from caravan.init import drawing, memory, windows
 from caravan.init.form import Form
 from caravan.init.profile import (
+    CERTAIN,
+    CONVENTION,
     NORMAL,
+    OPEN,
+    UNCERTAIN,
     DataProfile,
     ProfileError,
+    output_proposal,
+    output_type_certainty,
     output_types,
     profile,
-    proposed_output,
     read_column,
 )
 from caravan.manifest._yaml import DocumentError, dump_commented, flow
@@ -54,6 +61,7 @@ ORDER = (
     "budget",
     "name",
     "file",
+    "agents_md",
     "review",
 )
 
@@ -71,6 +79,7 @@ TITLES = {
     "budget": "How much may int8 cost?",
     "name": "What is the model called?",
     "file": "Where is the manifest written?",
+    "agents_md": "Write an AGENTS.md beside the manifest?",
     "review": "Write the manifest?",
 }
 
@@ -88,6 +97,7 @@ FIELDS = {
     "budget": "output_features[0].<budget>",
     "name": "model.name",
     "file": "",
+    "agents_md": "",
     "review": "",
 }
 
@@ -106,7 +116,25 @@ OPTIONS = {
     "budget": "--budget",
     "name": "--name",
     "file": "<manifest>",
+    "agents_md": "--agents-md",
 }
+
+#: What each item needs answered before it can be proposed: a missing item whose prerequisite is
+#: missing too is not reported on its own (feature 015, research R5).
+DEPENDS = {
+    "output_type": ("output",),
+    "normal_label": ("output", "output_type"),
+    "inputs": ("output",),
+    "window": ("output", "output_type", "template"),
+    "template": ("output_type",),
+    "params": ("template",),
+    "budget": ("output_type",),
+    "name": ("template",),
+    "file": ("name",),
+}
+
+#: How many data candidates the data question offers (feature 015, contracts/cli-init.md).
+CANDIDATES = 9
 
 OUTPUT_MEANING = {
     "category": "one of several classes",
@@ -180,6 +208,11 @@ class Aborted(Exception):
     """The author stopped the session; nothing is written."""
 
 
+class Unusable(ValueError):
+    """The data cannot be set up by ``init`` at all (image inputs, no usable column): a rule
+    says no, not the command line (exit 1, outcome ``unusable``)."""
+
+
 @dataclass
 class Written:
     path: Path
@@ -204,18 +237,27 @@ class Session:
         self.boards = boards or default_boards()
         self.answers: dict[str, Any] = {}
         self.given: set[str] = set()
+        #: Input columns given one by one with ``--input`` (feature 015).
+        self.given_columns: set[str] = set()
+        #: Items, and input columns, a person answered (feature 015: the ``answered`` source).
+        self.answered: set[str] = set()
+        self.answered_columns: set[str] = set()
+        #: What became of the guide in the last write: ``written``, ``kept`` or ``None``.
+        self.guide: str | None = None
         #: Answers that no longer fit an earlier one: kept, marked to check again (FR-035).
         self.stale: set[str] = set()
         self.data: DataProfile | None = None
         self._labels: tuple[list[str], list[tuple[str, int]]] | None = None
         self._windows: dict[tuple[str, str, tuple[int, ...]], windows.WindowTable] = {}
         self.position = 0
+        self._unusable = False
         for key, value in (given or {}).items():
             if value is None:
                 continue
             problem = self.accept(key, value)
             if problem:
-                raise ValueError(f"{OPTIONS.get(key, key)}: {problem}")
+                kind = Unusable if self._unusable else ValueError
+                raise kind(f"{OPTIONS.get(key, key)}: {problem}")
             self.given.add(key)
 
     # --- the order -----------------------------------------------------------------------------
@@ -301,8 +343,8 @@ class Session:
         if key == "quantization":
             return "int8", "accelerated on every registered board"
         if key == "output" and data is not None:
-            name = proposed_output(data)
-            return (name, "a column named like an answer") if name else (None, "")
+            name, _, reason = output_proposal(data)
+            return (name, reason) if name else (None, "")
         if key == "output_type" and data is not None:
             output = self.value("output")
             if output in data.names:
@@ -344,26 +386,250 @@ class Session:
         if key == "file":
             name = self.value("name") or "model"
             return f"{name}.yaml", "the model's name, in the current directory"
+        if key == "agents_md":
+            return False, "written only when asked: --agents-md"
         if key == "review":
             return "write", ""
         return None, ""
+
+    # --- certainty (feature 015, research R1) ---------------------------------------------------
+
+    def certainty(self, key: str, column: str | None = None) -> tuple[str, str]:
+        """How sure the proposal for ``key`` is, and why: ``certain``, ``uncertain``,
+        ``convention`` or ``open`` (spec FR-002). For a given or answered item this is still the
+        proposal's certainty; the proposal object reports the source instead."""
+        data = self.data
+        if key == "inputs" and column is not None and data is not None:
+            found = data.column(column)
+            return found.certainty, found.reason
+        if key == "output":
+            if data is None:
+                return OPEN, "no data yet"
+            _, certainty, reason = output_proposal(data)
+            return certainty, reason
+        if key == "output_type":
+            output = self.value("output")
+            if data is None or output not in data.names:
+                return OPEN, "the output column first"
+            offered = output_types(data.column(output))
+            if not offered:
+                return OPEN, "the output column allows no type"
+            return output_type_certainty(data.column(output), offered)
+        if key == "normal_label":
+            return OPEN, "the data cannot say which value means normal"
+        if key == "inputs":
+            if self.uncertain_columns():
+                return UNCERTAIN, "some columns could be read more than one way"
+            return CERTAIN, "every column as its values show"
+        if key == "window":
+            table = self.window_table()
+            if table is not None:
+                paths = {"criteria": CERTAIN, "fallback": UNCERTAIN, "none": OPEN}
+                return paths[table.path], table.reason
+            spec = self._spec()
+            if spec is not None and spec.starter is not None and spec.starter.window:
+                return CONVENTION, "the template's own starting window"
+            return OPEN, "no window can be measured yet"
+        if key == "template":
+            kind = self.value("output_type")
+            answering = [c for c in self.choices("template") if not c.disabled]
+            if not answering:
+                return OPEN, f"no registered template answers a {kind} output"
+            if len(answering) == 1:
+                return CERTAIN, f"the only template that answers a {kind} output"
+            return CONVENTION, f"the first of {len(answering)} that answer a {kind} output"
+        if key == "params":
+            spec = self._spec()
+            note = spec.starter.note if spec is not None and spec.starter else ""
+            return CONVENTION, note or "the template's starting values"
+        if key == "budget":
+            proposal, reason = self.proposal("budget")
+            if proposal is not None:
+                return CONVENTION, reason
+            return OPEN, "in the output column's own unit: no shipped value carries over"
+        if key == "quantization":
+            return CONVENTION, "accelerated on every registered board"
+        if key == "boards":
+            return OPEN, "Caravan does not choose the hardware"
+        if key == "name":
+            return CONVENTION, "the data's directory and template"
+        if key == "file":
+            return CONVENTION, "the model's name, in the current directory"
+        if key == "agents_md":
+            return CONVENTION, "written only when asked: --agents-md"
+        return CONVENTION, ""
+
+    def uncertain_columns(self) -> list[str]:
+        """Input columns whose proposal is uncertain and that no option gave."""
+        if self.data is None:
+            return []
+        output = self.value("output")
+        return [
+            c.name
+            for c in self.data.columns
+            if c.name != output and c.certainty == UNCERTAIN and c.name not in self.given_columns
+        ]
+
+    def to_ask(self) -> list[str]:
+        """The items a person is asked: open or uncertain, not given, not yet answered; the
+        uncertain inputs as one entry (data-model "Proposal")."""
+        out = []
+        for key in self.keys():
+            if key in ("dataset", "review") or key in self.given or key in self.answered:
+                continue
+            if key == "inputs":
+                if self.uncertain_columns():
+                    out.append(key)
+                continue
+            if self.certainty(key)[0] in (UNCERTAIN, OPEN):
+                out.append(key)
+        return out
+
+    def take(self, key: str, value: Any) -> str | None:
+        """A person's answer to one item: accepted, and remembered as answered."""
+        problem = self.accept(key, value)
+        if problem is None:
+            self.answered.add(key)
+        return problem
+
+    def blockers(self) -> list[str]:
+        """Why the proposal cannot be written yet; empty when it can (data-model ``ready``)."""
+        if self.data is None:
+            return ["dataset: no data yet"]
+        out = []
+        for key in self.keys():
+            if key in ("dataset", "review"):
+                continue
+            if key in self.stale:
+                out.append(f"{key.replace('_', ' ')}: an earlier answer changed; check it again")
+                continue
+            value = self.value(key)
+            if value is None:
+                out.append(f"{key.replace('_', ' ')}: no answer yet")
+                continue
+            problem = self.check(key, value)
+            if problem:
+                out.append(f"{key.replace('_', ' ')}: {problem}")
+        return out
+
+    @property
+    def ready(self) -> bool:
+        return not self.blockers()
+
+    def missing_roots(self) -> list[str]:
+        """The items without an answer or a proposal whose prerequisites are all there: the ones
+        a message names (feature 015, research R5)."""
+        missing = [k for k in self.keys() if k not in ("review",) and self.value(k) is None]
+        if "dataset" in missing:  # nothing else can be proposed before the data
+            return [k for k in ("dataset", "boards") if k in missing]
+        return [k for k in missing if not any(d in missing for d in DEPENDS.get(k, ()))]
+
+    def candidates(self) -> list[str]:
+        """Tables and directories of tables directly in the current directory."""
+        out: list[str] = []
+        try:
+            entries = sorted(self.cwd.iterdir())
+        except OSError:
+            return out
+        for path in entries:
+            if len(out) >= CANDIDATES:
+                break
+            if path.name.startswith(".") or path.name == "runs":
+                continue
+            try:
+                if (path.is_file() and path.suffix.lower() in DATA_SUFFIXES) or (
+                    path.is_dir()
+                    and any(
+                        child.is_file() and child.suffix.lower() in DATA_SUFFIXES
+                        for child in path.iterdir()
+                    )
+                ):
+                    out.append(path.name)
+            except OSError:
+                continue
+        return out
+
+    def example(self, key: str, column: str | None = None) -> str:
+        """The option that answers ``key`` with a value valid here (feature 015, research R5)."""
+        option = OPTIONS.get(key, f"--{key.replace('_', '-')}")
+        data = self.data
+        if key == "dataset":
+            found = self.candidates()
+            return f"--dataset {shlex.quote(found[0] if found else '<directory of CSV files>')}"
+        if key == "boards":
+            chosen = self.value("boards") or [self.boards.identifiers[0]]
+            return " ".join(f"--board {board}" for board in chosen)
+        if key == "inputs" and column is not None and data is not None:
+            now = (self.value("inputs") or {}).get(column)
+            other = next(
+                (a for a in data.column(column).alternatives if a != now),
+                None,
+            )
+            return f"--input {shlex.quote(f'{column}={other or chr(45)}')}"
+        if key == "file":
+            return shlex.quote(str(self.value("file") or "model.yaml"))
+        if key == "agents_md":
+            return "--agents-md"
+        value = self.value(key)
+        if value is None:
+            enabled = [c.value for c in self.choices(key) if not c.disabled]
+            value = enabled[0] if enabled else None
+        if value is None and key == "budget":
+            value = self._budget_example()
+        if value is None:
+            return f"{option} <{key.replace('_', '-')}>"
+        if key == "params":
+            return f"{option} {shlex.quote(flow_text(value))}"
+        if key == "budget":
+            return f"{option} {float(value):g}"
+        return f"{option} {shlex.quote(str(value))}"
+
+    def _budget_example(self) -> float:
+        """One percent of the output column's sampled range, rounded: a value in its own unit."""
+        data = self.data
+        output = self.value("output")
+        if data is None or output not in data.names:
+            return 0.01
+        numbers = []
+        for text in data.column(output).distinct:
+            try:
+                numbers.append(float(text))
+            except ValueError:
+                continue
+        spread = (max(numbers) - min(numbers)) if numbers else 0.0
+        return float(f"{spread * 0.01:.2g}") if spread > 0 else 0.01
 
     # --- choices --------------------------------------------------------------------------------
 
     def choices(self, key: str) -> list[Choice]:
         data = self.data
         if key == "boards":
-            return [
-                Choice(
-                    board.board,
-                    board.board,
+            bounds = self.board_bounds()
+            out = []
+            for board in self.boards:
+                detail = (
                     f"RAM {board.ram_kb:g} KB · flash {board.flash_kb:g} KB · {board.core} "
-                    f"{board.clock_mhz:g} MHz",
+                    f"{board.clock_mhz:g} MHz"
                 )
-                for board in self.boards
-            ]
+                record = bounds.get(board.board)
+                if record is not None:
+                    # Feature 015, US1 scenario 7: the model's floors against each board, labelled
+                    # by the line the front end prints under the list (Principle IV).
+                    detail += (
+                        f" · model ≥ {record.ram_bytes / 1024:.1f} KB RAM, "
+                        f"≥ {record.flash_bytes / 1024:.1f} KB flash {'✓' if record.fits else '✗'}"
+                    )
+                out.append(Choice(board.board, board.board, detail))
+            return out
         if key == "quantization":
             return [Choice(value, label, detail) for value, label, detail in QUANTIZATIONS]
+        if key == "agents_md":
+            return [
+                Choice(False, "no", "only the manifest"),
+                Choice(
+                    True, "yes", "a guide for coding agents beside it; never over an existing one"
+                ),
+            ]
         if key == "output" and data is not None:
             out = []
             for column in data.columns:
@@ -446,6 +712,8 @@ class Session:
             return ", ".join(used)
         if key == "boards":
             return ", ".join(value)
+        if key == "agents_md":
+            return "yes" if value else "no"
         if key == "params":
             return " · ".join(f"{k} {v}" for k, v in value.items())
         return str(value)
@@ -514,6 +782,11 @@ class Session:
             return "Lower case letters, digits and -, at least 3 characters."
         if key == "file":
             return "The manifest is a new file; an existing one is never changed without asking."
+        if key == "agents_md":
+            return (
+                "A short guide for coding agents: the commands, the exit codes, and what is "
+                "yours to decide. An existing AGENTS.md is never changed."
+            )
         return "Nothing is written until you choose to write."
 
     # --- answering ------------------------------------------------------------------------------
@@ -570,9 +843,11 @@ class Session:
             except ProfileError as error:
                 return str(error)
             if not any(c.proposal for c in self.data.columns) and len(self.data.columns) < 2:
+                self._unusable = True
                 return "the data has no column a model could read"
             images = [c.name for c in self.data.columns if c.image_like]
             if images and len(self.data.columns) <= 2:
+                self._unusable = True
                 return (
                     f"the column {images[0]} names image files: init does not set up image "
                     "inputs yet; see docs/ref/manifest/input-features.md"
@@ -684,8 +959,13 @@ class Session:
             if not path.parent.is_dir():
                 return f"no directory {path.parent}"
             if path.exists() and not (self.overwrite or str(value).endswith("!")):
-                return f"{text} exists; choose another name, or end it with ! to replace it"
+                return (
+                    f"{text} exists; choose another name, or confirm replacing it "
+                    "(--overwrite, or end the name with !)"
+                )
             return None
+        if key == "agents_md":
+            return None if isinstance(value, bool) else "yes or no"
         if key == "review":
             return None
         return f"unknown question {key}"
@@ -734,6 +1014,28 @@ class Session:
         if cache not in self._windows:
             self._windows[cache] = windows.table(labels, files, kind, extra=extra, fits=fits)
         return self._windows[cache]
+
+    def board_bounds(self) -> dict[str, memory.BoardMemory]:
+        """The model's floors against every registered board, once they can be estimated."""
+        spec = self._spec()
+        params = self.value("params")
+        if spec is None or params is None or not self.features():
+            return {}
+        boards = list(self.boards)
+        try:
+            result = memory.estimate(
+                self.features(),
+                self.value("window") if spec.consumes_window else None,
+                spec,
+                params,
+                self.value("output_type") or "category",
+                self.classes(),
+                self.value("quantization") or "int8",
+                boards,
+            )
+        except Exception:  # parameters the template refuses: no figure rather than a wrong one
+            return {}
+        return {record.board: record for record in memory.board_memory(result, boards)}
 
     def estimate(self) -> memory.Estimate | None:
         spec = self._spec()
@@ -959,10 +1261,36 @@ class Session:
             outcome = load_manifest(Path(temporary))
             if outcome.findings:
                 return target, outcome.findings
-            os.replace(temporary, target)
+            # Feature 015, research R8: the guide is placed first, exclusively, then the manifest
+            # is moved into place; if that fails, the guide just created goes too.
+            self.guide = None
+            placed = None
+            if self.value("agents_md"):
+                from caravan.init import guide
+
+                placed = guide.place(target.parent, guide.render(target.name))
+                self.guide = "written" if placed is not None else "kept"
+            try:
+                os.replace(temporary, target)
+            except BaseException:
+                if placed is not None:
+                    placed.unlink(missing_ok=True)
+                self.guide = None
+                raise
             return target, []
         except DocumentError:
             raise
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
+
+
+def flow_text(value: Any) -> str:
+    """A value as a YAML flow mapping or sequence, as ``--params`` reads it."""
+    if isinstance(value, Mapping):
+        return "{" + ", ".join(f"{key}: {flow_text(item)}" for key, item in value.items()) + "}"
+    if isinstance(value, list | tuple):
+        return "[" + ", ".join(flow_text(item) for item in value) + "]"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)

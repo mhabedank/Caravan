@@ -54,6 +54,10 @@ class WindowTable:
     proposal: int | None
     reason: str
     rule: str
+    #: Which rule made the proposal (feature 015, research R1): ``criteria`` when a size meets the
+    #: table's own criteria (certain), ``fallback`` when the fewest-lost size was taken
+    #: (uncertain), ``none`` when no size yields windows (the data cannot be set up).
+    path: str = "criteria"
 
     def row(self, size: int) -> WindowRow | None:
         return next((row for row in self.rows if row.size == size), None)
@@ -164,7 +168,7 @@ def table(
                 f"{best.size} rows {best.lost_share:.0%} of windows mix two labels and every "
                 f"class keeps at least {min(best.test.values())} test windows"
             )
-        return WindowTable(rows, classes, best.size, reason, rule)
+        return WindowTable(rows, classes, best.size, reason, rule, "criteria")
     usable = [row for row in rows if row.usable]
     if usable:
         best = min(usable, key=lambda row: (row.lost_share, -row.size))
@@ -172,8 +176,10 @@ def table(
             f"no size keeps {MIN_TEST_PER_CLASS} test windows of every class with at most "
             f"{MAX_LOST:.0%} lost; {best.size} rows loses the fewest"
         )
-        return WindowTable(rows, classes, best.size, reason, rule)
-    return WindowTable(rows, classes, None, "no candidate size yields windows in this data", rule)
+        return WindowTable(rows, classes, best.size, reason, rule, "fallback")
+    return WindowTable(
+        rows, classes, None, "no candidate size yields windows in this data", rule, "none"
+    )
 
 
 def strip(

@@ -165,3 +165,81 @@ def panel(result: Estimate, boards: Sequence[Any]) -> list[str]:
     peak = result.ram.counted_layers[0] if result.ram.counted_layers else "—"
     lines.append(f"RAM peak at {peak}; {LABEL}")
     return lines
+
+
+# --- one line per board, for the proposal (feature 015, research R7) --------------------------
+
+#: The label printed once under the memory lines of a proposal (Principle IV).
+SHORT_LABEL = "lower bounds, estimated before building; build checks again"
+
+
+@dataclass(frozen=True)
+class BoardMemory:
+    """One chosen board against the model's floors (data-model "Board memory")."""
+
+    board: str
+    flash_bytes: int
+    ram_bytes: int
+    #: ``None`` when the board description states no figure.
+    board_flash_bytes: int | None
+    board_ram_bytes: int | None
+    #: ``below``, ``exceeds`` or ``unknown`` per resource; anything but ``below`` is marked.
+    flash_verdict: str
+    ram_verdict: str
+    peak_layer: str
+    label: str = LABEL
+
+    @property
+    def fits(self) -> bool:
+        return self.flash_verdict == "below" and self.ram_verdict == "below"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "board": self.board,
+            "flash_bytes": self.flash_bytes,
+            "board_flash_bytes": self.board_flash_bytes,
+            "flash_verdict": self.flash_verdict,
+            "ram_bytes": self.ram_bytes,
+            "board_ram_bytes": self.board_ram_bytes,
+            "ram_verdict": self.ram_verdict,
+            "peak_layer": self.peak_layer,
+            "label": self.label,
+        }
+
+
+def board_memory(result: Estimate, boards: Sequence[Any]) -> list[BoardMemory]:
+    """The estimate as one record per board, from the same verdicts ``build`` reaches."""
+    out = []
+    peak = result.ram.counted_layers[0] if result.ram.counted_layers else "—"
+    for board in boards:
+        found = {v.resource: v for v in result.verdicts if v.board == board.board}
+        flash, ram = found[result.flash.resource], found[result.ram.resource]
+        out.append(
+            BoardMemory(
+                board=board.board,
+                flash_bytes=result.flash.floor_bytes,
+                ram_bytes=result.ram.floor_bytes,
+                board_flash_bytes=flash.board_bytes,
+                board_ram_bytes=ram.board_bytes,
+                flash_verdict=flash.verdict,
+                ram_verdict=ram.verdict,
+                peak_layer=peak,
+            )
+        )
+    return out
+
+
+def _kb(count: int | None) -> str:
+    if count is None:
+        return "?"
+    return f"{count / 1024:.1f}".removesuffix(".0")
+
+
+def line(record: BoardMemory) -> str:
+    """``s32k144  flash ≥ 9.8 of 512 KB · RAM ≥ 2.6 of 64 KB  ✓`` (contracts/cli-init.md)."""
+    mark = "✓" if record.fits else "✗"
+    return (
+        f"{record.board:<9} flash ≥ {_kb(record.flash_bytes)} of "
+        f"{_kb(record.board_flash_bytes)} KB · RAM ≥ {_kb(record.ram_bytes)} of "
+        f"{_kb(record.board_ram_bytes)} KB  {mark}"
+    )

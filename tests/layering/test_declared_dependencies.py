@@ -101,12 +101,12 @@ def extra_requirements() -> dict[str, list[Requirement]]:
     return out
 
 
-def test_the_extras_are_the_three_the_plans_chose() -> None:
-    # Updated by feature 003 from "train is the only extra", and by feature 013 for `authoring`
-    # (constitution v4.4.0). Three of the four Principle XII allows; the fourth is shared by
-    # benchmarking and publication.
+def test_the_extras_are_the_two_the_plans_chose() -> None:
+    # Updated by feature 003 from "train is the only extra", by feature 013 for `authoring`, and by
+    # feature 015, which removed `authoring` again (constitution v4.5.0). Two of the four Principle
+    # XII allows; benchmarking and publication have none yet.
     extras = metadata(DISTRIBUTION).get_all("Provides-Extra") or []
-    assert sorted(extras) == ["authoring", "train", "verify"]
+    assert sorted(extras) == ["train", "verify"]
 
 
 def test_every_dependency_of_the_training_extra_is_marked() -> None:

@@ -77,14 +77,16 @@ def test_a_third_party_template_with_a_starter_is_offered(tmp_path) -> None:
     assert session.value("params") == {"hidden": [4]}
 
 
-@pytest.mark.parametrize("name", ["synthetic", "frames", "anomaly"])
-def test_the_dialogue_and_no_input_write_the_same_bytes(tmp_path, monkeypatch, name) -> None:
+@pytest.mark.parametrize("name", ["synthetic", "frames", "anomaly", "recordings"])
+def test_the_line_mode_and_yes_write_the_same_bytes(tmp_path, monkeypatch, name) -> None:
     monkeypatch.chdir(tmp_path)
     args = ["--dataset", str(DATA / name), "--board", "esp32"]
     monkeypatch.setattr("sys.stdin", io.StringIO(""))
-    assert main(["init", "a.yaml", "--no-input", *args]) == EXIT_OK
-    assert main(["init", "b.yaml", "--no-input", *args]) == EXIT_OK
+    assert main(["init", "a.yaml", "--yes", *args]) == EXIT_OK
+    assert main(["init", "b.yaml", "--yes", *args]) == EXIT_OK
+    # The line mode with a person (feature 015): Enter at every question and at the decision.
+    monkeypatch.setattr("caravan.cli.init._terminal", lambda: True)
     monkeypatch.setattr("sys.stdin", io.StringIO("\n" * 20))
-    assert main(["init", "c.yaml", "--plain", *args]) == EXIT_OK
+    assert main(["init", "c.yaml", *args]) == EXIT_OK
     first = (tmp_path / "a.yaml").read_bytes()
     assert first == (tmp_path / "b.yaml").read_bytes() == (tmp_path / "c.yaml").read_bytes()

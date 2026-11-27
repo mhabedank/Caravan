@@ -59,13 +59,6 @@ train = [
 # 7 packages against `train`'s 1,971 and 41, with no training framework in its graph.
 verify = ["ai-edge-litert>=2.3; python_version < '3.15'"]
 
-# The third of the four extras: authoring (Principle XII, constitution v4.4.0). The full-screen
-# interface of `caravan init` (feature 013); the line dialogue in the default installation asks the
-# same questions and writes the same file without it. Textual is pure Python and declares Python
-# 3.9 and later, so no marker narrows it. Measured 2026-11-17: textual 8.2 and its six dependencies
-# (rich, markdown-it-py, mdit-py-plugins, platformdirs, pygments, typing-extensions).
-authoring = ["textual>=8.2"]
-
 [project.scripts]
 caravan = "caravan.cli.main:main"
 
