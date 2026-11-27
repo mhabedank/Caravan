@@ -321,10 +321,15 @@ then the window: the window table is shown, as in feature 013.
   - **convention** — not derived from the data: a documented starting value, such as `int8`, the
     budget the shipped examples use (labelled as not a recommendation), the template's starting
     parameters, a name from the data directory;
-  - **open** — no proposal: the boards always, and the output column when no column qualifies.
+  - **open** — no proposal: the boards always, the output column when no column qualifies, and the
+    budget of a `number` output, which is in the column's own unit, so no shipped value carries
+    over.
 - **FR-003**: A rule MAY mark its proposal certain only if its proposals agree with the intended
   manifest on every tabular dataset shipped with Caravan; a rule MAY be stricter than that. Each of
-  the seven differences measured on 2026-11-24 (Context) MUST come out uncertain or open.
+  the seven differences measured on 2026-11-24 (Context) MUST come out uncertain or open. For the
+  window, agreement means meeting the window table's own criteria (feature 013, FR-031) rather than
+  matching the shipped manifests' sizes: those were chosen before the table existed, and where they
+  differ from the proposal they fail its criteria (research R1).
 - **FR-004**: No board MUST be proposed (feature 013, FR-034; review A10).
 - **FR-005**: The proposal MUST be compact: one line per item, input columns grouped by proposed
   type, uncertain columns named one by one, the certainty said in words.

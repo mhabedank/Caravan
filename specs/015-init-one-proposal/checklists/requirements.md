@@ -48,3 +48,7 @@
   it. FR-006: one line per chosen board with the lower bounds and a mark where one is exceeded; User
   Story 1 (scenarios 7 and 8), FR-022 and the Principle IV and V notes follow. No marker remains;
   every item passes.
+- Planning (2026-11-27) amended two requirements from measurements (research R1): FR-002 lists the
+  budget of a `number` output as open (no shipped value carries over its unit), and FR-003 measures
+  the window against the window table's criteria, because the shipped manifests' sizes predate the
+  table and fail its criteria where they differ from the proposal. Every item still passes.
