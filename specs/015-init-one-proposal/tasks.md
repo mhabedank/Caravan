@@ -28,7 +28,7 @@ Single project: `src/caravan/`, `tests/` at the repository root. Code paths foll
 
 ## Phase 1: Setup
 
-- [ ] T001 Amend the constitution to v4.5.0 (MINOR) in `.specify/memory/constitution.md` through
+- [X] T001 Amend the constitution to v4.5.0 (MINOR) in `.specify/memory/constitution.md` through
   `/speckit-constitution`, with the substance of research R10: (1) Principle XII's `init` bound
   becomes "one new manifest and, when asked, one `AGENTS.md` beside it, and nothing else", the guide
   written only after the manifest validates, never over or into an existing `AGENTS.md`, repeating no

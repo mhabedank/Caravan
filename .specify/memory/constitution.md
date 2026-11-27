@@ -1,7 +1,43 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 4.3.0 → 4.4.0
+Version change: 4.4.0 → 4.5.0
+Bump rationale: MINOR. One bound of `init` in Principle XII is materially changed — it may write a
+second file, an `AGENTS.md`, under bounds of its own — and the extras budget is re-grouped back to
+the slots it had before v4.4.0. No principle is removed or redefined, no gate is loosened, and the
+counts (six direct dependencies, four extras) are unchanged. Source: feature 015
+(specs/015-init-one-proposal), the owner's answers of 2026-11-26 and go-ahead of 2026-11-27.
+
+Why: feature 015 rebuilds `caravan init` around one proposal and, following the UX research of
+November 2026, treats coding agents as users of their own. On request `init` now writes a short
+guide for them beside the manifest. The bound "one new manifest and nothing else" did not allow
+that. The same feature removes the full-screen interface of `init` and its `authoring` extra (the
+owner, 2026-11-26: with one proposal and a few questions, a second front end has little left to do
+and every question asked twice can drift apart), so the slot v4.4.0 named for it is given back.
+
+What the new bounds protect: the guide must not become a second description of the model
+(Principle I), so it repeats no manifest value; it must not certify anything (Principle VI); it must
+not turn an agent into a source of training data, labels or selection signals (Principle XI); and it
+must never overwrite or edit a file the author already has — an `AGENTS.md` is commonly the
+author's own, so not even the confirmation to replace the manifest reaches it.
+
+Modified principles:
+- XII. Small Core, Few Dependencies: the `init` bullet admits the optional `AGENTS.md` and states
+  its bounds; "a richer interface MAY come only as an optional extra" no longer names a slot; the
+  dependency-budget bullet names the slots training, verification, benchmarking and publication.
+
+Added sections: none. Removed sections: none.
+
+Unchanged on purpose: six direct runtime dependencies, four extras, the layering rule, every other
+bound of `init` (validated before success, default installation, offline, usable without a
+terminal, never editing an existing manifest).
+
+Follow-up (not done by this amendment; tasks of feature 015):
+- pyproject.toml loses the `authoring` extra, ci.yml its job, the layering tests their expectation
+  of it (T003–T006).
+- `caravan init --agents-md` and the guide's text (contracts/agents-md.md, T032–T036).
+
+Previous report: 4.3.0 → 4.4.0
 Bump rationale: MINOR. Principle XII's extras budget is re-grouped, not enlarged: one of its four
 slots is named for authoring, and benchmarking and publication share one. No principle is removed
 or redefined and no gate is loosened. Source: the owner, 2026-11-17 ("TUI jetzt bauen", Textual,
@@ -829,23 +865,28 @@ builds models must make that ban structural, not a matter of how each user happe
   `build`, `train`, `quantize`, `export`, `templates`, `boards` and `init`, plus one verb per
   pipeline stage named in the Pipeline & Artifact Contract when that stage is built.
 - `init` is admitted as an authoring aid, not as a stage, and under these bounds:
-  - it writes one new manifest and nothing else: no run directory, no cache, no report, and never
-    over an existing file without the author's explicit confirmation;
+  - it writes one new manifest and, when asked, one `AGENTS.md` beside it, and nothing else: no
+    run directory, no cache, no report, and never over an existing file without the author's
+    explicit confirmation;
+  - the `AGENTS.md` is a guide for coding agents working in the author's project. It is written
+    only after the manifest has validated, never over or into an existing `AGENTS.md` — the
+    author's confirmation to replace the manifest does not extend to it —, repeats no value of the
+    manifest beyond its file name, claims no check of a licence, a permission or a use (Principle
+    VI), and describes no workflow that Principle XI forbids;
   - what it writes is an ordinary manifest of the current schema version, one a person could have
     written by hand, and it MUST pass `validate` before `init` reports success;
   - it asks only for what a stage reads (Principles I and VI) and offers only registered templates
     and boards (Principle VII);
   - it runs in the default installation, offline, on every supported Python version, and adds no
-    runtime dependency to it; a richer interface MAY come only as an optional extra — the
-    authoring extra of the budget below — and MUST ask the same questions and write the same file;
+    runtime dependency to it; a richer interface MAY come only as an optional extra within the
+    budget below, and MUST ask the same questions and write the same files;
   - it MUST be usable without a terminal, with every answer given up front, so that it is tested
     like any other verb;
   - it never edits an existing manifest. Editing one while keeping the author's comments and
     layout is a different capability and would need its own amendment.
 - Dependency budget: the default installation MUST have at most six direct runtime dependencies,
   and the project MUST have at most four optional extras, one per purpose: training,
-  verification, authoring (the full-screen interface of `init`), and one shared by benchmarking and
-  publication.
+  verification, benchmarking and publication.
 - Layering: manifest validation, the board database, footprint analysis, the requirement record,
   run reports and the interface contract MUST NOT import a training framework. Training and
   quantization live behind an optional extra. A test MUST assert that importing the core does not
@@ -1081,4 +1122,4 @@ These choices are architectural and apply until amended with a stated rationale:
   touches. Non-compliance blocks the gate in question until it is resolved or justified as a
   documented deviation.
 
-**Version**: 4.4.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-11-17
+**Version**: 4.5.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-11-27
